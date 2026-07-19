@@ -901,6 +901,7 @@ function updateLaporan() {
         return p.tanggalISO === hariIniISO;
     });
 
+    // URUTKAN TRANSAKSI TERBARU DIATAS
     transaksiTerfilter.sort((a, b) => b.id.localeCompare(a.id));
     pengeluaranTerfilter.sort((a, b) => b.id.localeCompare(a.id));
 
