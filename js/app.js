@@ -44,79 +44,93 @@ function dapatkanTanggalLokal() {
     return lokal.toISOString().split('T')[0];
 }
 
-function toggleFormMenu() {
-    const form = document.getElementById('formTambahMenu');
-    form.classList.toggle('hidden');
+/* ========================================================
+   FUNGSI MANAJEMEN MASTER DATA BARANG & PROFIT
+   ======================================================== */
+
+function hitungEstimasiProfitMaster() {
+    let isi = parseInt(document.getElementById('masterIsi').value) || 1;
+    let hargaBeliTotal = parseInt(document.getElementById('masterHargaBeli').value) || 0;
+    let hargaJual = parseInt(document.getElementById('masterHargaJual').value) || 0;
+
+    let hppSatuan = Math.round(hargaBeliTotal / (isi > 0 ? isi : 1));
+    let profitSatuan = hargaJual - hppSatuan;
+
+    let elProfit = document.getElementById('masterEstimasiProfit');
+    if (profitSatuan >= 0) {
+        elProfit.className = "p-2 bg-emerald-100 text-emerald-800 text-xs font-bold rounded border border-emerald-300";
+        elProfit.innerText = `Rp ${profitSatuan.toLocaleString('id-ID')} / ${document.getElementById('masterSatuan').value} (HPP: Rp ${hppSatuan.toLocaleString('id-ID')})`;
+    } else {
+        elProfit.className = "p-2 bg-red-100 text-red-800 text-xs font-bold rounded border border-red-300";
+        elProfit.innerText = `Rugi: Rp ${profitSatuan.toLocaleString('id-ID')} / ${document.getElementById('masterSatuan').value} (HPP: Rp ${hppSatuan.toLocaleString('id-ID')})`;
+    }
 }
 
-function tambahMenuDatabase() {
-    let nama = document.getElementById('menuNama').value.trim();
-    let harga = parseInt(document.getElementById('menuHarga').value) || 0;
-    let kategori = document.getElementById('menuKategori').value;
+function simpanMasterDatabase() {
+    let id = document.getElementById('masterId').value;
+    let nama = document.getElementById('masterNama').value.trim();
+    let kategori = document.getElementById('masterKategori').value;
+    let satuan = document.getElementById('masterSatuan').value || 'pcs';
+    let isi = parseInt(document.getElementById('masterIsi').value) || 1;
+    let hargaBeliTotal = parseInt(document.getElementById('masterHargaBeli').value) || 0;
+    let hargaJual = parseInt(document.getElementById('masterHargaJual').value) || 0;
 
-    if(!nama || harga <= 0) {
-        return alert('Mohon isi nama menu dan harga jual dengan benar!');
+    if (!nama || hargaJual <= 0) {
+        return alert('Mohon isi nama barang dan harga jual dengan benar!');
     }
 
-    let idBarang = 'MENU-' + Date.now();
-    let dataMenuBaru = {
+    let hppSatuan = Math.round(hargaBeliTotal / (isi > 0 ? isi : 1));
+    let idBarang = id ? id : 'MENU-' + Date.now();
+
+    let dataBarang = {
         id: idBarang,
         nama: nama,
-        harga: harga,
-        kategori: kategori
+        kategori: kategori,
+        satuan: satuan,
+        isi: isi,
+        hargaBeliTotal: hargaBeliTotal,
+        hargaBeli: hppSatuan, // HPP per satuan
+        harga: hargaJual
     };
 
-    if(db) {
-        db.ref('menu_tambahan/' + idBarang).set(dataMenuBaru);
-    } else {
-        databaseMenu.push(dataMenuBaru);
-        filterKategori(kategori);
-    }
-
-    document.getElementById('menuNama').value = '';
-    document.getElementById('menuHarga').value = '';
-    toggleFormMenu();
-    alert('Menu baru berhasil ditambahkan!');
-}
-
-/* ========================================================
-   FUNGSI EDIT / KOREKSI & HAPUS MENU
-   ======================================================== */
-function editMenuDatabase(id) {
-    let item = databaseMenu.find(m => String(m.id) === String(id));
-    if (!item) return alert("Menu tidak ditemukan!");
-
-    let namaBaru = prompt("Koreksi nama menu:", item.nama);
-    if (namaBaru === null) return;
-    namaBaru = namaBaru.trim();
-
-    let hargaBaruInput = prompt("Koreksi harga jual (Rp):", item.harga);
-    if (hargaBaruInput === null) return;
-    let hargaBaru = parseInt(hargaBaruInput) || 0;
-
-    if (!namaBaru || hargaBaru <= 0) {
-        return alert("Nama menu dan harga jual harus diisi dengan benar!");
-    }
-
-    item.nama = namaBaru;
-    item.harga = hargaBaru;
-
     if (db) {
-        db.ref('menu_tambahan/' + id).update({
-            nama: namaBaru,
-            harga: hargaBaru
-        });
+        db.ref('menu_tambahan/' + idBarang).set(dataBarang);
+    } else {
+        let idx = databaseMenu.findIndex(m => String(m.id) === String(idBarang));
+        if (idx !== -1) {
+            databaseMenu[idx] = dataBarang;
+        } else {
+            databaseMenu.push(dataBarang);
+        }
+        renderMasterData();
+        renderMenu();
     }
 
-    renderMenu();
-    alert("Menu berhasil diperbarui!");
+    resetFormMaster();
+    alert('Master data barang berhasil disimpan!');
 }
 
-function hapusMenuDatabase(id) {
+function editMasterData(id) {
+    let item = databaseMenu.find(m => String(m.id) === String(id));
+    if (!item) return alert("Barang tidak ditemukan!");
+
+    document.getElementById('masterId').value = item.id;
+    document.getElementById('masterNama').value = item.nama;
+    document.getElementById('masterKategori').value = item.kategori || 'topping';
+    document.getElementById('masterSatuan').value = item.satuan || 'pcs';
+    document.getElementById('masterIsi').value = item.isi || 1;
+    document.getElementById('masterHargaBeli').value = item.hargaBeliTotal || ((item.hargaBeli || 0) * (item.isi || 1));
+    document.getElementById('masterHargaJual').value = item.harga || 0;
+
+    document.getElementById('masterFormTitle').innerText = '✏️ Edit Master Barang: ' + item.nama;
+    hitungEstimasiProfitMaster();
+}
+
+function hapusMasterData(id) {
     let item = databaseMenu.find(m => String(m.id) === String(id));
     if (!item) return;
 
-    if (!confirm(`Apakah Anda yakin ingin menghapus menu [ ${item.nama} ]?`)) return;
+    if (!confirm(`Apakah Anda yakin ingin menghapus barang [ ${item.nama} ] dari Master Data?`)) return;
 
     let idx = databaseMenu.findIndex(m => String(m.id) === String(id));
     if (idx !== -1) databaseMenu.splice(idx, 1);
@@ -125,10 +139,57 @@ function hapusMenuDatabase(id) {
         db.ref('menu_tambahan/' + id).remove();
     }
 
+    renderMasterData();
     renderMenu();
-    alert("Menu berhasil dihapus!");
+    alert("Data berhasil dihapus!");
 }
-/* ======================================================== */
+
+function resetFormMaster() {
+    document.getElementById('masterId').value = '';
+    document.getElementById('masterNama').value = '';
+    document.getElementById('masterIsi').value = '1';
+    document.getElementById('masterHargaBeli').value = '';
+    document.getElementById('masterHargaJual').value = '';
+    document.getElementById('masterFormTitle').innerText = '➕ Input Master Barang Baru';
+    hitungEstimasiProfitMaster();
+}
+
+function renderMasterData() {
+    let tbody = document.getElementById('tabelMasterData');
+    if (!tbody) return;
+
+    if (databaseMenu.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 italic">Belum ada data master barang.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    databaseMenu.forEach(item => {
+        let isi = item.isi || 1;
+        let hBeliSatuan = item.hargaBeli || 0;
+        let profit = (item.harga || 0) - hBeliSatuan;
+
+        html += `
+            <tr class="hover:bg-orange-50/40 transition border-b border-gray-100">
+                <td class="p-3 font-bold text-gray-800 uppercase">${item.nama}</td>
+                <td class="p-3 text-center">
+                    <span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-bold uppercase">${item.kategori || 'umum'}</span>
+                </td>
+                <td class="p-3 text-center text-gray-600">${isi} ${item.satuan || 'pcs'}</td>
+                <td class="p-3 text-right font-medium text-gray-500">Rp ${hBeliSatuan.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-bold text-gray-800">Rp ${(item.harga || 0).toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-extrabold ${profit >= 0 ? 'text-emerald-600 bg-emerald-50/40' : 'text-red-500 bg-red-50/40'}">
+                    Rp ${profit.toLocaleString('id-ID')}
+                </td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="editMasterData('${item.id}')" class="px-2 py-1 bg-blue-500 text-white text-[10px] rounded font-bold hover:bg-blue-600 cursor-pointer">✏️ Edit</button>
+                    <button onclick="hapusMasterData('${item.id}')" class="px-2 py-1 bg-red-500 text-white text-[10px] rounded font-bold hover:bg-red-600 cursor-pointer">❌ Hapus</button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
 
 if (db) {
     db.ref('menu_tambahan').on('value', (snapshot) => {
@@ -138,13 +199,18 @@ if (db) {
                 const adaDiMenu = databaseMenu.find(dm => String(dm.id) === String(m.id));
                 if(adaDiMenu) {
                     adaDiMenu.nama = m.nama;
+                    adaDiMenu.hargaBeli = m.hargaBeli || 0;
+                    adaDiMenu.hargaBeliTotal = m.hargaBeliTotal || 0;
                     adaDiMenu.harga = m.harga;
+                    adaDiMenu.isi = m.isi || 1;
+                    adaDiMenu.satuan = m.satuan || 'pcs';
                     adaDiMenu.kategori = m.kategori;
                 } else {
                     databaseMenu.push(m);
                 }
             });
             renderMenu();
+            renderMasterData();
         }
     });
 
@@ -218,7 +284,9 @@ function hitungOtomatisTerjualTitipan() {
             databaseMenu.push({
                 id: bt.id,
                 nama: bt.nama,
+                hargaBeli: bt.hargaBeli,
                 harga: bt.hargaJual,
+                satuan: 'pcs',
                 kategori: 'jajanan'
             });
         }
@@ -313,6 +381,7 @@ function hapusBarangTitipan(id) {
 
 function renderMenu() {
     const container = document.getElementById('container-menu');
+    if (!container) return;
     container.innerHTML = '';
     const menuTerfilter = databaseMenu.filter(item => item.kategori === kategoriAktif);
 
@@ -322,15 +391,25 @@ function renderMenu() {
     }
 
     menuTerfilter.forEach(item => {
+        let hBeli = item.hargaBeli || 0;
+        let profit = item.harga - hBeli;
+        let satuan = item.satuan || 'pcs';
+
         container.innerHTML += `
             <div class="p-2 sm:p-3 bg-white border-2 border-orange-200 rounded-xl flex flex-col justify-between shadow-sm relative group hover:border-orange-400 transition">
                 <div onclick="tambahItem('${item.id}')" class="cursor-pointer flex flex-col justify-between h-full">
-                    <span class="font-bold text-[11px] sm:text-xs text-gray-700 uppercase tracking-tight line-clamp-2">${item.nama}</span>
-                    <span class="text-orange-600 font-extrabold text-xs sm:text-sm my-1">Rp ${item.harga.toLocaleString('id-ID')}</span>
+                    <div>
+                        <span class="font-bold text-[11px] sm:text-xs text-gray-700 uppercase tracking-tight line-clamp-2">${item.nama}</span>
+                        <p class="text-[9px] text-gray-400">Modal: Rp ${hBeli.toLocaleString('id-ID')} / ${satuan}</p>
+                    </div>
+                    <div class="my-1">
+                        <span class="text-orange-600 font-extrabold text-xs sm:text-sm">Rp ${item.harga.toLocaleString('id-ID')}</span>
+                        <span class="text-[9px] font-bold text-emerald-600 block">Laba: Rp ${profit.toLocaleString('id-ID')}</span>
+                    </div>
                 </div>
                 <div class="flex justify-between items-center border-t border-gray-100 pt-1.5 mt-1 text-[10px]">
-                    <button onclick="editMenuDatabase('${item.id}')" class="text-blue-600 font-bold hover:text-blue-800 cursor-pointer flex items-center gap-0.5">✏️ Edit</button>
-                    <button onclick="hapusMenuDatabase('${item.id}')" class="text-red-500 font-bold hover:text-red-700 cursor-pointer flex items-center gap-0.5">❌ Hapus</button>
+                    <button onclick="editMasterData('${item.id}'); switchTab('master');" class="text-blue-600 font-bold hover:text-blue-800 cursor-pointer flex items-center gap-0.5">✏️ Edit</button>
+                    <button onclick="hapusMasterData('${item.id}')" class="text-red-500 font-bold hover:text-red-700 cursor-pointer flex items-center gap-0.5">❌ Hapus</button>
                 </div>
             </div>
         `;
@@ -383,7 +462,7 @@ function tambahItem(id) {
     if (ada) {
         ada.qty += 1;
     } else {
-        keranjang.push({ ...produk, qty: 1 });
+        keranjang.push({ ...produk, hargaBeli: produk.hargaBeli || 0, satuan: produk.satuan || 'pcs', qty: 1 });
     }
     updateKeranjang();
 }
@@ -426,7 +505,7 @@ function updateKeranjang() {
             <div class="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-200">
                 <div class="flex-1 min-w-0 pr-1">
                     <p class="font-bold text-[11px] text-gray-800 uppercase truncate">${item.nama}</p>
-                    <p class="text-[10px] text-gray-500">Rp ${item.harga.toLocaleString('id-ID')}</p>
+                    <p class="text-[10px] text-gray-500">Rp ${item.harga.toLocaleString('id-ID')} / ${item.satuan || 'pcs'}</p>
                 </div>
                 <div class="flex items-center gap-1">
                     <button onclick="ubahQty('${item.id}', -1)" class="w-5 h-5 bg-gray-200 rounded font-bold text-xs flex items-center justify-center text-gray-600 hover:bg-gray-300 cursor-pointer">-</button>
@@ -451,17 +530,25 @@ function hitungDanRenderRekapItem(transaksiTerfilter) {
     transaksiTerfilter.forEach(n => {
         if (n.metodePembayaran !== 'MODAL_MASUK' && n.items && n.items.length > 0) { 
             n.items.forEach(item => {
+                let hBeli = item.hargaBeli || 0;
+                let hJual = item.harga || 0;
+                let profitSatuan = hJual - hBeli;
+
                 if (!rekapMap[item.nama]) {
                     rekapMap[item.nama] = {
                         nama: item.nama,
                         kategori: item.kategori || 'lainnya',
-                        harga: item.harga || 0,
+                        hargaBeli: hBeli,
+                        harga: hJual,
+                        satuan: item.satuan || 'pcs',
                         qtyTotal: 0,
-                        subtotal: 0
+                        subtotal: 0,
+                        totalProfit: 0
                     };
                 }
                 rekapMap[item.nama].qtyTotal += item.qty;
-                rekapMap[item.nama].subtotal += (item.harga * item.qty);
+                rekapMap[item.nama].subtotal += (hJual * item.qty);
+                rekapMap[item.nama].totalProfit += (profitSatuan * item.qty);
             });
         }
     });
@@ -476,7 +563,7 @@ function renderTabelRekapItem(dataArray) {
     if (dataArray.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="p-8 text-center text-gray-400 italic text-xs">Tidak ada item yang laku terjual pada periode ini.</td>
+                <td colspan="7" class="p-8 text-center text-gray-400 italic text-xs">Tidak ada item yang laku terjual pada periode ini.</td>
             </tr>
         `;
         return;
@@ -490,9 +577,11 @@ function renderTabelRekapItem(dataArray) {
                 <td class="p-3 text-center">
                     <span class="px-2 py-0.5 bg-orange-100/50 text-orange-700 rounded text-[9px] font-bold uppercase tracking-wider">${item.kategori}</span>
                 </td>
-                <td class="p-3 text-right font-medium text-gray-500">Rp ${item.harga.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-center font-bold text-orange-600 text-sm">${item.qtyTotal.toLocaleString('id-ID')}x</td>
+                <td class="p-3 text-right font-medium text-gray-400">Rp ${(item.hargaBeli || 0).toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-medium text-gray-600">Rp ${item.harga.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-center font-bold text-orange-600 text-sm">${item.qtyTotal.toLocaleString('id-ID')} ${item.satuan}</td>
                 <td class="p-3 text-right font-black text-gray-950">Rp ${item.subtotal.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-black text-emerald-600 bg-emerald-50/30">Rp ${item.totalProfit.toLocaleString('id-ID')}</td>
             </tr>
         `;
     });
@@ -977,6 +1066,7 @@ function updateLaporan() {
     let omsetQris = 0;
     let omsetKonsumsi = 0;
     let omsetModalMasuk = 0;
+    let totalHPPProduk = 0;
 
     transaksiTerfilter.forEach(n => {
         if (n.metodePembayaran === 'QRIS') {
@@ -988,6 +1078,12 @@ function updateLaporan() {
         } else {
             omsetTunai += n.total;
         }
+
+        if (n.metodePembayaran !== 'MODAL_MASUK' && n.items) {
+            n.items.forEach(i => {
+                totalHPPProduk += ((i.hargaBeli || 0) * i.qty);
+            });
+        }
     });
 
     let omsetBisnisTotal = omsetTunai + omsetQris;
@@ -996,7 +1092,9 @@ function updateLaporan() {
     let totalModalPeriode = UANG_MODAL_HARIAN * jumlahHari;
     let totalBeban = pengeluaranTerfilter.reduce((sum, p) => sum + p.biaya, 0);
     
-    let labaRugiBersih = omsetBisnisTotal - totalBeban;
+    // Perhitungan Laba Bersih = Omset Bisnis - HPP Produk Terjual - Pengeluaran Operasional (Beban)
+    let labaKotor = omsetBisnisTotal - totalHPPProduk;
+    let labaRugiBersih = labaKotor - totalBeban;
     let totalUangCashFisik = totalModalPeriode + omsetModalMasuk + omsetTunai - totalBeban;
 
     document.getElementById('statOmset').innerText = 'Rp ' + omsetBisnisTotal.toLocaleString('id-ID');
@@ -1194,15 +1292,18 @@ function updateLaporan() {
 
 function switchTab(tab) {
     document.getElementById('tab-kasir').classList.add('hidden');
+    document.getElementById('tab-master').classList.add('hidden');
     document.getElementById('tab-titipan').classList.add('hidden');
     document.getElementById('tab-pengeluaran').classList.add('hidden');
     document.getElementById('tab-laporan').classList.add('hidden');
     
     document.getElementById('tab-' + tab).classList.remove('hidden');
+    if(tab === 'master') renderMasterData();
     if(tab === 'laporan') updateLaporan();
     if(tab === 'titipan') hitungOtomatisTerjualTitipan();
 }
 
 filterKategori('topping');
 renderPengeluaran();
+renderMasterData();
 hitungOtomatisTerjualTitipan();

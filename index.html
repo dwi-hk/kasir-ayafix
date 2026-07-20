@@ -17,6 +17,7 @@
         <h1 class="text-2xl font-bold tracking-wider">🍊 AYA GROUP KASIR</h1>
         <div class="space-x-1 sm:space-x-2 flex flex-wrap">
             <button onclick="switchTab('kasir')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">🛒 Kasir</button>
+            <button onclick="switchTab('master')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">📂 Master Data</button>
             <button onclick="switchTab('titipan')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">📦 Barang Titipan</button>
             <button onclick="switchTab('pengeluaran')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">💸 Pengeluaran</button>
             <button onclick="switchTab('laporan')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">📊 Rekap & Grafik</button>
@@ -34,38 +35,8 @@
                         <h2 class="text-xl font-bold text-orange-600">➕ Pilihan Menu & Topping</h2>
                         <p class="text-xs text-gray-500">Pilih kategori di bawah, lalu klik item untuk menambah pesanan.</p>
                     </div>
-                    <button onclick="toggleFormMenu()" class="px-3 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-lg shadow hover:bg-emerald-700 transition cursor-pointer">➕ Tambah Menu Baru</button>
                 </div>
 
-                <!-- Form Input Menu Baru -->
-                <div id="formTambahMenu" class="hidden bg-orange-50 p-4 rounded-xl border border-orange-200 mb-4 transition-all duration-300">
-                    <h3 class="text-sm font-bold text-gray-700 mb-2">Form Tambah Kategori / Menu Jual Baru</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Menu:</label>
-                            <input type="text" id="menuNama" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="Contoh: Bakso Mercon">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Jual (Rp):</label>
-                            <input type="number" id="menuHarga" min="0" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Kategori:</label>
-                            <select id="menuKategori" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500">
-                                <option value="topping">🍢 Topping / Krupuk Seblak</option>
-                                <option value="makanan">🍲 Makanan / Bakaran</option>
-                                <option value="dingin">❄️ Minuman Dingin</option>
-                                <option value="panas">☕ Minuman Hangat</option>
-                                <option value="jajanan">🚬 Jajanan / Rokok</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="flex gap-2 justify-end">
-                        <button onclick="toggleFormMenu()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-semibold rounded hover:bg-gray-300 cursor-pointer">Batal</button>
-                        <button onclick="tambahMenuDatabase()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700 cursor-pointer">💾 Simpan Menu</button>
-                    </div>
-                </div>
-                
                 <div class="flex gap-2 mb-4 border-b border-gray-200 pb-3 overflow-x-auto">
                     <button id="btn-kat-topping" onclick="filterKategori('topping')" class="px-4 py-2 bg-orange-500 text-white font-bold text-xs sm:text-sm rounded-lg shadow transition cursor-pointer whitespace-nowrap">🍢 Topping / Krupuk Seblak</button>
                     <button id="btn-kat-makanan" onclick="filterKategori('makanan')" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold text-xs sm:text-sm rounded-lg transition cursor-pointer whitespace-nowrap">🍲 Makanan / Bakaran</button>
@@ -127,6 +98,94 @@
                         <button onclick="cetakNota()" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded shadow hover:bg-blue-700 transition cursor-pointer">🖨️ Cetak Nota</button>
                     </div>
                     <button onclick="bersihkanKeranjang()" class="w-full mt-3 text-xs text-red-500 hover:underline block text-center cursor-pointer">Kosongkan Keranjang</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB MASTER DATA BARANG -->
+        <div id="tab-master" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow border border-orange-100 max-w-6xl mx-auto">
+                <h2 class="text-xl font-bold text-orange-600 mb-4">📂 Master Data Barang & Menu</h2>
+
+                <!-- Form Input / Edit Data Master -->
+                <div class="bg-orange-50 p-4 rounded-xl border border-orange-200 mb-6">
+                    <h3 id="masterFormTitle" class="text-sm font-bold text-gray-700 mb-3">➕ Input Master Barang Baru</h3>
+                    <input type="hidden" id="masterId">
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                        <div class="sm:col-span-1">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Barang:</label>
+                            <input type="text" id="masterNama" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="Contoh: Bakso Mercon">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Kategori:</label>
+                            <select id="masterKategori" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500">
+                                <option value="topping">🍢 Topping / Krupuk Seblak</option>
+                                <option value="makanan">🍲 Makanan / Bakaran</option>
+                                <option value="dingin">❄️ Minuman Dingin</option>
+                                <option value="panas">☕ Minuman Hangat</option>
+                                <option value="jajanan">🚬 Jajanan / Rokok</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Satuan Jual:</label>
+                            <select id="masterSatuan" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500">
+                                <option value="pcs" selected>pcs</option>
+                                <option value="porsi">porsi</option>
+                                <option value="bungkus">bungkus</option>
+                                <option value="pack">pack</option>
+                                <option value="pck">pck</option>
+                                <option value="botol">botol</option>
+                                <option value="cup">cup</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Isi per Beli/Pck:</label>
+                            <input type="number" id="masterIsi" min="1" value="1" oninput="hitungEstimasiProfitMaster()" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="1">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Beli Total/Modal (Rp):</label>
+                            <input type="number" id="masterHargaBeli" min="0" oninput="hitungEstimasiProfitMaster()" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Jual per Satuan (Rp):</label>
+                            <input type="number" id="masterHargaJual" min="0" oninput="hitungEstimasiProfitMaster()" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Laba / Profit Satuan:</label>
+                            <div id="masterEstimasiProfit" class="p-2 bg-emerald-100 text-emerald-800 text-xs font-bold rounded border border-emerald-300">Rp 0</div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 justify-end">
+                        <button onclick="resetFormMaster()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-semibold rounded hover:bg-gray-300 cursor-pointer">Batal / Reset</button>
+                        <button onclick="simpanMasterDatabase()" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700 cursor-pointer">💾 Simpan Data Master</button>
+                    </div>
+                </div>
+
+                <!-- Tabel Master Data -->
+                <div class="overflow-x-auto border border-gray-100 rounded-lg shadow-sm max-h-[500px] overflow-y-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="sticky top-0 bg-orange-50 text-orange-700 uppercase font-bold text-[10px] border-b border-orange-200 z-10">
+                            <tr>
+                                <th class="p-3">Nama Barang</th>
+                                <th class="p-3 text-center">Kategori</th>
+                                <th class="p-3 text-center">Isi / Satuan</th>
+                                <th class="p-3 text-right">Modal / HPP Satuan</th>
+                                <th class="p-3 text-right">Harga Jual</th>
+                                <th class="p-3 text-right">Profit / Satuan</th>
+                                <th class="p-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelMasterData" class="divide-y divide-gray-100 bg-white">
+                            <tr>
+                                <td colspan="7" class="p-4 text-center text-gray-400 italic">Belum ada data master barang.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -318,7 +377,7 @@
                         <p class="text-xs text-gray-500 font-semibold uppercase" id="labelLabaRugi">Laba / Rugi Bersih</p>
                         <p class="text-2xl font-extrabold" id="statLabaRugi">Rp 0</p>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-2 border-t border-gray-200/50 pt-1">*Murni dari Omset Bisnis terpotong Pengeluaran</p>
+                    <p class="text-[10px] text-gray-400 mt-2 border-t border-gray-200/50 pt-1">*Laba Bersih = Omset Bisnis - HPP Terjual - Pengeluaran Beban</p>
                 </div>
 
                 <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col justify-between">
@@ -337,9 +396,9 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                         <div>
                             <h3 class="font-bold text-gray-700 text-base flex items-center gap-2">
-                                📦 Rekap Kuantitas & Pemasukan Per Item (Periode Terpilih)
+                                📦 Rekap Kuantitas, Profit & Total Pemasukan Per Item
                             </h3>
-                            <p class="text-xs text-gray-400 mt-0.5">Menampilkan total jumlah laku dan subtotal penghasilan per produk secara detail sesuai range tanggal.</p>
+                            <p class="text-xs text-gray-400 mt-0.5">Menampilkan HPP/Modal, Harga Jual, Profit Satuan, Total Terjual, serta Total Profit Per Produk.</p>
                         </div>
                         <div class="w-full sm:w-72">
                             <input type="text" id="cariItemRekap" oninput="cariItemDalamRekap()" 
@@ -354,14 +413,16 @@
                                 <tr>
                                     <th class="p-3 font-bold">Nama Item</th>
                                     <th class="p-3 font-bold text-center">Kategori</th>
-                                    <th class="p-3 font-bold text-right">Harga Satuan</th>
-                                    <th class="p-3 font-bold text-center">Total Terjual (Qty)</th>
-                                    <th class="p-3 font-bold text-right">Total Pemasukan</th>
+                                    <th class="p-3 font-bold text-right">Modal (HPP)</th>
+                                    <th class="p-3 font-bold text-right">Harga Jual</th>
+                                    <th class="p-3 font-bold text-center">Total Terjual</th>
+                                    <th class="p-3 font-bold text-right">Total Omset</th>
+                                    <th class="p-3 font-bold text-right">Total Laba Kotor</th>
                                 </tr>
                             </thead>
                             <tbody id="tabelRekapItemTerjual" class="divide-y divide-gray-100">
                                 <tr>
-                                    <td colspan="5" class="p-4 text-center text-gray-400 italic">Belum ada data untuk ditampilkan.</td>
+                                    <td colspan="7" class="p-4 text-center text-gray-400 italic">Belum ada data untuk ditampilkan.</td>
                                 </tr>
                             </tbody>
                         </table>
