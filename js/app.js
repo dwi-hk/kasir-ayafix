@@ -1,5 +1,3 @@
-// js/app.js
-
 const firebaseConfig = {
     apiKey: "AIzaSyCx0u4ka3lhjiPm84hI8U7v37GNusCvPaE",
     authDomain: "kasir-aya-group-e6fb4.firebaseapp.com",
@@ -89,7 +87,7 @@ function simpanMasterDatabase() {
         satuan: satuan,
         isi: isi,
         hargaBeliTotal: hargaBeliTotal,
-        hargaBeli: hppSatuan, // HPP per satuan
+        hargaBeli: hppSatuan,
         harga: hargaJual
     };
 
@@ -154,17 +152,21 @@ function resetFormMaster() {
     hitungEstimasiProfitMaster();
 }
 
-function renderMasterData() {
+/* ========================================================
+   FUNGSI RENDER & CARI TAB MASTER DATA
+   ======================================================== */
+
+function renderMasterData(dataToRender = databaseMenu) {
     let tbody = document.getElementById('tabelMasterData');
     if (!tbody) return;
 
-    if (databaseMenu.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 italic">Belum ada data master barang.</td></tr>`;
+    if (dataToRender.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 italic">Data barang tidak ditemukan.</td></tr>`;
         return;
     }
 
     let html = '';
-    databaseMenu.forEach(item => {
+    dataToRender.forEach(item => {
         let isi = item.isi || 1;
         let hBeliSatuan = item.hargaBeli || 0;
         let profit = (item.harga || 0) - hBeliSatuan;
@@ -189,6 +191,24 @@ function renderMasterData() {
         `;
     });
     tbody.innerHTML = html;
+}
+
+function cariMasterData() {
+    const inputCari = document.getElementById('cariMasterData');
+    if (!inputCari) return;
+
+    const keyword = inputCari.value.toLowerCase().trim();
+    if (!keyword) {
+        renderMasterData(databaseMenu);
+        return;
+    }
+
+    const hasilFilter = databaseMenu.filter(item => 
+        item.nama.toLowerCase().includes(keyword) || 
+        (item.kategori && item.kategori.toLowerCase().includes(keyword))
+    );
+
+    renderMasterData(hasilFilter);
 }
 
 if (db) {
@@ -379,14 +399,28 @@ function hapusBarangTitipan(id) {
     }
 }
 
-function renderMenu() {
+/* ========================================================
+   FUNGSI RENDER & CARI TAB KASIR
+   ======================================================== */
+
+function renderMenu(customList = null) {
     const container = document.getElementById('container-menu');
     if (!container) return;
     container.innerHTML = '';
-    const menuTerfilter = databaseMenu.filter(item => item.kategori === kategoriAktif);
+
+    let menuTerfilter = customList;
+
+    if (!menuTerfilter) {
+        const keyword = document.getElementById('cariMenuKasir') ? document.getElementById('cariMenuKasir').value.toLowerCase().trim() : '';
+        if (keyword) {
+            menuTerfilter = databaseMenu.filter(item => item.nama.toLowerCase().includes(keyword));
+        } else {
+            menuTerfilter = databaseMenu.filter(item => item.kategori === kategoriAktif);
+        }
+    }
 
     if (menuTerfilter.length === 0) {
-        container.innerHTML = `<p class="col-span-full text-center text-gray-400 py-6 text-xs italic">Belum ada menu di kategori ini.</p>`;
+        container.innerHTML = `<p class="col-span-full text-center text-gray-400 py-6 text-xs italic">Menu tidak ditemukan.</p>`;
         return;
     }
 
@@ -416,8 +450,23 @@ function renderMenu() {
     });
 }
 
+function cariMenuKasir() {
+    const keyword = document.getElementById('cariMenuKasir').value.toLowerCase().trim();
+    if (!keyword) {
+        filterKategori(kategoriAktif);
+        return;
+    }
+
+    const hasilFilter = databaseMenu.filter(item => item.nama.toLowerCase().includes(keyword));
+    renderMenu(hasilFilter);
+}
+
 function filterKategori(kategori) {
     kategoriAktif = kategori;
+    if (document.getElementById('cariMenuKasir')) {
+        document.getElementById('cariMenuKasir').value = '';
+    }
+
     ['topping', 'makanan', 'dingin', 'panas', 'jajanan'].forEach(kat => {
         const btn = document.getElementById('btn-kat-' + kat);
         if (btn) {
@@ -1092,7 +1141,6 @@ function updateLaporan() {
     let totalModalPeriode = UANG_MODAL_HARIAN * jumlahHari;
     let totalBeban = pengeluaranTerfilter.reduce((sum, p) => sum + p.biaya, 0);
     
-    // Perhitungan Laba Bersih = Omset Bisnis - HPP Produk Terjual - Pengeluaran Operasional (Beban)
     let labaKotor = omsetBisnisTotal - totalHPPProduk;
     let labaRugiBersih = labaKotor - totalBeban;
     let totalUangCashFisik = totalModalPeriode + omsetModalMasuk + omsetTunai - totalBeban;
@@ -1263,7 +1311,7 @@ function updateLaporan() {
     });
 
     hitungDanRenderRekapItem(transaksiTerfilter);
-    document.getElementById('cariItemRekap').value = ''; 
+    if (document.getElementById('cariItemRekap')) document.getElementById('cariItemRekap').value = ''; 
 
     let produkCounts = {};
     transaksiTerfilter.forEach(n => {

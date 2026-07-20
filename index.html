@@ -33,7 +33,13 @@
                 <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
                     <div>
                         <h2 class="text-xl font-bold text-orange-600">➕ Pilihan Menu & Topping</h2>
-                        <p class="text-xs text-gray-500">Pilih kategori di bawah, lalu klik item untuk menambah pesanan.</p>
+                        <p class="text-xs text-gray-500">Pilih kategori atau cari menu di bawah, lalu klik item untuk menambah pesanan.</p>
+                    </div>
+                    <!-- Kolom Pencarian Tab Kasir -->
+                    <div class="w-full sm:w-64">
+                        <input type="text" id="cariMenuKasir" oninput="cariMenuKasir()" 
+                            class="w-full p-2 border border-orange-200 rounded-lg text-xs focus:outline-orange-500 bg-orange-50/50" 
+                            placeholder="🔍 Cari menu di tab kasir...">
                     </div>
                 </div>
 
@@ -105,7 +111,15 @@
         <!-- TAB MASTER DATA BARANG -->
         <div id="tab-master" class="hidden space-y-6">
             <div class="bg-white p-6 rounded-xl shadow border border-orange-100 max-w-6xl mx-auto">
-                <h2 class="text-xl font-bold text-orange-600 mb-4">📂 Master Data Barang & Menu</h2>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                    <h2 class="text-xl font-bold text-orange-600">📂 Master Data Barang & Menu</h2>
+                    <!-- Kolom Pencarian Tab Master Data -->
+                    <div class="w-full sm:w-72">
+                        <input type="text" id="cariMasterData" oninput="cariMasterData()" 
+                            class="w-full p-2 border border-orange-200 rounded-lg text-xs focus:outline-orange-500 bg-orange-50/50" 
+                            placeholder="🔍 Cari nama barang atau kategori...">
+                    </div>
+                </div>
 
                 <!-- Form Input / Edit Data Master -->
                 <div class="bg-orange-50 p-4 rounded-xl border border-orange-200 mb-6">
@@ -463,16 +477,10 @@
         <div class="text-center my-1">--------------------------------</div>
         <div id="notaItems"></div>
         <div class="text-center my-1">--------------------------------</div>
-        <div id="notaTotal" class="space-y-0.5"></div>
-        <div class="text-center my-1">--------------------------------</div>
-        <div class="text-center mt-3 text-[10px] font-bold">Terima Kasih!<br>Selamat Menikmati Hidangan Kami</div>
+        <div id="notaTotal"></div>
     </div>
 
-    <!-- SDK Firebase Kompatibilitas -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-
-    <!-- Panggil File JavaScript Aplikasi Eksternal -->
+    <!-- Script JS -->
     <script src="js/menu-data.js"></script>
     <script src="js/app.js"></script>
 </body>
