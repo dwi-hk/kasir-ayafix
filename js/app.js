@@ -79,13 +79,70 @@ function tambahMenuDatabase() {
     alert('Menu baru berhasil ditambahkan!');
 }
 
+/* ========================================================
+   FUNGSI EDIT / KOREKSI & HAPUS MENU
+   ======================================================== */
+function editMenuDatabase(id) {
+    let item = databaseMenu.find(m => String(m.id) === String(id));
+    if (!item) return alert("Menu tidak ditemukan!");
+
+    let namaBaru = prompt("Koreksi nama menu:", item.nama);
+    if (namaBaru === null) return;
+    namaBaru = namaBaru.trim();
+
+    let hargaBaruInput = prompt("Koreksi harga jual (Rp):", item.harga);
+    if (hargaBaruInput === null) return;
+    let hargaBaru = parseInt(hargaBaruInput) || 0;
+
+    if (!namaBaru || hargaBaru <= 0) {
+        return alert("Nama menu dan harga jual harus diisi dengan benar!");
+    }
+
+    item.nama = namaBaru;
+    item.harga = hargaBaru;
+
+    if (db) {
+        db.ref('menu_tambahan/' + id).update({
+            nama: namaBaru,
+            harga: hargaBaru
+        });
+    }
+
+    renderMenu();
+    alert("Menu berhasil diperbarui!");
+}
+
+function hapusMenuDatabase(id) {
+    let item = databaseMenu.find(m => String(m.id) === String(id));
+    if (!item) return;
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus menu [ ${item.nama} ]?`)) return;
+
+    let idx = databaseMenu.findIndex(m => String(m.id) === String(id));
+    if (idx !== -1) databaseMenu.splice(idx, 1);
+
+    if (db) {
+        db.ref('menu_tambahan/' + id).remove();
+    }
+
+    renderMenu();
+    alert("Menu berhasil dihapus!");
+}
+/* ======================================================== */
+
 if (db) {
     db.ref('menu_tambahan').on('value', (snapshot) => {
         const data = snapshot.val();
         if(data) {
             Object.values(data).forEach(m => {
                 const adaDiMenu = databaseMenu.find(dm => String(dm.id) === String(m.id));
-                if(!adaDiMenu) databaseMenu.push(m);
+                if(adaDiMenu) {
+                    adaDiMenu.nama = m.nama;
+                    adaDiMenu.harga = m.harga;
+                    adaDiMenu.kategori = m.kategori;
+                } else {
+                    databaseMenu.push(m);
+                }
             });
             renderMenu();
         }
@@ -258,12 +315,24 @@ function renderMenu() {
     const container = document.getElementById('container-menu');
     container.innerHTML = '';
     const menuTerfilter = databaseMenu.filter(item => item.kategori === kategoriAktif);
+
+    if (menuTerfilter.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-center text-gray-400 py-6 text-xs italic">Belum ada menu di kategori ini.</p>`;
+        return;
+    }
+
     menuTerfilter.forEach(item => {
         container.innerHTML += `
-            <button onclick="tambahItem('${item.id}')" class="p-2 sm:p-3 bg-white hover:bg-orange-100 border-2 border-orange-200 rounded-xl text-left transition flex flex-col justify-between h-20 active:scale-95 shadow-sm cursor-pointer">
-                <span class="font-bold text-[11px] sm:text-xs text-gray-700 uppercase tracking-tight line-clamp-2">${item.nama}</span>
-                <span class="text-orange-600 font-extrabold text-xs sm:text-sm">Rp ${item.harga.toLocaleString('id-ID')}</span>
-            </button>
+            <div class="p-2 sm:p-3 bg-white border-2 border-orange-200 rounded-xl flex flex-col justify-between shadow-sm relative group hover:border-orange-400 transition">
+                <div onclick="tambahItem('${item.id}')" class="cursor-pointer flex flex-col justify-between h-full">
+                    <span class="font-bold text-[11px] sm:text-xs text-gray-700 uppercase tracking-tight line-clamp-2">${item.nama}</span>
+                    <span class="text-orange-600 font-extrabold text-xs sm:text-sm my-1">Rp ${item.harga.toLocaleString('id-ID')}</span>
+                </div>
+                <div class="flex justify-between items-center border-t border-gray-100 pt-1.5 mt-1 text-[10px]">
+                    <button onclick="editMenuDatabase('${item.id}')" class="text-blue-600 font-bold hover:text-blue-800 cursor-pointer flex items-center gap-0.5">✏️ Edit</button>
+                    <button onclick="hapusMenuDatabase('${item.id}')" class="text-red-500 font-bold hover:text-red-700 cursor-pointer flex items-center gap-0.5">❌ Hapus</button>
+                </div>
+            </div>
         `;
     });
 }
@@ -901,7 +970,6 @@ function updateLaporan() {
         return p.tanggalISO === hariIniISO;
     });
 
-    // URUTKAN TRANSAKSI TERBARU DIATAS
     transaksiTerfilter.sort((a, b) => b.id.localeCompare(a.id));
     pengeluaranTerfilter.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -1135,7 +1203,6 @@ function switchTab(tab) {
     if(tab === 'titipan') hitungOtomatisTerjualTitipan();
 }
 
-// Menjalankan fungsi bawaan saat aplikasi dimuat pertama kali
 filterKategori('topping');
 renderPengeluaran();
 hitungOtomatisTerjualTitipan();

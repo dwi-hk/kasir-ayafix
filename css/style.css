@@ -26,13 +26,11 @@
         background: #fff !important;
         padding: 5px !important;
     }
-    /* Mengubah container item nota menjadi 2 kolom grid saat dicetak */
     #notaItems {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         gap: 4px 8px !important;
     }
-    /* Memastikan pembungkus item menggunakan flex layout internal */
     .nota-item-row {
         display: flex !important;
         flex-direction: column !important;
