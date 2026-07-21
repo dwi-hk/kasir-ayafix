@@ -10,10 +10,14 @@ const firebaseConfig = {
 
 let db = null;
 try {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
+    if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.database();
+    }
 } catch(e) { 
-    console.error("Firebase initialization failed", e); 
+    console.error("Inisialisasi Firebase Gagal:", e); 
 }
 
 let keranjang = [];
@@ -55,6 +59,8 @@ function hitungEstimasiProfitMaster() {
     let profitSatuan = hargaJual - hppSatuan;
 
     let elProfit = document.getElementById('masterEstimasiProfit');
+    if (!elProfit) return;
+
     if (profitSatuan >= 0) {
         elProfit.className = "p-2 bg-emerald-100 text-emerald-800 text-xs font-bold rounded border border-emerald-300";
         elProfit.innerText = `Rp ${profitSatuan.toLocaleString('id-ID')} / ${document.getElementById('masterSatuan').value} (HPP: Rp ${hppSatuan.toLocaleString('id-ID')})`;
@@ -152,10 +158,6 @@ function resetFormMaster() {
     hitungEstimasiProfitMaster();
 }
 
-/* ========================================================
-   FUNGSI RENDER & CARI TAB MASTER DATA
-   ======================================================== */
-
 function renderMasterData(dataToRender = databaseMenu) {
     let tbody = document.getElementById('tabelMasterData');
     if (!tbody) return;
@@ -211,6 +213,7 @@ function cariMasterData() {
     renderMasterData(hasilFilter);
 }
 
+// REALTIME LISTENER FIREBASE
 if (db) {
     db.ref('menu_tambahan').on('value', (snapshot) => {
         const data = snapshot.val();
@@ -314,6 +317,8 @@ function hitungOtomatisTerjualTitipan() {
     renderMenu();
 
     let container = document.getElementById('tabelDaftarTitipan');
+    if(!container) return;
+
     if(barangTitipan.length === 0) {
         container.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-gray-400 italic">Belum ada data barang titipan.</td></tr>`;
         return;
@@ -398,10 +403,6 @@ function hapusBarangTitipan(id) {
         hitungOtomatisTerjualTitipan();
     }
 }
-
-/* ========================================================
-   FUNGSI RENDER & CARI TAB KASIR
-   ======================================================== */
 
 function renderMenu(customList = null) {
     const container = document.getElementById('container-menu');
@@ -507,6 +508,8 @@ function setMetodePembayaran(metode) {
 
 function tambahItem(id) {
     const produk = databaseMenu.find(p => String(p.id) === String(id));
+    if (!produk) return;
+    
     const ada = keranjang.find(k => String(k.id) === String(id));
     if (ada) {
         ada.qty += 1;
@@ -608,6 +611,7 @@ function hitungDanRenderRekapItem(transaksiTerfilter) {
 
 function renderTabelRekapItem(dataArray) {
     const tbody = document.getElementById('tabelRekapItemTerjual');
+    if(!tbody) return;
     
     if (dataArray.length === 0) {
         tbody.innerHTML = `
@@ -879,7 +883,7 @@ function tambahKeDaftarBelanja() {
     let satuan = document.getElementById('satuanPengeluaran').value;
 
     if (!nama || harga <= 0 || qty <= 0) {
-        return alert('Silakan masukkan nama barang, harga satuan, and quantity dengan benar!');
+        return alert('Silakan masukkan nama barang, harga satuan, dan quantity dengan benar!');
     }
 
     let idItem = 'EXP-ITEM-' + Date.now();
@@ -980,6 +984,8 @@ function simpanPengeluaran() {
 
 function renderPengeluaran() {
     let container = document.getElementById('listPengeluaran');
+    if(!container) return;
+    
     let hariIniISO = dapatkanTanggalLokal();
 
     let pengeluaranTerfilter = pengeluaran.filter(p => {
@@ -1145,45 +1151,106 @@ function updateLaporan() {
     let labaRugiBersih = labaKotor - totalBeban;
     let totalUangCashFisik = totalModalPeriode + omsetModalMasuk + omsetTunai - totalBeban;
 
-    document.getElementById('statOmset').innerText = 'Rp ' + omsetBisnisTotal.toLocaleString('id-ID');
-    document.getElementById('statOmsetTunai').innerText = 'Rp ' + omsetTunai.toLocaleString('id-ID');
-    document.getElementById('statOmsetQris').innerText = 'Rp ' + omsetQris.toLocaleString('id-ID');
-    document.getElementById('statOmsetModalMasuk').innerText = 'Rp ' + omsetModalMasuk.toLocaleString('id-ID');
-    document.getElementById('statOmsetKonsumsi').innerText = 'Rp ' + omsetKonsumsi.toLocaleString('id-ID');
-    document.getElementById('statPengeluaran').innerText = 'Rp ' + totalBeban.toLocaleString('id-ID');
-    document.getElementById('statNota').innerText = transaksiTerfilter.length + ' Item';
+    if (document.getElementById('statOmset')) document.getElementById('statOmset').innerText = 'Rp ' + omsetBisnisTotal.toLocaleString('id-ID');
+    if (document.getElementById('statOmsetTunai')) document.getElementById('statOmsetTunai').innerText = 'Rp ' + omsetTunai.toLocaleString('id-ID');
+    if (document.getElementById('statOmsetQris')) document.getElementById('statOmsetQris').innerText = 'Rp ' + omsetQris.toLocaleString('id-ID');
+    if (document.getElementById('statOmsetModalMasuk')) document.getElementById('statOmsetModalMasuk').innerText = 'Rp ' + omsetModalMasuk.toLocaleString('id-ID');
+    if (document.getElementById('statOmsetKonsumsi')) document.getElementById('statOmsetKonsumsi').innerText = 'Rp ' + omsetKonsumsi.toLocaleString('id-ID');
+    if (document.getElementById('statPengeluaran')) document.getElementById('statPengeluaran').innerText = 'Rp ' + totalBeban.toLocaleString('id-ID');
+    if (document.getElementById('statNota')) document.getElementById('statNota').innerText = transaksiTerfilter.length + ' Item';
 
-    document.getElementById('statUangCash').innerText = 'Rp ' + totalUangCashFisik.toLocaleString('id-ID');
-    document.getElementById('statModal').innerText = 'Rp ' + totalModalPeriode.toLocaleString('id-ID');
-    document.getElementById('statModalTambahan').innerText = 'Rp ' + omsetModalMasuk.toLocaleString('id-ID');
-    document.getElementById('statCashMasuk').innerText = 'Rp ' + omsetTunai.toLocaleString('id-ID');
-    document.getElementById('statBebanCash').innerText = 'Rp ' + totalBeban.toLocaleString('id-ID');
+    if (document.getElementById('statUangCash')) document.getElementById('statUangCash').innerText = 'Rp ' + totalUangCashFisik.toLocaleString('id-ID');
+    if (document.getElementById('statModal')) document.getElementById('statModal').innerText = 'Rp ' + totalModalPeriode.toLocaleString('id-ID');
+    if (document.getElementById('statModalTambahan')) document.getElementById('statModalTambahan').innerText = 'Rp ' + omsetModalMasuk.toLocaleString('id-ID');
+    if (document.getElementById('statCashMasuk')) document.getElementById('statCashMasuk').innerText = 'Rp ' + omsetTunai.toLocaleString('id-ID');
+    if (document.getElementById('statBebanCash')) document.getElementById('statBebanCash').innerText = 'Rp ' + totalBeban.toLocaleString('id-ID');
 
     const elBox = document.getElementById('boxLabaRugi');
     const elLabel = document.getElementById('labelLabaRugi');
     const elStat = document.getElementById('statLabaRugi');
 
-    if (labaRugiBersih >= 0) {
-        elLabel.innerText = "📈 LABA BERSIH PENJUALAN";
-        elStat.innerText = 'Rp ' + labaRugiBersih.toLocaleString('id-ID');
-        elBox.className = "p-4 rounded-xl shadow border bg-emerald-50 border-emerald-200 text-emerald-700 flex flex-col justify-between";
-    } else {
-        elLabel.innerText = "📉 RUGI BERSIH";
-        elStat.innerText = '- Rp ' + Math.abs(labaRugiBersih).toLocaleString('id-ID');
-        elBox.className = "p-4 rounded-xl shadow border bg-red-50 border-red-200 text-red-700 flex flex-col justify-between";
+    if (elBox && elLabel && elStat) {
+        if (labaRugiBersih >= 0) {
+            elLabel.innerText = "📈 LABA BERSIH PENJUALAN";
+            elStat.innerText = 'Rp ' + labaRugiBersih.toLocaleString('id-ID');
+            elBox.className = "p-4 rounded-xl shadow border bg-emerald-50 border-emerald-200 text-emerald-700 flex flex-col justify-between";
+        } else {
+            elLabel.innerText = "📉 RUGI BERSIH";
+            elStat.innerText = '- Rp ' + Math.abs(labaRugiBersih).toLocaleString('id-ID');
+            elBox.className = "p-4 rounded-xl shadow border bg-red-50 border-red-200 text-red-700 flex flex-col justify-between";
+        }
     }
 
     let containerRekapPengeluaran = document.getElementById('rekapPengeluaranDetail');
-    containerRekapPengeluaran.innerHTML = pengeluaranTerfilter.length === 0 ? '<p class="text-gray-400">Tidak ada pengeluaran pada periode ini</p>' : '';
-    pengeluaranTerfilter.forEach(p => {
-        let detailTabelItems = '';
-        if (p.items && p.items.length > 0) {
-            detailTabelItems = `
-                <div class="mt-2 border-t border-gray-200 pt-2 text-[11px] text-gray-700">
+    if (containerRekapPengeluaran) {
+        containerRekapPengeluaran.innerHTML = pengeluaranTerfilter.length === 0 ? '<p class="text-gray-400">Tidak ada pengeluaran pada periode ini</p>' : '';
+        pengeluaranTerfilter.forEach(p => {
+            let detailTabelItems = '';
+            if (p.items && p.items.length > 0) {
+                detailTabelItems = `
+                    <div class="mt-2 border-t border-gray-200 pt-2 text-[11px] text-gray-700">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-gray-400 uppercase text-[9px] tracking-wider border-b border-gray-100">
+                                    <th class="pb-1 font-semibold">Nama Barang</th>
+                                    <th class="pb-1 text-center font-semibold">Harga</th>
+                                    <th class="pb-1 text-center font-semibold">Qty</th>
+                                    <th class="pb-1 text-right font-semibold">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100/50">
+                `;
+                p.items.forEach(item => {
+                    let satuanTampil = item.satuan || 'pcs';
+                    detailTabelItems += `
+                        <tr>
+                            <td class="py-1 font-medium text-gray-800">${item.nama}</td>
+                            <td class="py-1 text-center text-gray-500">Rp ${item.harga.toLocaleString('id-ID')}</td>
+                            <td class="py-1 text-center font-bold text-gray-600">${item.qty} ${satuanTampil}</td>
+                            <td class="py-1 text-right font-bold text-gray-800">Rp ${item.subtotal.toLocaleString('id-ID')}</td>
+                        </tr>
+                    `;
+                });
+                detailTabelItems += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            containerRekapPengeluaran.innerHTML += `
+                <div class="p-4 bg-white rounded-xl border border-orange-100 shadow-sm text-xs text-gray-600 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center font-bold text-gray-800 mb-1">
+                            <span class="text-sm">🧾 ${p.id}</span>
+                            <span class="text-red-600 text-base font-extrabold">Rp ${p.biaya.toLocaleString('id-ID')}</span>
+                        </div>
+                        <p class="text-gray-400 text-[10px]">🕒 ${p.waktu}</p>
+                        ${detailTabelItems}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    let containerNota = document.getElementById('riwayatNota');
+    if (containerNota) {
+        containerNota.innerHTML = transaksiTerfilter.length === 0 ? '<p class="text-gray-400">Tidak ada riwayat pada periode ini</p>' : '';
+        
+        transaksiTerfilter.forEach(n => {
+            let badgeColor = 'bg-green-100 text-green-800';
+            if (n.metodePembayaran === 'QRIS') badgeColor = 'bg-blue-100 text-blue-800';
+            if (n.metodePembayaran === 'KONSUMSI') badgeColor = 'bg-purple-100 text-purple-800';
+            if (n.metodePembayaran === 'MODAL_MASUK') badgeColor = 'bg-teal-600 text-white font-black';
+            
+            let badgeMetode = n.metodePembayaran === 'MODAL_MASUK' ? 'MODAL MASUK' : (n.metodePembayaran || 'TUNAI');
+
+            let detailItemsHtml = `
+                <div class="mt-3 border-t border-gray-200 pt-2 text-[11px] text-gray-700">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="text-gray-400 uppercase text-[9px] tracking-wider border-b border-gray-100">
-                                <th class="pb-1 font-semibold">Nama Barang</th>
+                                <th class="pb-1 font-semibold">Nama Item</th>
                                 <th class="pb-1 text-center font-semibold">Harga</th>
                                 <th class="pb-1 text-center font-semibold">Qty</th>
                                 <th class="pb-1 text-right font-semibold">Subtotal</th>
@@ -1191,151 +1258,99 @@ function updateLaporan() {
                         </thead>
                         <tbody class="divide-y divide-gray-100/50">
             `;
-            p.items.forEach(item => {
-                let satuanTampil = item.satuan || 'pcs';
-                detailTabelItems += `
-                    <tr>
-                        <td class="py-1 font-medium text-gray-800">${item.nama}</td>
-                        <td class="py-1 text-center text-gray-500">Rp ${item.harga.toLocaleString('id-ID')}</td>
-                        <td class="py-1 text-center font-bold text-gray-600">${item.qty} ${satuanTampil}</td>
-                        <td class="py-1 text-right font-bold text-gray-800">Rp ${item.subtotal.toLocaleString('id-ID')}</td>
+
+            if (n.items && n.items.length > 0) {
+                n.items.forEach(i => {
+                    let sub = i.harga * i.qty;
+                    detailItemsHtml += `
+                        <tr>
+                            <td class="py-1 font-medium text-gray-800">${i.nama}</td>
+                            <td class="py-1 text-center text-gray-500">Rp ${i.harga.toLocaleString('id-ID')}</td>
+                            <td class="py-1 text-center font-bold text-gray-600">${i.qty}x</td>
+                            <td class="py-1 text-right font-bold text-gray-800">Rp ${sub.toLocaleString('id-ID')}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            if (n.qtyStyrofoam > 0) {
+                let subtotalBungkus = n.qtyStyrofoam * 1000;
+                detailItemsHtml += `
+                    <tr class="text-gray-500 italic">
+                        <td class="py-1">📦 Styrofoam</td>
+                        <td class="py-1 text-center">Rp 1.000</td>
+                        <td class="py-1 text-center">${n.qtyStyrofoam}x</td>
+                        <td class="py-1 text-right">Rp ${subtotalBungkus.toLocaleString('id-ID')}</td>
                     </tr>
                 `;
-            });
-            detailTabelItems += `
+            }
+
+            if (n.ongkir > 0) {
+                detailItemsHtml += `
+                    <tr class="text-gray-500 italic">
+                        <td class="py-1">🛵 Ongkos Kirim</td>
+                        <td class="py-1 text-center">-</td>
+                        <td class="py-1 text-center">-</td>
+                        <td class="py-1 text-right">Rp ${n.ongkir.toLocaleString('id-ID')}</td>
+                    </tr>
+                `;
+            }
+
+            detailItemsHtml += `
                         </tbody>
                     </table>
                 </div>
             `;
-        }
 
-        containerRekapPengeluaran.innerHTML += `
-            <div class="p-4 bg-white rounded-xl border border-orange-100 shadow-sm text-xs text-gray-600 flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-center font-bold text-gray-800 mb-1">
-                        <span class="text-sm">🧾 ${p.id}</span>
-                        <span class="text-red-600 text-base font-extrabold">Rp ${p.biaya.toLocaleString('id-ID')}</span>
+            containerNota.innerHTML += `
+                <div class="p-4 bg-white rounded-xl border border-orange-100 shadow-sm text-xs text-gray-600 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center font-bold text-gray-800 mb-1">
+                            <span class="text-sm">🧾 ${n.id} <span class="ml-2 px-2 py-0.5 text-[10px] rounded-md ${badgeColor}">${badgeMetode}</span></span>
+                            <span class="text-emerald-600 text-base font-extrabold">Rp ${n.total.toLocaleString('id-ID')}</span>
+                        </div>
+                        <p class="text-gray-400 text-[10px]">📅 ${n.waktu}</p>
+                        ${detailItemsHtml}
                     </div>
-                    <p class="text-gray-400 text-[10px]">🕒 ${p.waktu}</p>
-                    ${detailTabelItems}
-                </div>
-            </div>
-        `;
-    });
-
-    let containerNota = document.getElementById('riwayatNota');
-    containerNota.innerHTML = transaksiTerfilter.length === 0 ? '<p class="text-gray-400">Tidak ada riwayat pada periode ini</p>' : '';
-    
-    transaksiTerfilter.forEach(n => {
-        let badgeColor = 'bg-green-100 text-green-800';
-        if (n.metodePembayaran === 'QRIS') badgeColor = 'bg-blue-100 text-blue-800';
-        if (n.metodePembayaran === 'KONSUMSI') badgeColor = 'bg-purple-100 text-purple-800';
-        if (n.metodePembayaran === 'MODAL_MASUK') badgeColor = 'bg-teal-600 text-white font-black';
-        
-        let badgeMetode = n.metodePembayaran === 'MODAL_MASUK' ? 'MODAL MASUK' : (n.metodePembayaran || 'TUNAI');
-
-        let detailItemsHtml = `
-            <div class="mt-3 border-t border-gray-200 pt-2 text-[11px] text-gray-700">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="text-gray-400 uppercase text-[9px] tracking-wider border-b border-gray-100">
-                            <th class="pb-1 font-semibold">Nama Item</th>
-                            <th class="pb-1 text-center font-semibold">Harga</th>
-                            <th class="pb-1 text-center font-semibold">Qty</th>
-                            <th class="pb-1 text-right font-semibold">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100/50">
-        `;
-
-        if (n.items && n.items.length > 0) {
-            n.items.forEach(i => {
-                let sub = i.harga * i.qty;
-                detailItemsHtml += `
-                    <tr>
-                        <td class="py-1 font-medium text-gray-800">${i.nama}</td>
-                        <td class="py-1 text-center text-gray-500">Rp ${i.harga.toLocaleString('id-ID')}</td>
-                        <td class="py-1 text-center font-bold text-gray-600">${i.qty}x</td>
-                        <td class="py-1 text-right font-bold text-gray-800">Rp ${sub.toLocaleString('id-ID')}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        if (n.qtyStyrofoam > 0) {
-            let subtotalBungkus = n.qtyStyrofoam * 1000;
-            detailItemsHtml += `
-                <tr class="text-gray-500 italic">
-                    <td class="py-1">📦 Styrofoam</td>
-                    <td class="py-1 text-center">Rp 1.000</td>
-                    <td class="py-1 text-center">${n.qtyStyrofoam}x</td>
-                    <td class="py-1 text-right">Rp ${subtotalBungkus.toLocaleString('id-ID')}</td>
-                </tr>
-            `;
-        }
-
-        if (n.ongkir > 0) {
-            detailItemsHtml += `
-                <tr class="text-gray-500 italic">
-                    <td class="py-1">🛵 Ongkos Kirim</td>
-                    <td class="py-1 text-center">-</td>
-                    <td class="py-1 text-center">-</td>
-                    <td class="py-1 text-right">Rp ${n.ongkir.toLocaleString('id-ID')}</td>
-                </tr>
-            `;
-        }
-
-        detailItemsHtml += `
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-        containerNota.innerHTML += `
-            <div class="p-4 bg-white rounded-xl border border-orange-100 shadow-sm text-xs text-gray-600 flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-center font-bold text-gray-800 mb-1">
-                        <span class="text-sm">🧾 ${n.id} <span class="ml-2 px-2 py-0.5 text-[10px] rounded-md ${badgeColor}">${badgeMetode}</span></span>
-                        <span class="text-emerald-600 text-base font-extrabold">Rp ${n.total.toLocaleString('id-ID')}</span>
+                    <div class="flex justify-end mt-3 pt-2 border-t border-gray-100">
+                        <button onclick="cetakUlangNota('${n.id}')" class="px-3 py-1.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer text-[10px] flex items-center gap-1">
+                            🖨️ Cetak Ulang
+                        </button>
                     </div>
-                    <p class="text-gray-400 text-[10px]">📅 ${n.waktu}</p>
-                    ${detailItemsHtml}
                 </div>
-                <div class="flex justify-end mt-3 pt-2 border-t border-gray-100">
-                    <button onclick="cetakUlangNota('${n.id}')" class="px-3 py-1.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer text-[10px] flex items-center gap-1">
-                        🖨️ Cetak Ulang
-                    </button>
-                </div>
-            </div>
-        `;
-    });
+            `;
+        });
+    }
 
     hitungDanRenderRekapItem(transaksiTerfilter);
     if (document.getElementById('cariItemRekap')) document.getElementById('cariItemRekap').value = ''; 
 
     let produkCounts = {};
     transaksiTerfilter.forEach(n => {
-        if(n.metodePembayaran !== 'MODAL_MASUK') { 
+        if(n.metodePembayaran !== 'MODAL_MASUK' && n.items) { 
             n.items.forEach(i => { produkCounts[i.nama] = (produkCounts[i.nama] || 0) + i.qty; });
         }
     });
     let urutProduk = Object.keys(produkCounts).map(name => ({ name, qty: produkCounts[name] })).sort((a,b) => b.qty - a.qty).slice(0, 5);
 
-    if (myChart) myChart.destroy();
-    const ctx = document.getElementById('chartProdukLaku').getContext('2d');
-    myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: urutProduk.map(p => p.name),
-            datasets: [{
-                label: 'Total Terjual',
-                data: urutProduk.map(p => p.qty),
-                backgroundColor: '#ea580c',
-                borderWidth: 0
-            }]
-        },
-        options: { responsive: true, scales: { y: { beginAtZero: true } } }
-    });
+    const canvasChart = document.getElementById('chartProdukLaku');
+    if (canvasChart && typeof Chart !== 'undefined') {
+        if (myChart) myChart.destroy();
+        const ctx = canvasChart.getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: urutProduk.map(p => p.name),
+                datasets: [{
+                    label: 'Total Terjual',
+                    data: urutProduk.map(p => p.qty),
+                    backgroundColor: '#ea580c',
+                    borderWidth: 0
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    }
 }
 
 function switchTab(tab) {
@@ -1351,7 +1366,10 @@ function switchTab(tab) {
     if(tab === 'titipan') hitungOtomatisTerjualTitipan();
 }
 
-filterKategori('topping');
-renderPengeluaran();
-renderMasterData();
-hitungOtomatisTerjualTitipan();
+// Inisialisasi awal saat halaman dibuka
+document.addEventListener('DOMContentLoaded', () => {
+    filterKategori('topping');
+    renderPengeluaran();
+    renderMasterData();
+    hitungOtomatisTerjualTitipan();
+});
