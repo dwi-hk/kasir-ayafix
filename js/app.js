@@ -75,6 +75,7 @@ function simpanMasterDatabase() {
     let nama = document.getElementById('masterNama').value.trim();
     let kategori = document.getElementById('masterKategori').value;
     let satuan = document.getElementById('masterSatuan').value || 'pcs';
+    let stok = parseInt(document.getElementById('masterStok').value) || 0;
     let isi = parseInt(document.getElementById('masterIsi').value) || 1;
     let hargaBeliTotal = parseInt(document.getElementById('masterHargaBeli').value) || 0;
     let hargaJual = parseInt(document.getElementById('masterHargaJual').value) || 0;
@@ -91,6 +92,7 @@ function simpanMasterDatabase() {
         nama: nama,
         kategori: kategori,
         satuan: satuan,
+        stok: stok,
         isi: isi,
         hargaBeliTotal: hargaBeliTotal,
         hargaBeli: hppSatuan,
@@ -122,6 +124,7 @@ function editMasterData(id) {
     document.getElementById('masterNama').value = item.nama;
     document.getElementById('masterKategori').value = item.kategori || 'topping';
     document.getElementById('masterSatuan').value = item.satuan || 'pcs';
+    if(document.getElementById('masterStok')) document.getElementById('masterStok').value = item.stok || 0;
     document.getElementById('masterIsi').value = item.isi || 1;
     document.getElementById('masterHargaBeli').value = item.hargaBeliTotal || ((item.hargaBeli || 0) * (item.isi || 1));
     document.getElementById('masterHargaJual').value = item.harga || 0;
@@ -151,11 +154,67 @@ function hapusMasterData(id) {
 function resetFormMaster() {
     document.getElementById('masterId').value = '';
     document.getElementById('masterNama').value = '';
+    if(document.getElementById('masterStok')) document.getElementById('masterStok').value = '0';
     document.getElementById('masterIsi').value = '1';
     document.getElementById('masterHargaBeli').value = '';
     document.getElementById('masterHargaJual').value = '';
     document.getElementById('masterFormTitle').innerText = '➕ Input Master Barang Baru';
     hitungEstimasiProfitMaster();
+}
+
+/* --- FUNGSI KOREKSI STOK / STOK OPNAME --- */
+function bukaModalKoreksiStok(id) {
+    let item = databaseMenu.find(m => String(m.id) === String(id));
+    if (!item) return alert("Barang tidak ditemukan!");
+
+    document.getElementById('koreksiIdBarang').value = item.id;
+    document.getElementById('koreksiNamaBarang').innerText = item.nama;
+    document.getElementById('koreksiStokLama').value = item.stok || 0;
+    document.getElementById('koreksiJumlah').value = '';
+    document.getElementById('koreksiCatatan').value = '';
+    
+    document.getElementById('modalKoreksiStok').classList.remove('hidden');
+}
+
+function tutupModalKoreksiStok() {
+    document.getElementById('modalKoreksiStok').classList.add('hidden');
+}
+
+function prosesSimpanKoreksiStok() {
+    let id = document.getElementById('koreksiIdBarang').value;
+    let item = databaseMenu.find(m => String(m.id) === String(id));
+    if (!item) return alert("Barang tidak ditemukan!");
+
+    let tipe = document.getElementById('koreksiTipe').value;
+    let jumlah = parseInt(document.getElementById('koreksiJumlah').value);
+    let catatan = document.getElementById('koreksiCatatan').value.trim();
+
+    if (isNaN(jumlah) || jumlah < 0) {
+        return alert("Masukkan jumlah koreksi angka yang valid!");
+    }
+
+    let stokLama = item.stok || 0;
+    let stokBaru = stokLama;
+
+    if (tipe === 'tambah') {
+        stokBaru = stokLama + jumlah;
+    } else if (tipe === 'kurang') {
+        stokBaru = stokLama - jumlah;
+        if (stokBaru < 0) stokBaru = 0;
+    } else if (tipe === 'set') {
+        stokBaru = jumlah;
+    }
+
+    item.stok = stokBaru;
+
+    if (db) {
+        db.ref('menu_tambahan/' + id + '/stok').set(stokBaru);
+    } else {
+        cariMasterData();
+    }
+
+    tutupModalKoreksiStok();
+    alert(`Stok [ ${item.nama} ] berhasil diperbarui dari ${stokLama} menjadi ${stokBaru}`);
 }
 
 function renderMasterData(dataToRender = null) {
@@ -177,13 +236,14 @@ function renderMasterData(dataToRender = null) {
     }
 
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 italic">Data barang tidak ditemukan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-400 italic">Data barang tidak ditemukan.</td></tr>`;
         return;
     }
 
     let html = '';
     list.forEach(item => {
         let isi = item.isi || 1;
+        let stok = item.stok || 0;
         let hBeliSatuan = item.hargaBeli || 0;
         let profit = (item.harga || 0) - hBeliSatuan;
 
@@ -193,6 +253,7 @@ function renderMasterData(dataToRender = null) {
                 <td class="p-3 text-center">
                     <span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-bold uppercase">${item.kategori || 'umum'}</span>
                 </td>
+                <td class="p-3 text-center font-extrabold text-blue-600">${stok} ${item.satuan || 'pcs'}</td>
                 <td class="p-3 text-center text-gray-600">${isi} ${item.satuan || 'pcs'}</td>
                 <td class="p-3 text-right font-medium text-gray-500">Rp ${hBeliSatuan.toLocaleString('id-ID')}</td>
                 <td class="p-3 text-right font-bold text-gray-800">Rp ${(item.harga || 0).toLocaleString('id-ID')}</td>
@@ -200,6 +261,7 @@ function renderMasterData(dataToRender = null) {
                     Rp ${profit.toLocaleString('id-ID')}
                 </td>
                 <td class="p-3 text-center space-x-1">
+                    <button onclick="bukaModalKoreksiStok('${item.id}')" class="px-2 py-1 bg-amber-500 text-white text-[10px] rounded font-bold hover:bg-amber-600 cursor-pointer">📦 Stok</button>
                     <button onclick="editMasterData('${item.id}')" class="px-2 py-1 bg-blue-500 text-white text-[10px] rounded font-bold hover:bg-blue-600 cursor-pointer">✏️ Edit</button>
                     <button onclick="hapusMasterData('${item.id}')" class="px-2 py-1 bg-red-500 text-white text-[10px] rounded font-bold hover:bg-red-600 cursor-pointer">❌ Hapus</button>
                 </td>
@@ -225,6 +287,7 @@ if (db) {
                     adaDiMenu.hargaBeli = m.hargaBeli || 0;
                     adaDiMenu.hargaBeliTotal = m.hargaBeliTotal || 0;
                     adaDiMenu.harga = m.harga;
+                    adaDiMenu.stok = m.stok || 0;
                     adaDiMenu.isi = m.isi || 1;
                     adaDiMenu.satuan = m.satuan || 'pcs';
                     adaDiMenu.kategori = m.kategori;
@@ -233,7 +296,6 @@ if (db) {
                 }
             });
 
-            // Hanya refresh otomatis jika elemen input tidak sedang dalam keadaan aktif (fokus)
             const inputKasir = document.getElementById('cariMenuKasir');
             const inputMaster = document.getElementById('cariMasterData');
             
@@ -730,6 +792,19 @@ function simpanTransaksi() {
         hitungOtomatisTerjualTitipan();
         updateLaporan();
     }
+
+    // KURANGI STOK OTOMATIS SAAT TRANSAKSI
+    keranjang.forEach(item => {
+        let dbItem = databaseMenu.find(m => String(m.id) === String(item.id));
+        if (dbItem && typeof dbItem.stok !== 'undefined') {
+            let stokBaru = Math.max(0, (dbItem.stok || 0) - item.qty);
+            dbItem.stok = stokBaru;
+            if (db) {
+                db.ref('menu_tambahan/' + dbItem.id + '/stok').set(stokBaru);
+            }
+        }
+    });
+
     return true;
 }
 
