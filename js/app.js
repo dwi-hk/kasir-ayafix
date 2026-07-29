@@ -25,8 +25,6 @@ let keranjangPengeluaran = [];
 let riwayatTransaksi = JSON.parse(localStorage.getItem('aya_transaksi_v3')) || [];
 let pengeluaran = JSON.parse(localStorage.getItem('aya_pengeluaran_v3')) || [];
 let barangTitipan = JSON.parse(localStorage.getItem('aya_titipan_v3')) || [];
-let suppliers = JSON.parse(localStorage.getItem('aya_suppliers_v3')) || [];
-let pelanggan = JSON.parse(localStorage.getItem('aya_pelanggan_v3')) || [];
 
 let kategoriAktif = 'topping';
 let metodePembayaran = 'TUNAI';
@@ -38,7 +36,6 @@ let tglPengeluaranMulai = null;
 let tglPengeluaranSelesai = null;
 
 let dataRekapItemGlobal = []; 
-let currentGambarBase64 = ''; // Variable penampung gambar temporary
 
 const UANG_MODAL_HARIAN = 70000;
 
@@ -47,46 +44,6 @@ function dapatkanTanggalLokal() {
     const offset = d.getTimezoneOffset();
     const lokal = new Date(d.getTime() - (offset * 60 * 1000));
     return lokal.toISOString().split('T')[0];
-}
-
-/* ========================================================
-   FUNGSI GESTUR GAMBAR BARU
-   ======================================================== */
-function handleImageUpload(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            currentGambarBase64 = e.target.result;
-            showImagePreview(currentGambarBase64);
-            const inputUrl = document.getElementById('masterGambarUrl');
-            if (inputUrl) inputUrl.value = '';
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-function handleUrlImage(val) {
-    currentGambarBase64 = val.trim();
-    showImagePreview(currentGambarBase64);
-}
-
-function showImagePreview(src) {
-    const imgEl = document.getElementById('masterGambarPreview');
-    const emptyEl = document.getElementById('masterGambarEmpty');
-    if (src) {
-        if (imgEl) {
-            imgEl.src = src;
-            imgEl.classList.remove('hidden');
-        }
-        if (emptyEl) emptyEl.classList.add('hidden');
-    } else {
-        if (imgEl) {
-            imgEl.src = '';
-            imgEl.classList.add('hidden');
-        }
-        if (emptyEl) emptyEl.classList.remove('hidden');
-    }
 }
 
 /* ========================================================
@@ -121,8 +78,6 @@ function simpanMasterDatabase() {
     let isi = parseInt(document.getElementById('masterIsi').value) || 1;
     let hargaBeliTotal = parseInt(document.getElementById('masterHargaBeli').value) || 0;
     let hargaJual = parseInt(document.getElementById('masterHargaJual').value) || 0;
-    let stok = parseInt(document.getElementById('masterStok').value) || 0;
-    let supplierId = document.getElementById('masterSupplier').value || '';
 
     if (!nama || hargaJual <= 0) {
         return alert('Mohon isi nama barang dan harga jual dengan benar!');
@@ -139,10 +94,7 @@ function simpanMasterDatabase() {
         isi: isi,
         hargaBeliTotal: hargaBeliTotal,
         hargaBeli: hppSatuan,
-        harga: hargaJual,
-        stok: stok,
-        supplierId: supplierId,
-        gambar: currentGambarBase64 || ''
+        harga: hargaJual
     };
 
     if (db) {
@@ -173,22 +125,6 @@ function editMasterData(id) {
     document.getElementById('masterIsi').value = item.isi || 1;
     document.getElementById('masterHargaBeli').value = item.hargaBeliTotal || ((item.hargaBeli || 0) * (item.isi || 1));
     document.getElementById('masterHargaJual').value = item.harga || 0;
-    if(document.getElementById('masterStok')) document.getElementById('masterStok').value = item.stok || 0;
-    if(document.getElementById('masterSupplier')) document.getElementById('masterSupplier').value = item.supplierId || '';
-
-    currentGambarBase64 = item.gambar || '';
-    const inputUrl = document.getElementById('masterGambarUrl');
-    if (inputUrl) {
-        if (item.gambar && item.gambar.startsWith('http')) {
-            inputUrl.value = item.gambar;
-        } else {
-            inputUrl.value = '';
-        }
-    }
-    const fileInput = document.getElementById('masterFileInput');
-    if (fileInput) fileInput.value = '';
-    
-    showImagePreview(currentGambarBase64);
 
     document.getElementById('masterFormTitle').innerText = '✏️ Edit Master Barang: ' + item.nama;
     hitungEstimasiProfitMaster();
@@ -218,16 +154,6 @@ function resetFormMaster() {
     document.getElementById('masterIsi').value = '1';
     document.getElementById('masterHargaBeli').value = '';
     document.getElementById('masterHargaJual').value = '';
-    if(document.getElementById('masterStok')) document.getElementById('masterStok').value = '0';
-    if(document.getElementById('masterSupplier')) document.getElementById('masterSupplier').value = '';
-    
-    const fileInput = document.getElementById('masterFileInput');
-    if (fileInput) fileInput.value = '';
-    const inputUrl = document.getElementById('masterGambarUrl');
-    if (inputUrl) inputUrl.value = '';
-    
-    currentGambarBase64 = '';
-    showImagePreview('');
     document.getElementById('masterFormTitle').innerText = '➕ Input Master Barang Baru';
     hitungEstimasiProfitMaster();
 }
@@ -251,7 +177,7 @@ function renderMasterData(dataToRender = null) {
     }
 
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-400 italic">Data barang tidak ditemukan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 italic">Data barang tidak ditemukan.</td></tr>`;
         return;
     }
 
@@ -260,18 +186,13 @@ function renderMasterData(dataToRender = null) {
         let isi = item.isi || 1;
         let hBeliSatuan = item.hargaBeli || 0;
         let profit = (item.harga || 0) - hBeliSatuan;
-        let imgHtml = item.gambar 
-            ? `<div class="w-10 h-10 bg-gray-50 rounded border overflow-hidden mx-auto flex items-center justify-center p-0.5"><img src="${item.gambar}" class="w-full h-full object-contain" alt="${item.nama}"></div>` 
-            : `<div class="w-10 h-10 bg-gray-100 rounded mx-auto flex items-center justify-center text-[10px] text-gray-400">No Img</div>`;
 
         html += `
             <tr class="hover:bg-orange-50/40 transition border-b border-gray-100">
-                <td class="p-2 text-center">${imgHtml}</td>
                 <td class="p-3 font-bold text-gray-800 uppercase">${item.nama}</td>
                 <td class="p-3 text-center">
                     <span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-bold uppercase">${item.kategori || 'umum'}</span>
                 </td>
-                <td class="p-3 text-center font-bold text-gray-600">${item.stok || 0}</td>
                 <td class="p-3 text-center text-gray-600">${isi} ${item.satuan || 'pcs'}</td>
                 <td class="p-3 text-right font-medium text-gray-500">Rp ${hBeliSatuan.toLocaleString('id-ID')}</td>
                 <td class="p-3 text-right font-bold text-gray-800">Rp ${(item.harga || 0).toLocaleString('id-ID')}</td>
@@ -292,287 +213,6 @@ function cariMasterData() {
     renderMasterData();
 }
 
-/* ========================================================
-   FUNGSI MANAJEMEN SUPPLIER & PELANGGAN
-   ======================================================== */
-function simpanSupplier() {
-    let id = document.getElementById('supplierId').value;
-    let nama = document.getElementById('supplierNama').value.trim();
-    let kontak = document.getElementById('supplierKontak').value.trim();
-    let alamat = document.getElementById('supplierAlamat').value.trim();
-    let ket = document.getElementById('supplierKeterangan').value.trim();
-
-    if (!nama || !kontak) return alert('Nama dan Kontak Supplier wajib diisi!');
-
-    let idSup = id ? id : 'SUP-' + Date.now();
-    let data = { id: idSup, nama: nama, kontak: kontak, alamat: alamat, keterangan: ket };
-
-    if (db) {
-        db.ref('suppliers/' + idSup).set(data);
-    } else {
-        let idx = suppliers.findIndex(s => s.id === idSup);
-        if (idx !== -1) suppliers[idx] = data;
-        else suppliers.push(data);
-        localStorage.setItem('aya_suppliers_v3', JSON.stringify(suppliers));
-        renderSupplier();
-    }
-    resetFormSupplier();
-    alert('Data Supplier berhasil disimpan!');
-}
-
-function resetFormSupplier() {
-    document.getElementById('supplierId').value = '';
-    document.getElementById('supplierNama').value = '';
-    document.getElementById('supplierKontak').value = '';
-    document.getElementById('supplierAlamat').value = '';
-    document.getElementById('supplierKeterangan').value = '';
-    document.getElementById('titleFormSupplier').innerText = '🏢 Tambah Data Supplier Baru';
-}
-
-function editSupplier(id) {
-    let sup = suppliers.find(s => s.id === id);
-    if (!sup) return;
-    document.getElementById('supplierId').value = sup.id;
-    document.getElementById('supplierNama').value = sup.nama;
-    document.getElementById('supplierKontak').value = sup.kontak;
-    document.getElementById('supplierAlamat').value = sup.alamat || '';
-    document.getElementById('supplierKeterangan').value = sup.keterangan || '';
-    document.getElementById('titleFormSupplier').innerText = '✏️ Edit Supplier: ' + sup.nama;
-}
-
-function hapusSupplier(id) {
-    if (!confirm('Hapus supplier ini?')) return;
-    if (db) {
-        db.ref('suppliers/' + id).remove();
-    } else {
-        suppliers = suppliers.filter(s => s.id !== id);
-        localStorage.setItem('aya_suppliers_v3', JSON.stringify(suppliers));
-        renderSupplier();
-    }
-}
-
-function renderSupplier() {
-    let container = document.getElementById('tabelSupplier');
-    let dropdownMaster = document.getElementById('masterSupplier');
-    if (dropdownMaster) {
-        let optHtml = '<option value="">-- Tanpa Supplier --</option>';
-        suppliers.forEach(s => {
-            optHtml += `<option value="${s.id}">${s.nama}</option>`;
-        });
-        dropdownMaster.innerHTML = optHtml;
-    }
-
-    if (!container) return;
-    if (suppliers.length === 0) {
-        container.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400 italic">Belum ada data supplier.</td></tr>`;
-        return;
-    }
-
-    let html = '';
-    suppliers.forEach(s => {
-        html += `
-            <tr class="hover:bg-orange-50/40 transition border-b border-gray-100">
-                <td class="p-3 font-bold text-gray-800 uppercase">${s.nama}</td>
-                <td class="p-3 text-gray-600">${s.kontak}</td>
-                <td class="p-3 text-gray-600">${s.alamat || '-'}</td>
-                <td class="p-3 text-gray-600">${s.keterangan || '-'}</td>
-                <td class="p-3 text-center space-x-1">
-                    <button onclick="editSupplier('${s.id}')" class="px-2 py-1 bg-blue-500 text-white text-[10px] rounded font-bold hover:bg-blue-600 cursor-pointer">✏️ Edit</button>
-                    <button onclick="hapusSupplier('${s.id}')" class="px-2 py-1 bg-red-500 text-white text-[10px] rounded font-bold hover:bg-red-600 cursor-pointer">❌ Hapus</button>
-                </td>
-            </tr>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-function simpanPelanggan() {
-    let id = document.getElementById('pelangganId').value;
-    let nama = document.getElementById('pelangganNama').value.trim();
-    let kontak = document.getElementById('pelangganKontak').value.trim();
-    let alamat = document.getElementById('pelangganAlamat').value.trim();
-
-    if (!nama || !kontak) return alert('Nama dan No Kontak Pelanggan wajib diisi!');
-
-    let idPel = id ? id : 'PEL-' + Date.now();
-    let data = { id: idPel, nama: nama, kontak: kontak, alamat: alamat };
-
-    if (db) {
-        db.ref('pelanggan/' + idPel).set(data);
-    } else {
-        let idx = pelanggan.findIndex(p => p.id === idPel);
-        if (idx !== -1) pelanggan[idx] = data;
-        else pelanggan.push(data);
-        localStorage.setItem('aya_pelanggan_v3', JSON.stringify(pelanggan));
-        renderPelanggan();
-    }
-    resetFormPelanggan();
-    alert('Data Pelanggan berhasil disimpan!');
-}
-
-function resetFormPelanggan() {
-    document.getElementById('pelangganId').value = '';
-    document.getElementById('pelangganNama').value = '';
-    document.getElementById('pelangganKontak').value = '';
-    document.getElementById('pelangganAlamat').value = '';
-    document.getElementById('titleFormPelanggan').innerText = '👥 Tambah Data Pelanggan Baru';
-}
-
-function editPelanggan(id) {
-    let pel = pelanggan.find(p => p.id === id);
-    if (!pel) return;
-    document.getElementById('pelangganId').value = pel.id;
-    document.getElementById('pelangganNama').value = pel.nama;
-    document.getElementById('pelangganKontak').value = pel.kontak;
-    document.getElementById('pelangganAlamat').value = pel.alamat || '';
-    document.getElementById('titleFormPelanggan').innerText = '✏️ Edit Pelanggan: ' + pel.nama;
-}
-
-function hapusPelanggan(id) {
-    if (!confirm('Hapus pelanggan ini?')) return;
-    if (db) {
-        db.ref('pelanggan/' + id).remove();
-    } else {
-        pelanggan = pelanggan.filter(p => p.id !== id);
-        localStorage.setItem('aya_pelanggan_v3', JSON.stringify(pelanggan));
-        renderPelanggan();
-    }
-}
-
-function renderPelanggan() {
-    let container = document.getElementById('tabelPelanggan');
-    let selectKasir = document.getElementById('selectPelangganKasir');
-
-    if (selectKasir) {
-        let opts = '<option value="">-- Pilih Nama Pelanggan --</option>';
-        pelanggan.forEach(p => {
-            opts += `<option value="${p.id}">${p.nama} (${p.kontak})</option>`;
-        });
-        selectKasir.innerHTML = opts;
-    }
-
-    if (!container) return;
-    if (pelanggan.length === 0) {
-        container.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400 italic">Belum ada data pelanggan.</td></tr>`;
-        return;
-    }
-
-    let hutangPelangganMap = {};
-    riwayatTransaksi.forEach(t => {
-        if (t.metodePembayaran === 'HUTANG' && t.pelangganId) {
-            let sisa = t.total - (t.sudahDibayar || 0);
-            if (sisa > 0) {
-                hutangPelangganMap[t.pelangganId] = (hutangPelangganMap[t.pelangganId] || 0) + sisa;
-            }
-        }
-    });
-
-    let html = '';
-    pelanggan.forEach(p => {
-        let totalHutang = hutangPelangganMap[p.id] || 0;
-        html += `
-            <tr class="hover:bg-orange-50/40 transition border-b border-gray-100">
-                <td class="p-3 font-bold text-gray-800 uppercase">${p.nama}</td>
-                <td class="p-3 text-gray-600">${p.kontak}</td>
-                <td class="p-3 text-gray-600">${p.alamat || '-'}</td>
-                <td class="p-3 text-right font-black ${totalHutang > 0 ? 'text-red-600' : 'text-emerald-600'}">Rp ${totalHutang.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-center space-x-1">
-                    <button onclick="editPelanggan('${p.id}')" class="px-2 py-1 bg-blue-500 text-white text-[10px] rounded font-bold hover:bg-blue-600 cursor-pointer">✏️ Edit</button>
-                    <button onclick="hapusPelanggan('${p.id}')" class="px-2 py-1 bg-red-500 text-white text-[10px] rounded font-bold hover:bg-red-600 cursor-pointer">❌ Hapus</button>
-                </td>
-            </tr>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-/* ========================================================
-   FUNGSI MANAJEMEN HUTANG / KASBON PELANGGAN
-   ======================================================== */
-function renderHutangPelanggan() {
-    let tbody = document.getElementById('tabelHutangPelanggan');
-    if (!tbody) return;
-
-    let keyword = (document.getElementById('cariHutang')?.value || '').toLowerCase().trim();
-
-    let listHutang = riwayatTransaksi.filter(t => t.metodePembayaran === 'HUTANG');
-
-    if (keyword) {
-        listHutang = listHutang.filter(t => (t.pelangganNama && t.pelangganNama.toLowerCase().includes(keyword)));
-    }
-
-    let totalSisa = 0;
-    let totalDibayar = 0;
-
-    riwayatTransaksi.forEach(t => {
-        if (t.metodePembayaran === 'HUTANG') {
-            let dibayar = t.sudahDibayar || 0;
-            let sisa = t.total - dibayar;
-            totalDibayar += dibayar;
-            if (sisa > 0) totalSisa += sisa;
-        }
-    });
-
-    if (document.getElementById('statTotalHutang')) document.getElementById('statTotalHutang').innerText = 'Rp ' + totalSisa.toLocaleString('id-ID');
-    if (document.getElementById('statTotalHutangDibayar')) document.getElementById('statTotalHutangDibayar').innerText = 'Rp ' + totalDibayar.toLocaleString('id-ID');
-    if (document.getElementById('statJumlahKasbon')) document.getElementById('statJumlahKasbon').innerText = listHutang.length + ' Transaksi';
-
-    if (listHutang.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-400 italic">Belum ada transaksi hutang / kasbon.</td></tr>`;
-        return;
-    }
-
-    let html = '';
-    listHutang.forEach(t => {
-        let dibayar = t.sudahDibayar || 0;
-        let sisa = t.total - dibayar;
-        let statusTag = sisa <= 0 
-            ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">LUNAS</span>`
-            : `<span class="px-2 py-0.5 bg-red-100 text-red-800 rounded font-bold text-[10px]">BELUM LUNAS</span>`;
-
-        html += `
-            <tr class="hover:bg-orange-50/40 transition border-b border-gray-100">
-                <td class="p-3 font-bold text-gray-700">${t.id}</td>
-                <td class="p-3 font-bold text-gray-800 uppercase">${t.pelangganNama || 'Umum'}<br><span class="text-[10px] text-gray-400 font-normal">📞 ${t.pelangganKontak || '-'}</span></td>
-                <td class="p-3 text-center text-gray-500">${t.waktu}</td>
-                <td class="p-3 text-right font-bold text-gray-800">Rp ${t.total.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-right font-bold text-emerald-600">Rp ${dibayar.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-right font-black text-red-600">Rp ${sisa.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-center">${statusTag}</td>
-                <td class="p-3 text-center">
-                    ${sisa > 0 ? `<button onclick="bayarHutangPelanggan('${t.id}')" class="px-3 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded hover:bg-emerald-700 cursor-pointer">💰 Bayar / Cicil</button>` : `<span class="text-xs text-emerald-600 font-bold">✔ Selesai</span>`}
-                </td>
-            </tr>
-        `;
-    });
-    tbody.innerHTML = html;
-}
-
-function bayarHutangPelanggan(idNota) {
-    let nota = riwayatTransaksi.find(t => t.id === idNota);
-    if (!nota) return;
-
-    let dibayar = nota.sudahDibayar || 0;
-    let sisa = nota.total - dibayar;
-
-    let nominal = parseInt(prompt(`Sisa hutang transaksi [${idNota}] atas nama ${nota.pelangganNama}: Rp ${sisa.toLocaleString('id-ID')}\n\nMasukkan nominal pembayaran/cicilan:`)) || 0;
-
-    if (nominal <= 0) return alert('Nominal tidak valid!');
-    if (nominal > sisa) return alert('Nominal melebihi sisa hutang!');
-
-    nota.sudahDibayar = dibayar + nominal;
-
-    if (db) {
-        db.ref('transaksi/' + idNota).set(nota);
-    } else {
-        localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
-        renderHutangPelanggan();
-        renderPelanggan();
-        updateLaporan();
-    }
-    alert('Pembayaran hutang berhasil dicatat!');
-}
-
 // REALTIME LISTENER FIREBASE
 if (db) {
     db.ref('menu_tambahan').on('value', (snapshot) => {
@@ -588,14 +228,12 @@ if (db) {
                     adaDiMenu.isi = m.isi || 1;
                     adaDiMenu.satuan = m.satuan || 'pcs';
                     adaDiMenu.kategori = m.kategori;
-                    adaDiMenu.stok = m.stok || 0;
-                    adaDiMenu.supplierId = m.supplierId || '';
-                    adaDiMenu.gambar = m.gambar || '';
                 } else {
                     databaseMenu.push(m);
                 }
             });
 
+            // Hanya refresh otomatis jika elemen input tidak sedang dalam keadaan aktif (fokus)
             const inputKasir = document.getElementById('cariMenuKasir');
             const inputMaster = document.getElementById('cariMasterData');
             
@@ -613,8 +251,6 @@ if (db) {
         riwayatTransaksi = data ? Object.values(data).sort((a, b) => b.id.localeCompare(a.id)) : [];
         localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
         hitungOtomatisTerjualTitipan();
-        renderHutangPelanggan();
-        renderPelanggan();
         if(!document.getElementById('tab-laporan').classList.contains('hidden')) updateLaporan();
     });
 
@@ -631,20 +267,6 @@ if (db) {
         barangTitipan = data ? Object.values(data) : [];
         localStorage.setItem('aya_titipan_v3', JSON.stringify(barangTitipan));
         hitungOtomatisTerjualTitipan();
-    });
-
-    db.ref('suppliers').on('value', (snapshot) => {
-        const data = snapshot.val();
-        suppliers = data ? Object.values(data) : [];
-        localStorage.setItem('aya_suppliers_v3', JSON.stringify(suppliers));
-        renderSupplier();
-    });
-
-    db.ref('pelanggan').on('value', (snapshot) => {
-        const data = snapshot.val();
-        pelanggan = data ? Object.values(data) : [];
-        localStorage.setItem('aya_pelanggan_v3', JSON.stringify(pelanggan));
-        renderPelanggan();
     });
 }
 
@@ -821,15 +443,11 @@ function renderMenu(customList = null) {
         let hBeli = item.hargaBeli || 0;
         let profit = item.harga - hBeli;
         let satuan = item.satuan || 'pcs';
-        let imgTag = item.gambar 
-            ? `<div class="w-full h-24 bg-gray-50 border border-orange-100 rounded-t-lg mb-2 p-1 flex items-center justify-center overflow-hidden"><img src="${item.gambar}" class="w-full h-full object-contain" alt="${item.nama}"></div>` 
-            : '';
 
         container.innerHTML += `
             <div class="p-2 sm:p-3 bg-white border-2 border-orange-200 rounded-xl flex flex-col justify-between shadow-sm relative group hover:border-orange-400 transition">
                 <div onclick="tambahItem('${item.id}')" class="cursor-pointer flex flex-col justify-between h-full">
                     <div>
-                        ${imgTag}
                         <span class="font-bold text-[11px] sm:text-xs text-gray-700 uppercase tracking-tight line-clamp-2">${item.nama}</span>
                         <p class="text-[9px] text-gray-400">Modal: Rp ${hBeli.toLocaleString('id-ID')} / ${satuan}</p>
                     </div>
@@ -880,36 +498,26 @@ function setMetodePembayaran(metode) {
     let btnTunai = document.getElementById('btn-bayar-tunai');
     let btnQris = document.getElementById('btn-bayar-qris');
     let btnKonsumsi = document.getElementById('btn-bayar-konsumsi');
-    let btnHutang = document.getElementById('btn-bayar-hutang');
     let wrapBayar = document.getElementById('wrapperUangBayar');
     let wrapKembali = document.getElementById('wrapperKembalian');
-    let wrapPelanggan = document.getElementById('wrapperPilihPelanggan');
 
-    if(btnTunai) btnTunai.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
-    if(btnQris) btnQris.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
-    if(btnKonsumsi) btnKonsumsi.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
-    if(btnHutang) btnHutang.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
+    btnTunai.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
+    btnQris.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
+    btnKonsumsi.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
 
     metodePembayaran = metode;
-    if (wrapPelanggan) wrapPelanggan.classList.add('hidden');
-
     if (metode === 'TUNAI') {
-        if(btnTunai) btnTunai.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
-        if(wrapBayar) wrapBayar.classList.remove('hidden');
-        if(wrapKembali) wrapKembali.classList.remove('hidden');
+        btnTunai.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
+        wrapBayar.classList.remove('hidden');
+        wrapKembali.classList.remove('hidden');
     } else if (metode === 'QRIS') {
-        if(btnQris) btnQris.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
-        if(wrapBayar) wrapBayar.classList.add('hidden');
-        if(wrapKembali) wrapKembali.classList.add('hidden');
+        btnQris.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
+        wrapBayar.classList.add('hidden');
+        wrapKembali.classList.add('hidden');
     } else if (metode === 'KONSUMSI') {
-        if(btnKonsumsi) btnKonsumsi.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
-        if(wrapBayar) wrapBayar.classList.add('hidden');
-        if(wrapKembali) wrapKembali.classList.add('hidden');
-    } else if (metode === 'HUTANG') {
-        if(btnHutang) btnHutang.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-red-600 text-white shadow border border-red-600 cursor-pointer transition";
-        if(wrapBayar) wrapBayar.classList.add('hidden');
-        if(wrapKembali) wrapKembali.classList.add('hidden');
-        if(wrapPelanggan) wrapPelanggan.classList.remove('hidden');
+        btnKonsumsi.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
+        wrapBayar.classList.add('hidden');
+        wrapKembali.classList.add('hidden');
     }
     hitungKembalian();
 }
@@ -951,8 +559,6 @@ function hitungTotalKeseluruhan() {
 
 function updateKeranjang() {
     const container = document.getElementById('tabelKeranjang');
-    if (!container) return;
-    
     if (keranjang.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-center py-4">Belum ada item dipilih</p>';
         document.getElementById('textTotal').innerText = 'Rp 0';
@@ -1068,24 +674,20 @@ function cariItemDalamRekap() {
 
 function hitungKembalian() {
     let total = hitungTotalKeseluruhan();
-    const elKembali = document.getElementById('textKembalian');
-    if(!elKembali) return;
-
-    if (metodePembayaran === 'QRIS' || metodePembayaran === 'KONSUMSI' || metodePembayaran === 'HUTANG') {
-        elKembali.innerText = 'Rp 0';
+    if (metodePembayaran === 'QRIS' || metodePembayaran === 'KONSUMSI') {
+        document.getElementById('textKembalian').innerText = 'Rp 0';
         return;
     }
     let bayar = parseInt(document.getElementById('inputBayar').value) || 0;
     let kembalian = bayar - total;
-    elKembali.innerText = kembalian >= 0 ? 'Rp ' + kembalian.toLocaleString('id-ID') : 'Uang Kurang';
+    document.getElementById('textKembalian').innerText = kembalian >= 0 ? 'Rp ' + kembalian.toLocaleString('id-ID') : 'Uang Kurang';
 }
 
 function bersihkanKeranjang() {
     keranjang = [];
-    if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
-    if(document.getElementById('inputOngkir')) document.getElementById('inputOngkir').value = '';
-    if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = '';
-    if(document.getElementById('selectPelangganKasir')) document.getElementById('selectPelangganKasir').value = '';
+    document.getElementById('inputBayar').value = '';
+    document.getElementById('inputOngkir').value = '';
+    document.getElementById('inputStyrofoam').value = '';
     setMetodePembayaran('TUNAI');
     updateKeranjang();
 }
@@ -1098,27 +700,11 @@ function simpanTransaksi() {
     
     let bayar = total;
     let kembalian = 0;
-    let pelangganId = '';
-    let pelangganNama = '';
-    let pelangganKontak = '';
 
     if (metodePembayaran === 'TUNAI') {
         bayar = parseInt(document.getElementById('inputBayar').value) || 0;
         if (bayar < total) { alert('Uang pembayaran Anda masih kurang!'); return false; }
         kembalian = bayar - total;
-    } else if (metodePembayaran === 'HUTANG') {
-        pelangganId = document.getElementById('selectPelangganKasir').value;
-        if (!pelangganId) {
-            alert('Silakan pilih nama pelanggan untuk pencatatan Hutang/Kasbon!');
-            return false;
-        }
-        let pelObj = pelanggan.find(p => p.id === pelangganId);
-        if (pelObj) {
-            pelangganNama = pelObj.nama;
-            pelangganKontak = pelObj.kontak;
-        }
-        bayar = 0;
-        kembalian = 0;
     }
 
     let idNota = 'NOTA-' + Date.now();
@@ -1133,11 +719,7 @@ function simpanTransaksi() {
         kembalian: kembalian,
         metodePembayaran: metodePembayaran,
         ongkir: ongkir,
-        qtyStyrofoam: qtyStyrofoam,
-        pelangganId: pelangganId,
-        pelangganNama: pelangganNama,
-        pelangganKontak: pelangganKontak,
-        sudahDibayar: 0
+        qtyStyrofoam: qtyStyrofoam
     };
 
     if (db) {
@@ -1146,8 +728,6 @@ function simpanTransaksi() {
         riwayatTransaksi.unshift(nota);
         localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
         hitungOtomatisTerjualTitipan();
-        renderHutangPelanggan();
-        renderPelanggan();
         updateLaporan();
     }
     return true;
@@ -1171,23 +751,13 @@ function cetakNota() {
     if (metodePembayaran === 'TUNAI') {
         bayar = parseInt(document.getElementById('inputBayar').value) || 0;
         if (bayar < total) return alert('Input uang bayar dengan benar sebelum mencetak!');
-    } else if (metodePembayaran === 'HUTANG') {
-        let pelId = document.getElementById('selectPelangganKasir').value;
-        if (!pelId) return alert('Pilih nama pelanggan terlebih dahulu!');
     }
 
     document.getElementById('notaWaktu').innerHTML = `
         <div>Waktu: ${new Date().toLocaleString('id-ID')}</div>
         <div>No   : REG-${Date.now().toString().slice(-6)}</div>
     `;
-
-    let txtMetode = `METODE PEMBAYARAN: ${metodePembayaran}`;
-    if (metodePembayaran === 'HUTANG') {
-        let pelId = document.getElementById('selectPelangganKasir').value;
-        let pelObj = pelanggan.find(p => p.id === pelId);
-        if (pelObj) txtMetode += `<br>(PELANGGAN: ${pelObj.nama})`;
-    }
-    document.getElementById('notaMetode').innerHTML = txtMetode;
+    document.getElementById('notaMetode').innerHTML = `METODE PEMBAYARAN: ${metodePembayaran}`;
     
     let htmlItems = '';
     keranjang.forEach(item => {
@@ -1257,11 +827,7 @@ function cetakUlangNota(idNota) {
         <div>Waktu: ${notaLama.waktu}</div>
         <div>No   : RE-PRINT</div>
     `;
-    let txtMetode = `METODE PEMBAYARAN: ${notaLama.metodePembayaran || 'TUNAI'}`;
-    if (notaLama.metodePembayaran === 'HUTANG' && notaLama.pelangganNama) {
-        txtMetode += `<br>(PELANGGAN: ${notaLama.pelangganNama})`;
-    }
-    document.getElementById('notaMetode').innerHTML = txtMetode;
+    document.getElementById('notaMetode').innerHTML = `METODE PEMBAYARAN: ${notaLama.metodePembayaran || 'TUNAI'}`;
     
     let htmlItems = '';
     if (notaLama.items && notaLama.items.length > 0) {
@@ -1307,7 +873,7 @@ function cetakUlangNota(idNota) {
     
     let bayar = notaLama.bayar || notaLama.total;
     let kembali = notaLama.kembalian || (bayar - notaLama.total);
-    if (notaLama.metodePembayaran === 'QRIS' || notaLama.metodePembayaran === 'KONSUMSI' || notaLama.metodePembayaran === 'HUTANG') {
+    if (notaLama.metodePembayaran === 'QRIS' || notaLama.metodePembayaran === 'KONSUMSI') {
         bayar = notaLama.total;
         kembali = 0;
     }
@@ -1367,8 +933,8 @@ function updateDaftarBelanjaPengeluaran() {
     let totalEl = document.getElementById('totalBelanjaPengeluaran');
 
     if (keranjangPengeluaran.length === 0) {
-        if(container) container.innerHTML = '<p class="text-gray-400 text-center py-4">Belum ada barang di daftar belanja</p>';
-        if(totalEl) totalEl.innerText = 'Rp 0';
+        container.innerHTML = '<p class="text-gray-400 text-center py-4">Belum ada barang di daftar belanja</p>';
+        totalEl.innerText = 'Rp 0';
         return;
     }
 
@@ -1392,8 +958,8 @@ function updateDaftarBelanjaPengeluaran() {
     });
     html += '</div>';
 
-    if(container) container.innerHTML = html;
-    if(totalEl) totalEl.innerText = 'Rp ' + total.toLocaleString('id-ID');
+    container.innerHTML = html;
+    totalEl.innerText = 'Rp ' + total.toLocaleString('id-ID');
 }
 
 function simpanPengeluaran() {
@@ -1581,8 +1147,6 @@ function updateLaporan() {
             omsetKonsumsi += n.total;
         } else if (n.metodePembayaran === 'MODAL_MASUK') {
             omsetModalMasuk += n.total;
-        } else if (n.metodePembayaran === 'HUTANG') {
-            // Omset terhitung dari total kasbon
         } else {
             omsetTunai += n.total;
         }
@@ -1610,6 +1174,7 @@ function updateLaporan() {
     if (document.getElementById('statOmsetModalMasuk')) document.getElementById('statOmsetModalMasuk').innerText = 'Rp ' + omsetModalMasuk.toLocaleString('id-ID');
     if (document.getElementById('statOmsetKonsumsi')) document.getElementById('statOmsetKonsumsi').innerText = 'Rp ' + omsetKonsumsi.toLocaleString('id-ID');
     if (document.getElementById('statPengeluaran')) document.getElementById('statPengeluaran').innerText = 'Rp ' + totalBeban.toLocaleString('id-ID');
+    if (document.getElementById('statNota')) document.getElementById('statNota').innerText = transaksiTerfilter.length + ' Item';
 
     if (document.getElementById('statUangCash')) document.getElementById('statUangCash').innerText = 'Rp ' + totalUangCashFisik.toLocaleString('id-ID');
     if (document.getElementById('statModal')) document.getElementById('statModal').innerText = 'Rp ' + totalModalPeriode.toLocaleString('id-ID');
@@ -1693,13 +1258,9 @@ function updateLaporan() {
             let badgeColor = 'bg-green-100 text-green-800';
             if (n.metodePembayaran === 'QRIS') badgeColor = 'bg-blue-100 text-blue-800';
             if (n.metodePembayaran === 'KONSUMSI') badgeColor = 'bg-purple-100 text-purple-800';
-            if (n.metodePembayaran === 'HUTANG') badgeColor = 'bg-red-100 text-red-800 font-bold';
             if (n.metodePembayaran === 'MODAL_MASUK') badgeColor = 'bg-teal-600 text-white font-black';
             
             let badgeMetode = n.metodePembayaran === 'MODAL_MASUK' ? 'MODAL MASUK' : (n.metodePembayaran || 'TUNAI');
-            if (n.metodePembayaran === 'HUTANG' && n.pelangganNama) {
-                badgeMetode += ` (${n.pelangganNama})`;
-            }
 
             let detailItemsHtml = `
                 <div class="mt-3 border-t border-gray-200 pt-2 text-[11px] text-gray-700">
@@ -1808,39 +1369,24 @@ function updateLaporan() {
     }
 }
 
-// FUNGSI UTAMA UNTUK BERPINDAH TAB
 function switchTab(tab) {
-    const listTab = ['kasir', 'master', 'supplier', 'pelanggan', 'hutang', 'titipan', 'pengeluaran', 'laporan'];
+    document.getElementById('tab-kasir').classList.add('hidden');
+    document.getElementById('tab-master').classList.add('hidden');
+    document.getElementById('tab-titipan').classList.add('hidden');
+    document.getElementById('tab-pengeluaran').classList.add('hidden');
+    document.getElementById('tab-laporan').classList.add('hidden');
     
-    listTab.forEach(t => {
-        const elTab = document.getElementById('tab-' + t);
-        if (elTab) elTab.classList.add('hidden');
-    });
-
-    const targetTab = document.getElementById('tab-' + tab);
-    if (targetTab) {
-        targetTab.classList.remove('hidden');
-    }
-
-    if (tab === 'kasir') renderMenu();
-    if (tab === 'master') { renderMasterData(); renderSupplier(); }
-    if (tab === 'supplier') renderSupplier();
-    if (tab === 'pelanggan') renderPelanggan();
-    if (tab === 'hutang') renderHutangPelanggan();
-    if (tab === 'titipan') hitungOtomatisTerjualTitipan();
-    if (tab === 'pengeluaran') renderPengeluaran();
-    if (tab === 'laporan') updateLaporan();
+    document.getElementById('tab-' + tab).classList.remove('hidden');
+    if(tab === 'master') renderMasterData();
+    if(tab === 'laporan') updateLaporan();
+    if(tab === 'titipan') hitungOtomatisTerjualTitipan();
 }
 
 // Inisialisasi awal saat halaman dibuka
 document.addEventListener('DOMContentLoaded', () => {
-    switchTab('kasir');
     filterKategori('topping');
     renderPengeluaran();
     renderMasterData();
-    renderSupplier();
-    renderPelanggan();
-    renderHutangPelanggan();
     hitungOtomatisTerjualTitipan();
 
     // SETUP AUTOMATIC EVENT LISTENERS UNTUK KOLOM PENCARIAN
