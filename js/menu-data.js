@@ -1,5 +1,6 @@
+// js/menu-data.js
+
 const databaseMenu = [
-    // Topping / Krupuk Seblak
     { id: 101, nama: "Kornet", hargaBeli: 0, harga: 1000, isi: 1, satuan: "pcs", kategori: "topping" },
     { id: 102, nama: "Pentol", hargaBeli: 0, harga: 1000, isi: 1, satuan: "pcs", kategori: "topping" },
     { id: 103, nama: "Sosis Kecil", hargaBeli: 0, harga: 1000, isi: 1, satuan: "pcs", kategori: "topping" },
@@ -37,7 +38,6 @@ const databaseMenu = [
     { id: 135, nama: "Bentuk Udang", hargaBeli: 0, harga: 2000, isi: 1, satuan: "pcs", kategori: "topping" },
     { id: 136, nama: "Krupuk Pedo", hargaBeli: 0, harga: 1000, isi: 1, satuan: "pcs", kategori: "topping" },
 
-    // Makanan / Bakaran
     { id: 201, nama: "Mie Tulang", hargaBeli: 0, harga: 8000, isi: 1, satuan: "porsi", kategori: "makanan" },
     { id: 202, nama: "Gado gado", hargaBeli: 0, harga: 12000, isi: 1, satuan: "porsi", kategori: "makanan" },
     { id: 203, nama: "Seblak All Varian", hargaBeli: 0, harga: 8000, isi: 1, satuan: "porsi", kategori: "makanan" },
@@ -56,7 +56,6 @@ const databaseMenu = [
     { id: 216, nama: "Paket nasi babat + Esteh", hargaBeli: 0, harga: 20000, isi: 1, satuan: "porsi", kategori: "makanan" },
     { id: 217, nama: "Siomay + telur", hargaBeli: 0, harga: 10000, isi: 1, satuan: "porsi", kategori: "makanan" },
 
-    // Minuman Dingin
     { id: 301, nama: "Es Teh", hargaBeli: 0, harga: 4000, isi: 1, satuan: "cup", kategori: "dingin" },
     { id: 302, nama: "Es Dawet", hargaBeli: 0, harga: 5000, isi: 1, satuan: "cup", kategori: "dingin" },
     { id: 303, nama: "Es Teller", hargaBeli: 0, harga: 10000, isi: 1, satuan: "cup", kategori: "dingin" },
@@ -75,7 +74,6 @@ const databaseMenu = [
     { id: 316, nama: "Milk Ice", hargaBeli: 0, harga: 5000, isi: 1, satuan: "cup", kategori: "dingin" },
     { id: 317, nama: "Top Coffee Gula aren Ice", hargaBeli: 0, harga: 5000, isi: 1, satuan: "cup", kategori: "dingin" },
 
-    // Minuman Panas
     { id: 401, nama: "Teh Hangat", hargaBeli: 0, harga: 4000, isi: 1, satuan: "cup", kategori: "panas" },
     { id: 402, nama: "Kopi Hitam Racik", hargaBeli: 0, harga: 5000, isi: 1, satuan: "cup", kategori: "panas" },
     { id: 403, nama: "Top Coffee Gula aren panas", hargaBeli: 0, harga: 6000, isi: 1, satuan: "cup", kategori: "panas" },
@@ -88,7 +86,6 @@ const databaseMenu = [
     { id: 410, nama: "Kopi Luwak Hitam", hargaBeli: 0, harga: 5000, isi: 1, satuan: "cup", kategori: "panas" },
     { id: 411, nama: "Luwak White Coffee", hargaBeli: 0, harga: 5000, isi: 1, satuan: "cup", kategori: "panas" },
 
-    // Jajanan / Rokok
     { id: 501, nama: "Roti Nolanda", hargaBeli: 0, harga: 3000, isi: 1, satuan: "pcs", kategori: "jajanan" },
     { id: 502, nama: "Roti Sisir Bareto", hargaBeli: 0, harga: 3000, isi: 1, satuan: "pcs", kategori: "jajanan" },
     { id: 503, nama: "Batagor Ikan (1 porsi)", hargaBeli: 0, harga: 5000, isi: 1, satuan: "porsi", kategori: "jajanan" },
