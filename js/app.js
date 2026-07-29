@@ -36,6 +36,7 @@ let tglPengeluaranMulai = null;
 let tglPengeluaranSelesai = null;
 
 let dataRekapItemGlobal = []; 
+let currentGambarBase64 = ''; // Variable penampung gambar temporary
 
 const UANG_MODAL_HARIAN = 70000;
 
@@ -44,6 +45,41 @@ function dapatkanTanggalLokal() {
     const offset = d.getTimezoneOffset();
     const lokal = new Date(d.getTime() - (offset * 60 * 1000));
     return lokal.toISOString().split('T')[0];
+}
+
+/* ========================================================
+   FUNGSI GESTUR GAMBAR BARU (FITUR TAMBAHAN)
+   ======================================================== */
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            currentGambarBase64 = e.target.result;
+            showImagePreview(currentGambarBase64);
+            document.getElementById('masterGambarUrl').value = '';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function handleUrlImage(val) {
+    currentGambarBase64 = val.trim();
+    showImagePreview(currentGambarBase64);
+}
+
+function showImagePreview(src) {
+    const imgEl = document.getElementById('masterGambarPreview');
+    const emptyEl = document.getElementById('masterGambarEmpty');
+    if (src) {
+        imgEl.src = src;
+        imgEl.classList.remove('hidden');
+        if (emptyEl) emptyEl.classList.add('hidden');
+    } else {
+        imgEl.src = '';
+        imgEl.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.remove('hidden');
+    }
 }
 
 /* ========================================================
@@ -78,6 +114,7 @@ function simpanMasterDatabase() {
     let isi = parseInt(document.getElementById('masterIsi').value) || 1;
     let hargaBeliTotal = parseInt(document.getElementById('masterHargaBeli').value) || 0;
     let hargaJual = parseInt(document.getElementById('masterHargaJual').value) || 0;
+    let stok = parseInt(document.getElementById('masterStok').value) || 0;
 
     if (!nama || hargaJual <= 0) {
         return alert('Mohon isi nama barang dan harga jual dengan benar!');
@@ -94,7 +131,9 @@ function simpanMasterDatabase() {
         isi: isi,
         hargaBeliTotal: hargaBeliTotal,
         hargaBeli: hppSatuan,
-        harga: hargaJual
+        harga: hargaJual,
+        stok: stok,
+        gambar: currentGambarBase64 || ''
     };
 
     if (db) {
@@ -125,6 +164,16 @@ function editMasterData(id) {
     document.getElementById('masterIsi').value = item.isi || 1;
     document.getElementById('masterHargaBeli').value = item.hargaBeliTotal || ((item.hargaBeli || 0) * (item.isi || 1));
     document.getElementById('masterHargaJual').value = item.harga || 0;
+    if(document.getElementById('masterStok')) document.getElementById('masterStok').value = item.stok || 0;
+
+    currentGambarBase64 = item.gambar || '';
+    if (item.gambar && item.gambar.startsWith('http')) {
+        document.getElementById('masterGambarUrl').value = item.gambar;
+    } else {
+        document.getElementById('masterGambarUrl').value = '';
+    }
+    document.getElementById('masterFileInput').value = '';
+    showImagePreview(currentGambarBase64);
 
     document.getElementById('masterFormTitle').innerText = '✏️ Edit Master Barang: ' + item.nama;
     hitungEstimasiProfitMaster();
@@ -154,6 +203,11 @@ function resetFormMaster() {
     document.getElementById('masterIsi').value = '1';
     document.getElementById('masterHargaBeli').value = '';
     document.getElementById('masterHargaJual').value = '';
+    if(document.getElementById('masterStok')) document.getElementById('masterStok').value = '0';
+    document.getElementById('masterFileInput').value = '';
+    document.getElementById('masterGambarUrl').value = '';
+    currentGambarBase64 = '';
+    showImagePreview('');
     document.getElementById('masterFormTitle').innerText = '➕ Input Master Barang Baru';
     hitungEstimasiProfitMaster();
 }
@@ -177,7 +231,7 @@ function renderMasterData(dataToRender = null) {
     }
 
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 italic">Data barang tidak ditemukan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-400 italic">Data barang tidak ditemukan.</td></tr>`;
         return;
     }
 
@@ -186,13 +240,18 @@ function renderMasterData(dataToRender = null) {
         let isi = item.isi || 1;
         let hBeliSatuan = item.hargaBeli || 0;
         let profit = (item.harga || 0) - hBeliSatuan;
+        let imgHtml = item.gambar 
+            ? `<img src="${item.gambar}" class="w-10 h-10 object-cover rounded mx-auto border" alt="${item.nama}">` 
+            : `<div class="w-10 h-10 bg-gray-100 rounded mx-auto flex items-center justify-center text-[10px] text-gray-400">No Img</div>`;
 
         html += `
             <tr class="hover:bg-orange-50/40 transition border-b border-gray-100">
+                <td class="p-2 text-center">${imgHtml}</td>
                 <td class="p-3 font-bold text-gray-800 uppercase">${item.nama}</td>
                 <td class="p-3 text-center">
                     <span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-bold uppercase">${item.kategori || 'umum'}</span>
                 </td>
+                <td class="p-3 text-center font-bold text-gray-600">${item.stok || 0}</td>
                 <td class="p-3 text-center text-gray-600">${isi} ${item.satuan || 'pcs'}</td>
                 <td class="p-3 text-right font-medium text-gray-500">Rp ${hBeliSatuan.toLocaleString('id-ID')}</td>
                 <td class="p-3 text-right font-bold text-gray-800">Rp ${(item.harga || 0).toLocaleString('id-ID')}</td>
@@ -228,6 +287,8 @@ if (db) {
                     adaDiMenu.isi = m.isi || 1;
                     adaDiMenu.satuan = m.satuan || 'pcs';
                     adaDiMenu.kategori = m.kategori;
+                    adaDiMenu.stok = m.stok || 0;
+                    adaDiMenu.gambar = m.gambar || '';
                 } else {
                     databaseMenu.push(m);
                 }
@@ -443,11 +504,15 @@ function renderMenu(customList = null) {
         let hBeli = item.hargaBeli || 0;
         let profit = item.harga - hBeli;
         let satuan = item.satuan || 'pcs';
+        let imgTag = item.gambar 
+            ? `<img src="${item.gambar}" class="w-full h-24 object-cover rounded-t-lg mb-2" alt="${item.nama}">` 
+            : '';
 
         container.innerHTML += `
             <div class="p-2 sm:p-3 bg-white border-2 border-orange-200 rounded-xl flex flex-col justify-between shadow-sm relative group hover:border-orange-400 transition">
                 <div onclick="tambahItem('${item.id}')" class="cursor-pointer flex flex-col justify-between h-full">
                     <div>
+                        ${imgTag}
                         <span class="font-bold text-[11px] sm:text-xs text-gray-700 uppercase tracking-tight line-clamp-2">${item.nama}</span>
                         <p class="text-[9px] text-gray-400">Modal: Rp ${hBeli.toLocaleString('id-ID')} / ${satuan}</p>
                     </div>
