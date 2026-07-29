@@ -48,7 +48,7 @@ function dapatkanTanggalLokal() {
 }
 
 /* ========================================================
-   FUNGSI GESTUR GAMBAR BARU (FITUR TAMBAHAN)
+   FUNGSI GESTUR GAMBAR BARU
    ======================================================== */
 function handleImageUpload(event) {
     const file = event.target.files[0];
@@ -57,7 +57,8 @@ function handleImageUpload(event) {
         reader.onload = function(e) {
             currentGambarBase64 = e.target.result;
             showImagePreview(currentGambarBase64);
-            document.getElementById('masterGambarUrl').value = '';
+            const inputUrl = document.getElementById('masterGambarUrl');
+            if (inputUrl) inputUrl.value = '';
         };
         reader.readAsDataURL(file);
     }
@@ -72,12 +73,16 @@ function showImagePreview(src) {
     const imgEl = document.getElementById('masterGambarPreview');
     const emptyEl = document.getElementById('masterGambarEmpty');
     if (src) {
-        imgEl.src = src;
-        imgEl.classList.remove('hidden');
+        if (imgEl) {
+            imgEl.src = src;
+            imgEl.classList.remove('hidden');
+        }
         if (emptyEl) emptyEl.classList.add('hidden');
     } else {
-        imgEl.src = '';
-        imgEl.classList.add('hidden');
+        if (imgEl) {
+            imgEl.src = '';
+            imgEl.classList.add('hidden');
+        }
         if (emptyEl) emptyEl.classList.remove('hidden');
     }
 }
@@ -167,12 +172,17 @@ function editMasterData(id) {
     if(document.getElementById('masterStok')) document.getElementById('masterStok').value = item.stok || 0;
 
     currentGambarBase64 = item.gambar || '';
-    if (item.gambar && item.gambar.startsWith('http')) {
-        document.getElementById('masterGambarUrl').value = item.gambar;
-    } else {
-        document.getElementById('masterGambarUrl').value = '';
+    const inputUrl = document.getElementById('masterGambarUrl');
+    if (inputUrl) {
+        if (item.gambar && item.gambar.startsWith('http')) {
+            inputUrl.value = item.gambar;
+        } else {
+            inputUrl.value = '';
+        }
     }
-    document.getElementById('masterFileInput').value = '';
+    const fileInput = document.getElementById('masterFileInput');
+    if (fileInput) fileInput.value = '';
+    
     showImagePreview(currentGambarBase64);
 
     document.getElementById('masterFormTitle').innerText = '✏️ Edit Master Barang: ' + item.nama;
@@ -204,8 +214,12 @@ function resetFormMaster() {
     document.getElementById('masterHargaBeli').value = '';
     document.getElementById('masterHargaJual').value = '';
     if(document.getElementById('masterStok')) document.getElementById('masterStok').value = '0';
-    document.getElementById('masterFileInput').value = '';
-    document.getElementById('masterGambarUrl').value = '';
+    
+    const fileInput = document.getElementById('masterFileInput');
+    if (fileInput) fileInput.value = '';
+    const inputUrl = document.getElementById('masterGambarUrl');
+    if (inputUrl) inputUrl.value = '';
+    
     currentGambarBase64 = '';
     showImagePreview('');
     document.getElementById('masterFormTitle').innerText = '➕ Input Master Barang Baru';
@@ -241,7 +255,7 @@ function renderMasterData(dataToRender = null) {
         let hBeliSatuan = item.hargaBeli || 0;
         let profit = (item.harga || 0) - hBeliSatuan;
         let imgHtml = item.gambar 
-            ? `<img src="${item.gambar}" class="w-10 h-10 object-cover rounded mx-auto border" alt="${item.nama}">` 
+            ? `<div class="w-10 h-10 bg-gray-50 rounded border overflow-hidden mx-auto flex items-center justify-center p-0.5"><img src="${item.gambar}" class="w-full h-full object-contain" alt="${item.nama}"></div>` 
             : `<div class="w-10 h-10 bg-gray-100 rounded mx-auto flex items-center justify-center text-[10px] text-gray-400">No Img</div>`;
 
         html += `
@@ -294,7 +308,6 @@ if (db) {
                 }
             });
 
-            // Hanya refresh otomatis jika elemen input tidak sedang dalam keadaan aktif (fokus)
             const inputKasir = document.getElementById('cariMenuKasir');
             const inputMaster = document.getElementById('cariMasterData');
             
@@ -505,7 +518,7 @@ function renderMenu(customList = null) {
         let profit = item.harga - hBeli;
         let satuan = item.satuan || 'pcs';
         let imgTag = item.gambar 
-            ? `<img src="${item.gambar}" class="w-full h-24 object-cover rounded-t-lg mb-2" alt="${item.nama}">` 
+            ? `<div class="w-full h-24 bg-gray-50 border border-orange-100 rounded-t-lg mb-2 p-1 flex items-center justify-center overflow-hidden"><img src="${item.gambar}" class="w-full h-full object-contain" alt="${item.nama}"></div>` 
             : '';
 
         container.innerHTML += `
@@ -566,23 +579,23 @@ function setMetodePembayaran(metode) {
     let wrapBayar = document.getElementById('wrapperUangBayar');
     let wrapKembali = document.getElementById('wrapperKembalian');
 
-    btnTunai.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
-    btnQris.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
-    btnKonsumsi.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
+    if(btnTunai) btnTunai.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
+    if(btnQris) btnQris.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
+    if(btnKonsumsi) btnKonsumsi.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition";
 
     metodePembayaran = metode;
     if (metode === 'TUNAI') {
-        btnTunai.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
-        wrapBayar.classList.remove('hidden');
-        wrapKembali.classList.remove('hidden');
+        if(btnTunai) btnTunai.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
+        if(wrapBayar) wrapBayar.classList.remove('hidden');
+        if(wrapKembali) wrapKembali.classList.remove('hidden');
     } else if (metode === 'QRIS') {
-        btnQris.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
-        wrapBayar.classList.add('hidden');
-        wrapKembali.classList.add('hidden');
+        if(btnQris) btnQris.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
+        if(wrapBayar) wrapBayar.classList.add('hidden');
+        if(wrapKembali) wrapKembali.classList.add('hidden');
     } else if (metode === 'KONSUMSI') {
-        btnKonsumsi.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
-        wrapBayar.classList.add('hidden');
-        wrapKembali.classList.add('hidden');
+        if(btnKonsumsi) btnKonsumsi.className = "py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition";
+        if(wrapBayar) wrapBayar.classList.add('hidden');
+        if(wrapKembali) wrapKembali.classList.add('hidden');
     }
     hitungKembalian();
 }
@@ -624,6 +637,8 @@ function hitungTotalKeseluruhan() {
 
 function updateKeranjang() {
     const container = document.getElementById('tabelKeranjang');
+    if (!container) return;
+    
     if (keranjang.length === 0) {
         container.innerHTML = '<p class="text-gray-400 text-center py-4">Belum ada item dipilih</p>';
         document.getElementById('textTotal').innerText = 'Rp 0';
@@ -739,20 +754,23 @@ function cariItemDalamRekap() {
 
 function hitungKembalian() {
     let total = hitungTotalKeseluruhan();
+    const elKembali = document.getElementById('textKembalian');
+    if(!elKembali) return;
+
     if (metodePembayaran === 'QRIS' || metodePembayaran === 'KONSUMSI') {
-        document.getElementById('textKembalian').innerText = 'Rp 0';
+        elKembali.innerText = 'Rp 0';
         return;
     }
     let bayar = parseInt(document.getElementById('inputBayar').value) || 0;
     let kembalian = bayar - total;
-    document.getElementById('textKembalian').innerText = kembalian >= 0 ? 'Rp ' + kembalian.toLocaleString('id-ID') : 'Uang Kurang';
+    elKembali.innerText = kembalian >= 0 ? 'Rp ' + kembalian.toLocaleString('id-ID') : 'Uang Kurang';
 }
 
 function bersihkanKeranjang() {
     keranjang = [];
-    document.getElementById('inputBayar').value = '';
-    document.getElementById('inputOngkir').value = '';
-    document.getElementById('inputStyrofoam').value = '';
+    if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
+    if(document.getElementById('inputOngkir')) document.getElementById('inputOngkir').value = '';
+    if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = '';
     setMetodePembayaran('TUNAI');
     updateKeranjang();
 }
@@ -998,8 +1016,8 @@ function updateDaftarBelanjaPengeluaran() {
     let totalEl = document.getElementById('totalBelanjaPengeluaran');
 
     if (keranjangPengeluaran.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-center py-4">Belum ada barang di daftar belanja</p>';
-        totalEl.innerText = 'Rp 0';
+        if(container) container.innerHTML = '<p class="text-gray-400 text-center py-4">Belum ada barang di daftar belanja</p>';
+        if(totalEl) totalEl.innerText = 'Rp 0';
         return;
     }
 
@@ -1023,8 +1041,8 @@ function updateDaftarBelanjaPengeluaran() {
     });
     html += '</div>';
 
-    container.innerHTML = html;
-    totalEl.innerText = 'Rp ' + total.toLocaleString('id-ID');
+    if(container) container.innerHTML = html;
+    if(totalEl) totalEl.innerText = 'Rp ' + total.toLocaleString('id-ID');
 }
 
 function simpanPengeluaran() {
@@ -1239,7 +1257,6 @@ function updateLaporan() {
     if (document.getElementById('statOmsetModalMasuk')) document.getElementById('statOmsetModalMasuk').innerText = 'Rp ' + omsetModalMasuk.toLocaleString('id-ID');
     if (document.getElementById('statOmsetKonsumsi')) document.getElementById('statOmsetKonsumsi').innerText = 'Rp ' + omsetKonsumsi.toLocaleString('id-ID');
     if (document.getElementById('statPengeluaran')) document.getElementById('statPengeluaran').innerText = 'Rp ' + totalBeban.toLocaleString('id-ID');
-    if (document.getElementById('statNota')) document.getElementById('statNota').innerText = transaksiTerfilter.length + ' Item';
 
     if (document.getElementById('statUangCash')) document.getElementById('statUangCash').innerText = 'Rp ' + totalUangCashFisik.toLocaleString('id-ID');
     if (document.getElementById('statModal')) document.getElementById('statModal').innerText = 'Rp ' + totalModalPeriode.toLocaleString('id-ID');
@@ -1434,21 +1451,30 @@ function updateLaporan() {
     }
 }
 
+// FUNGSI UTAMA UNTUK BERPINDAH TAB
 function switchTab(tab) {
-    document.getElementById('tab-kasir').classList.add('hidden');
-    document.getElementById('tab-master').classList.add('hidden');
-    document.getElementById('tab-titipan').classList.add('hidden');
-    document.getElementById('tab-pengeluaran').classList.add('hidden');
-    document.getElementById('tab-laporan').classList.add('hidden');
+    const listTab = ['kasir', 'master', 'titipan', 'pengeluaran', 'laporan'];
     
-    document.getElementById('tab-' + tab).classList.remove('hidden');
-    if(tab === 'master') renderMasterData();
-    if(tab === 'laporan') updateLaporan();
-    if(tab === 'titipan') hitungOtomatisTerjualTitipan();
+    listTab.forEach(t => {
+        const elTab = document.getElementById('tab-' + t);
+        if (elTab) elTab.classList.add('hidden');
+    });
+
+    const targetTab = document.getElementById('tab-' + tab);
+    if (targetTab) {
+        targetTab.classList.remove('hidden');
+    }
+
+    if (tab === 'kasir') renderMenu();
+    if (tab === 'master') renderMasterData();
+    if (tab === 'titipan') hitungOtomatisTerjualTitipan();
+    if (tab === 'pengeluaran') renderPengeluaran();
+    if (tab === 'laporan') updateLaporan();
 }
 
 // Inisialisasi awal saat halaman dibuka
 document.addEventListener('DOMContentLoaded', () => {
+    switchTab('kasir');
     filterKategori('topping');
     renderPengeluaran();
     renderMasterData();
