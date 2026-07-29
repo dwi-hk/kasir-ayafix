@@ -162,10 +162,10 @@
             </div>
 
             <!-- SUB TAB PEMBELIAN / KULAKAN -->
-            <div id="sub-transaksi-pembelian" class="hidden bg-white p-6 rounded-xl shadow border border-orange-100 max-w-2xl mx-auto">
+            <div id="sub-transaksi-pembelian" class="hidden bg-white p-6 rounded-xl shadow border border-orange-100 max-w-3xl mx-auto">
                 <h2 class="text-xl font-bold text-orange-600 mb-4">🛍️ Catat Pembelian Stok / Kulakan</h2>
                 <div class="space-y-3 bg-orange-50 p-4 rounded-xl border border-orange-100 mb-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1">Supplier (Opsional):</label>
                             <select id="pembelianSupplier" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500">
@@ -178,25 +178,57 @@
                                 <option value="">-- Manual / Ketik Nama Baru --</option>
                             </select>
                         </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">SKU / Barcode:</label>
+                            <input type="text" id="skuPembelian" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500 font-mono" placeholder="Scan/Ketik Barcode">
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="sm:col-span-1">
                             <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Barang:</label>
                             <input type="text" id="namaPembelian" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="Contoh: Sosis Jumbo">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Beli Satuan:</label>
-                            <input type="number" id="hargaPembelian" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Kategori:</label>
+                            <select id="kategoriPembelian" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500">
+                                <option value="topping">🍢 Topping / Krupuk Seblak</option>
+                                <option value="makanan">🍲 Makanan / Bakaran</option>
+                                <option value="dingin">❄️ Minuman Dingin</option>
+                                <option value="panas">☕ Minuman Hangat</option>
+                                <option value="jajanan">🚬 Jajanan / Rokok</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Jumlah (Qty):</label>
-                            <input type="number" id="qtyPembelian" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="1" value="1" min="1">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Satuan:</label>
-                            <input type="text" id="satuanPembelian" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="pcs, pack, dus">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Jumlah Beli (DUS / Pack / Bks):</label>
+                            <input type="number" id="qtyPembelian" oninput="hitungPembelian()" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="1" value="1" min="1">
                         </div>
                     </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Beli per DUS/Bks (Rp):</label>
+                            <input type="number" id="hargaGrosirPembelian" oninput="hitungPembelian()" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Isi per Dus/Bks (Pcs):</label>
+                            <input type="number" id="isiPembelian" oninput="hitungPembelian()" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="1" value="1" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Beli / Pcs (Modal):</label>
+                            <input type="number" id="hargaPembelian" readonly class="w-full p-2 border border-gray-200 bg-gray-100 text-xs rounded font-bold text-gray-700" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Jual / Pcs (Rp):</label>
+                            <input type="number" id="hargaJualPembelian" class="w-full p-2 border border-orange-300 bg-white text-xs rounded focus:outline-orange-500 font-bold text-orange-600" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center text-xs bg-orange-100/60 p-2 rounded border border-orange-200">
+                        <span>Total Stok Tambahan: <b id="textTotalStokPcs">0 pcs</b></span>
+                        <span>Estimasi Laba/Pcs: <b id="textProfitPcs" class="text-emerald-700">Rp 0</b></span>
+                    </div>
+
                     <button onclick="tambahKeDaftarPembelian()" class="w-full bg-orange-500 text-white text-xs font-bold py-2 rounded hover:bg-orange-600 transition cursor-pointer">➕ Masukkan ke Daftar Kulakan</button>
                 </div>
 
@@ -211,7 +243,7 @@
                     </div>
                 </div>
 
-                <button onclick="simpanPembelian()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded shadow hover:bg-emerald-700 transition cursor-pointer">💾 Simpan Transaksi Kulakan</button>
+                <button onclick="simpanPembelian()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded shadow hover:bg-emerald-700 transition cursor-pointer">💾 Simpan Transaksi Kulakan & Update Stok Master</button>
 
                 <h3 class="font-bold text-gray-700 mt-6 mb-2 border-b pb-1">Riwayat Pembelian / Kulakan</h3>
                 <div id="listPembelian" class="text-sm space-y-1.5 divide-y divide-gray-100 max-h-[30vh] overflow-y-auto"></div>

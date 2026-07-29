@@ -112,7 +112,7 @@ function renderMenuKasir() {
             </div>
             <div class="flex justify-between items-end mt-3">
                 <span class="text-orange-600 font-extrabold text-xs">Rp ${Number(item.harga).toLocaleString('id-ID')}</span>
-                <span class="text-[10px] text-gray-500">/${item.satuan}</span>
+                <span class="text-[10px] text-gray-500">/${item.satuan || 'pcs'}</span>
             </div>
         `;
         container.appendChild(card);
@@ -312,7 +312,7 @@ function initSelectMasterPembelian() {
     let masterStorage = JSON.parse(localStorage.getItem('aya_master_barang')) || databaseMenu;
     let opts = '<option value="">-- Manual / Ketik Nama Baru --</option>';
     masterStorage.forEach(item => {
-        opts += `<option value="${item.id}">${item.nama} (${item.satuan})</option>`;
+        opts += `<option value="${item.id}">${item.nama} (${item.satuan || 'pcs'})</option>`;
     });
     selectMaster.innerHTML = opts;
 
@@ -321,26 +321,63 @@ function initSelectMasterPembelian() {
         if(val) {
             const item = masterStorage.find(m => m.id == val);
             if(item) {
-                if(document.getElementById('namaPembelian')) document.getElementById('namaPembelian').value = item.nama;
+                if(document.getElementById('skuPembelian')) document.getElementById('skuPembelian').value = item.sku || '';
+                if(document.getElementById('namaPembelian')) document.getElementById('namaPembelian').value = item.nama || '';
+                if(document.getElementById('kategoriPembelian')) document.getElementById('kategoriPembelian').value = item.kategori || 'topping';
+                if(document.getElementById('isiPembelian')) document.getElementById('isiPembelian').value = item.isi || 1;
                 if(document.getElementById('hargaPembelian')) document.getElementById('hargaPembelian').value = item.hargaBeli || 0;
-                if(document.getElementById('satuanPembelian')) document.getElementById('satuanPembelian').value = item.satuan || 'pcs';
+                if(document.getElementById('hargaJualPembelian')) document.getElementById('hargaJualPembelian').value = item.harga || 0;
+                hitungPembelian();
             }
         }
     };
 }
 
+function hitungPembelian() {
+    const hgGrosir = Number(document.getElementById('hargaGrosirPembelian')?.value || 0);
+    const qtyDUS = Number(document.getElementById('qtyPembelian')?.value || 1);
+    const isiPerBks = Number(document.getElementById('isiPembelian')?.value || 1);
+    const hgJualPcs = Number(document.getElementById('hargaJualPembelian')?.value || 0);
+
+    const hgBeliPcs = isiPerBks > 0 ? hgGrosir / isiPerBks : hgGrosir;
+    if(document.getElementById('hargaPembelian')) {
+        document.getElementById('hargaPembelian').value = Math.round(hgBeliPcs);
+    }
+
+    const totalStok = qtyDUS * isiPerBks;
+    if(document.getElementById('textTotalStokPcs')) {
+        document.getElementById('textTotalStokPcs').innerText = `${totalStok} pcs`;
+    }
+
+    const profitPcs = hgJualPcs - hgBeliPcs;
+    if(document.getElementById('textProfitPcs')) {
+        document.getElementById('textProfitPcs').innerText = `Rp ${Math.round(profitPcs).toLocaleString('id-ID')}`;
+    }
+}
+
 function tambahKeDaftarPembelian() {
+    const sku = document.getElementById('skuPembelian')?.value || '';
     const nama = document.getElementById('namaPembelian')?.value;
-    const harga = Number(document.getElementById('hargaPembelian')?.value || 0);
-    const qty = Number(document.getElementById('qtyPembelian')?.value || 1);
-    if(!nama || harga < 0) { alert("Nama barang dan harga wajib diisi!"); return; }
+    const kategori = document.getElementById('kategoriPembelian')?.value || 'topping';
+    const qtyGrosir = Number(document.getElementById('qtyPembelian')?.value || 1);
+    const hgGrosir = Number(document.getElementById('hargaGrosirPembelian')?.value || 0);
+    const isiPcs = Number(document.getElementById('isiPembelian')?.value || 1);
+    const hgBeliPcs = Number(document.getElementById('hargaPembelian')?.value || 0);
+    const hgJualPcs = Number(document.getElementById('hargaJualPembelian')?.value || 0);
+
+    if(!nama || hgGrosir <= 0) { alert("Nama barang dan harga grosir wajib diisi!"); return; }
 
     daftarPembelian.push({
+        sku: sku,
         nama: nama,
-        harga: harga,
-        qty: qty,
-        satuan: document.getElementById('satuanPembelian')?.value || 'pcs',
-        subtotal: harga * qty
+        kategori: kategori,
+        qtyGrosir: qtyGrosir,
+        hargaGrosir: hgGrosir,
+        isiPcs: isiPcs,
+        hargaBeliPcs: hgBeliPcs,
+        hargaJualPcs: hgJualPcs,
+        totalStokPcs: qtyGrosir * isiPcs,
+        subtotal: hgGrosir * qtyGrosir
     });
     renderDaftarPembelian();
 }
@@ -354,16 +391,25 @@ function renderDaftarPembelian() {
         return;
     }
     let total = 0;
-    container.innerHTML = daftarPembelian.map((b, idx) => {
+    container.innerHTML = daftarPembelian.map((b) => {
         total += b.subtotal;
-        return `<div class="flex justify-between py-1"><span>${b.nama} (${b.qty} ${b.satuan} @${b.harga.toLocaleString('id-ID')})</span><b>Rp ${b.subtotal.toLocaleString('id-ID')}</b></div>`;
+        return `<div class="flex justify-between py-1 border-b">
+            <div>
+                <b>${b.nama}</b> <span class="text-gray-500">(${b.qtyGrosir} Bks/Dus @Rp ${b.hargaGrosir.toLocaleString('id-ID')})</span><br>
+                <span class="text-[10px] text-gray-500">Stok: +${b.totalStokPcs} pcs | HPP/Pcs: Rp ${Math.round(b.hargaBeliPcs).toLocaleString('id-ID')} | Jual/Pcs: Rp ${b.hargaJualPcs.toLocaleString('id-ID')}</span>
+            </div>
+            <b class="text-orange-600">Rp ${b.subtotal.toLocaleString('id-ID')}</b>
+        </div>`;
     }).join('');
     document.getElementById('totalBelanjaPembelian').innerText = `Rp ${total.toLocaleString('id-ID')}`;
 }
 
 function simpanPembelian() {
     if(daftarPembelian.length === 0) { alert("Daftar kulakan masih kosong!"); return; }
+    
     let riwayat = JSON.parse(localStorage.getItem('aya_pembelian')) || [];
+    let masterStorage = JSON.parse(localStorage.getItem('aya_master_barang')) || databaseMenu;
+
     const record = {
         id: Date.now(),
         tanggal: new Date().toISOString(),
@@ -371,13 +417,42 @@ function simpanPembelian() {
         items: [...daftarPembelian],
         total: daftarPembelian.reduce((s, b) => s + b.subtotal, 0)
     };
+    
+    // Update atau tambahkan barang ke Master Database secara otomatis
+    daftarPembelian.forEach(item => {
+        let existingMaster = masterStorage.find(m => (m.sku && m.sku === item.sku) || m.nama.toLowerCase() === item.nama.toLowerCase());
+        if(existingMaster) {
+            existingMaster.hargaBeli = item.hargaBeliPcs;
+            existingMaster.harga = item.hargaJualPcs;
+            existingMaster.isi = item.isiPcs;
+            existingMaster.stok = (Number(existingMaster.stok) || 0) + item.totalStokPcs;
+        } else {
+            masterStorage.push({
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                sku: item.sku,
+                nama: item.nama,
+                kategori: item.kategori,
+                satuan: 'pcs',
+                isi: item.isiPcs,
+                hargaBeli: item.hargaBeliPcs,
+                harga: item.hargaJualPcs,
+                stok: item.totalStokPcs
+            });
+        }
+    });
+
+    localStorage.setItem('aya_master_barang', JSON.stringify(masterStorage));
     riwayat.push(record);
     localStorage.setItem('aya_pembelian', JSON.stringify(riwayat));
+
     daftarPembelian = [];
     renderDaftarPembelian();
     muatDataPembelian();
+    updateTabelMaster();
+    renderMenuKasir();
+    initSelectMasterPembelian();
     muatLaporanRekap();
-    alert("Transaksi kulakan berhasil disimpan!");
+    alert("Transaksi kulakan berhasil disimpan dan Stok/Harga di Master Barang berhasil diperbarui!");
 }
 
 function muatDataPembelian() {
@@ -388,7 +463,7 @@ function muatDataPembelian() {
         <div class="p-3 bg-orange-50/50 rounded border flex justify-between items-center text-xs">
             <div>
                 <b class="text-orange-700">${new Date(r.tanggal).toLocaleString('id-ID')}</b> <span class="text-gray-500">(${r.supplier})</span>
-                <div class="text-gray-600">${r.items.map(i => `${i.nama} (${i.qty} ${i.satuan})`).join(', ')}</div>
+                <div class="text-gray-600">${r.items.map(i => `${i.nama} (+${i.totalStokPcs} pcs)`).join(', ')}</div>
             </div>
             <span class="font-bold text-orange-600">Rp ${r.total.toLocaleString('id-ID')}</span>
         </div>
@@ -414,10 +489,10 @@ function updateTabelMaster() {
             <td class="p-3 font-mono">${item.sku || '-'}</td>
             <td class="p-3 font-bold">${item.nama}</td>
             <td class="p-3 text-center"><span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-[10px]">${item.kategori}</span></td>
-            <td class="p-3 text-center">${item.isi || 1} ${item.satuan}</td>
-            <td class="p-3 text-right">Rp ${Number(item.hargaBeli || 0).toLocaleString('id-ID')}</td>
+            <td class="p-3 text-center">${item.isi || 1} ${item.satuan || 'pcs'}</td>
+            <td class="p-3 text-right">Rp ${Math.round(Number(item.hargaBeli || 0)).toLocaleString('id-ID')}</td>
             <td class="p-3 text-right font-bold text-orange-600">Rp ${Number(item.harga).toLocaleString('id-ID')}</td>
-            <td class="p-3 text-right text-emerald-600 font-bold">Rp ${profit.toLocaleString('id-ID')}</td>
+            <td class="p-3 text-right text-emerald-600 font-bold">Rp ${Math.round(profit).toLocaleString('id-ID')}</td>
             <td class="p-3 text-center">
                 <button onclick="hapusMasterItem(${index})" class="text-red-500 font-bold hover:underline">Hapus</button>
             </td>
@@ -449,12 +524,12 @@ function hitungEstimasiProfitMaster() {
     
     const hppSatuan = isi > 0 ? hargaBeli / isi : 0;
     if(document.getElementById('masterHargaBeliSatuanManual')) {
-        document.getElementById('masterHargaBeliSatuanManual').value = hppSatuan.toFixed(0);
+        document.getElementById('masterHargaBeliSatuanManual').value = Math.round(hppSatuan);
     }
     const profit = hargaJual - hppSatuan;
     const profitEl = document.getElementById('masterEstimasiProfit');
     if(profitEl) {
-        profitEl.innerText = `Rp ${profit.toLocaleString('id-ID')}`;
+        profitEl.innerText = `Rp ${Math.round(profit).toLocaleString('id-ID')}`;
     }
 }
 
@@ -665,7 +740,7 @@ function renderDaftarBelanja() {
         return;
     }
     let total = 0;
-    container.innerHTML = daftarBelanja.map((b, idx) => {
+    container.innerHTML = daftarBelanja.map((b) => {
         total += b.subtotal;
         return `<div class="flex justify-between py-1"><span>${b.nama} (${b.qty} ${b.satuan} @${b.harga.toLocaleString('id-ID')})</span><b>Rp ${b.subtotal.toLocaleString('id-ID')}</b></div>`;
     }).join('');
@@ -788,11 +863,11 @@ function muatLaporanRekap() {
                     <tr class="border-b">
                         <td class="p-3 font-bold">${i.nama}</td>
                         <td class="p-3 text-center"><span class="bg-gray-100 px-2 py-0.5 rounded text-[10px]">${i.kategori}</span></td>
-                        <td class="p-3 text-right">Rp ${i.modal.toLocaleString('id-ID')}</td>
+                        <td class="p-3 text-right">Rp ${Math.round(i.modal).toLocaleString('id-ID')}</td>
                         <td class="p-3 text-right">Rp ${i.harga.toLocaleString('id-ID')}</td>
                         <td class="p-3 text-center font-bold">${i.terjual}</td>
                         <td class="p-3 text-right font-bold text-orange-600">Rp ${i.omset.toLocaleString('id-ID')}</td>
-                        <td class="p-3 text-right font-bold text-emerald-600">Rp ${profitTotal.toLocaleString('id-ID')}</td>
+                        <td class="p-3 text-right font-bold text-emerald-600">Rp ${Math.round(profitTotal).toLocaleString('id-ID')}</td>
                     </tr>
                 `;
             }).join('');
@@ -828,7 +903,7 @@ function muatLaporanRekap() {
             <div class="p-3 ${e.tipe === 'Kulakan' ? 'bg-orange-50/50' : 'bg-red-50/50'} rounded border text-xs flex justify-between items-center">
                 <div>
                     <b>[${e.tipe}] ${new Date(e.tanggal).toLocaleString('id-ID')}</b>
-                    <div>${e.items.map(i => `${i.nama} (${i.qty} ${i.satuan})`).join(', ')}</div>
+                    <div>${e.items.map(i => `${i.nama} (${i.totalStokPcs ? i.totalStokPcs + ' pcs' : i.qty + ' ' + (i.satuan || 'pcs')})`).join(', ')}</div>
                 </div>
                 <span class="font-bold ${e.tipe === 'Kulakan' ? 'text-orange-600' : 'text-red-600'}">Rp ${e.total.toLocaleString('id-ID')}</span>
             </div>
