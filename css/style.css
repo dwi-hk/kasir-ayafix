@@ -9,17 +9,16 @@
         position: absolute;
         left: 0;
         top: 0;
-        width: 58mm;
+        width: 58mm; /* Standar Ukuran Kertas Printer Thermal */
         font-family: 'Courier New', Courier, monospace;
         font-size: 11px;
         color: #000;
-        background: #fff;
-        padding: 5px;
+        padding: 4px;
     }
 }
 
 .nota-item-row {
-    margin-bottom: 3px;
+    margin-bottom: 4px;
 }
 
 .nota-item-detail {
@@ -27,6 +26,18 @@
     justify-content: space-between;
 }
 
-.img-frame-container {
-    max-height: 140px;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #fff7ed;
+}
+::-webkit-scrollbar-thumb {
+    background: #fdba74;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #f97316;
 }

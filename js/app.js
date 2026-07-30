@@ -44,23 +44,76 @@ function dapatkanTanggalLokal() {
     return lokal.toISOString().split('T')[0];
 }
 
+function inisialisasiDatabaseMenu() {
+    let localMaster = JSON.parse(localStorage.getItem('aya_master_menu_v3'));
+    if (localMaster && Array.isArray(localMaster) && localMaster.length > 0) {
+        databaseMenu = localMaster;
+    } else if (typeof menuDataBawaan !== 'undefined' && Array.isArray(menuDataBawaan)) {
+        databaseMenu = [...menuDataBawaan];
+    } else if (typeof databaseMenu === 'undefined') {
+        databaseMenu = [];
+    }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+    inisialisasiDatabaseMenu();
+
     // Muat data dari Firebase jika tersedia
     if (db) {
         db.ref('menu_tambahan').on('value', snapshot => {
             const data = snapshot.val();
             if (data) {
                 databaseMenu = Object.values(data);
+                localStorage.setItem('aya_master_menu_v3', JSON.stringify(databaseMenu));
             }
             renderMenu();
             renderMasterData();
         });
+
+        db.ref('transaksi').on('value', snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                riwayatTransaksi = Object.values(data).sort((a,b) => (b.id > a.id ? 1 : -1));
+                localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
+                renderPenjualanRinci();
+                updateLaporan();
+            }
+        });
+
+        db.ref('pengeluaran').on('value', snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                pengeluaran = Object.values(data).sort((a,b) => (b.id > a.id ? 1 : -1));
+                localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(pengeluaran));
+                renderPengeluaran();
+                updateLaporan();
+            }
+        });
+
+        db.ref('suppliers').on('value', snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                suppliers = Object.values(data);
+                localStorage.setItem('aya_suppliers_v3', JSON.stringify(suppliers));
+                renderSupplier();
+            }
+        });
+
+        db.ref('pelanggan').on('value', snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                pelanggan = Object.values(data);
+                localStorage.setItem('aya_pelanggan_v3', JSON.stringify(pelanggan));
+                renderPelanggan();
+            }
+        });
     }
-    
+
     switchTab('kasir');
     renderPelanggan();
     renderSupplier();
     renderMasterData();
+    renderMenu();
 });
 
 /* NAVIGASI TAB UTAMA */
@@ -127,7 +180,16 @@ function renderMenu() {
     let items = (typeof databaseMenu !== 'undefined' && Array.isArray(databaseMenu)) ? databaseMenu : [];
 
     if (kategoriAktif && kategoriAktif !== 'semua') {
-        items = items.filter(m => String(m.kategori).toLowerCase() === String(kategoriAktif).toLowerCase());
+        items = items.filter(m => {
+            let kat = String(m.kategori || '').toLowerCase();
+            if (kategoriAktif === 'panas') {
+                return kat === 'panas' || kat === 'minuman-hangat' || kat === 'hangat';
+            }
+            if (kategoriAktif === 'dingin') {
+                return kat === 'dingin' || kat === 'minuman-dingin';
+            }
+            return kat === String(kategoriAktif).toLowerCase();
+        });
     }
 
     if (keyword) {
@@ -174,7 +236,7 @@ function tambahItem(id) {
         keranjang.push({
             id: item.id,
             nama: item.nama,
-            harga: item.harga,
+            harga: item.harga || 0,
             hargaBeli: item.hargaBeli || 0,
             qty: 1
         });
@@ -335,6 +397,9 @@ function prosesSimpanTransaksi(isCetak = false) {
     } else {
         riwayatTransaksi.unshift(dataTransaksi);
         localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
+        localStorage.setItem('aya_master_menu_v3', JSON.stringify(databaseMenu));
+        renderPenjualanRinci();
+        updateLaporan();
     }
 
     if (isCetak) {
@@ -582,6 +647,7 @@ function updateHppKeMaster() {
     } else {
         let idx = databaseMenu.findIndex(m => String(m.id) === String(itemMenu.id));
         if (idx !== -1) databaseMenu[idx] = itemMenu;
+        localStorage.setItem('aya_master_menu_v3', JSON.stringify(databaseMenu));
     }
 
     renderMasterData();
@@ -638,6 +704,173 @@ function hapusResepKomposisi(menuId) {
     renderTabelDaftarKomposisi();
 }
 
+/* PENGELUARAN OPERASIONAL */
+function tambahKeDaftarBelanja() {
+    let nama = document.getElementById('namaPengeluaran')?.value.trim();
+    let harga = parseInt(document.getElementById('hargaPengeluaran')?.value) || 0;
+    let qty = parseInt(document.getElementById('qtyPengeluaran')?.value) || 1;
+    let satuan = document.getElementById('satuanPengeluaran')?.value.trim() || 'pcs';
+
+    if (!nama || harga <= 0 || qty <= 0) {
+        return alert('Isi nama barang, harga satuan, dan kuantitas pengeluaran dengan benar!');
+    }
+
+    keranjangPengeluaran.push({
+        nama: nama,
+        harga: harga,
+        qty: qty,
+        satuan: satuan,
+        subtotal: harga * qty
+    });
+
+    document.getElementById('namaPengeluaran').value = '';
+    document.getElementById('hargaPengeluaran').value = '';
+    document.getElementById('qtyPengeluaran').value = '';
+    document.getElementById('satuanPengeluaran').value = 'pcs';
+
+    renderKeranjangPengeluaran();
+}
+
+function hapusItemBelanjaPengeluaran(index) {
+    keranjangPengeluaran.splice(index, 1);
+    renderKeranjangPengeluaran();
+}
+
+function renderKeranjangPengeluaran() {
+    let container = document.getElementById('tabelBelanjaPengeluaran');
+    let totalEl = document.getElementById('totalBelanjaPengeluaran');
+    if (!container) return;
+
+    if (keranjangPengeluaran.length === 0) {
+        container.innerHTML = `<p class="text-gray-400 text-xs italic text-center py-2">Belum ada item belanja.</p>`;
+        if (totalEl) totalEl.innerText = 'Rp 0';
+        return;
+    }
+
+    let html = '';
+    let total = 0;
+    keranjangPengeluaran.forEach((item, idx) => {
+        total += item.subtotal;
+        html += `
+            <div class="flex justify-between items-center text-xs py-1 border-b border-gray-100">
+                <span>${item.nama} (${item.qty} ${item.satuan} @ Rp ${item.harga.toLocaleString('id-ID')})</span>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-red-600">Rp ${item.subtotal.toLocaleString('id-ID')}</span>
+                    <button onclick="hapusItemBelanjaPengeluaran(${idx})" class="text-red-500 font-bold hover:text-red-700 text-xs">❌</button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    if (totalEl) totalEl.innerText = 'Rp ' + total.toLocaleString('id-ID');
+}
+
+function simpanPengeluaran() {
+    if (keranjangPengeluaran.length === 0) return alert('Daftar belanja pengeluaran masih kosong!');
+
+    let totalBiaya = keranjangPengeluaran.reduce((sum, i) => sum + i.subtotal, 0);
+    let idPengeluaran = 'EXP-' + Date.now();
+    let tglLokal = dapatkanTanggalLokal();
+
+    let rincianText = keranjangPengeluaran.map(i => `${i.nama} (${i.qty} ${i.satuan})`).join(', ');
+
+    let dataPengeluaran = {
+        id: idPengeluaran,
+        waktu: new Date().toLocaleString('id-ID'),
+        tanggalISO: tglLokal,
+        keterangan: rincianText,
+        items: [...keranjangPengeluaran],
+        nominal: totalBiaya,
+        jenis: 'BELANJA'
+    };
+
+    if (db) {
+        db.ref('pengeluaran/' + idPengeluaran).set(dataPengeluaran);
+    } else {
+        pengeluaran.unshift(dataPengeluaran);
+        localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(pengeluaran));
+        renderPengeluaran();
+        updateLaporan();
+    }
+
+    keranjangPengeluaran = [];
+    renderKeranjangPengeluaran();
+    alert('Catatan pengeluaran berhasil disimpan!');
+}
+
+function simpanModalTambahan() {
+    let inputEl = document.getElementById('inputModalTambahan');
+    let nominal = parseInt(inputEl?.value) || 0;
+
+    if (nominal <= 0) return alert('Masukkan nominal tambahan modal yang valid!');
+
+    let idModal = 'MODAL-' + Date.now();
+    let tglLokal = dapatkanTanggalLokal();
+
+    let dataModal = {
+        id: idModal,
+        waktu: new Date().toLocaleString('id-ID'),
+        tanggalISO: tglLokal,
+        keterangan: 'Modal Masuk / Tambahan Cash Laci',
+        nominal: nominal,
+        jenis: 'MODAL_MASUK'
+    };
+
+    if (db) {
+        db.ref('pengeluaran/' + idModal).set(dataModal);
+    } else {
+        pengeluaran.unshift(dataModal);
+        localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(pengeluaran));
+        renderPengeluaran();
+        updateLaporan();
+    }
+
+    if (inputEl) inputEl.value = '';
+    alert('Modal tambahan berhasil ditambahkan!');
+}
+
+function renderPengeluaran() {
+    let tbody = document.getElementById('tabelPengeluaran');
+    if (!tbody) return;
+
+    let list = pengeluaran.filter(p => p.jenis !== 'MODAL_MASUK');
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400 italic">Belum ada catatan pengeluaran.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    list.forEach(p => {
+        let detail = p.items ? p.items.map(i => `• ${i.nama} (${i.qty} ${i.satuan} @ Rp ${i.harga.toLocaleString('id-ID')})`).join('<br>') : p.keterangan;
+
+        html += `
+            <tr class="hover:bg-orange-50/40 border-b border-gray-100">
+                <td class="p-3 font-semibold text-gray-500">${p.waktu}</td>
+                <td class="p-3 text-gray-800 font-medium">${detail}</td>
+                <td class="p-3 text-right font-extrabold text-red-600">Rp ${(p.nominal || 0).toLocaleString('id-ID')}</td>
+                <td class="p-3 text-center">
+                    <button onclick="hapusPengeluaran('${p.id}')" class="px-2 py-1 bg-red-500 text-white text-[10px] rounded font-bold hover:bg-red-600 cursor-pointer">❌ Hapus</button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+function hapusPengeluaran(id) {
+    if (!confirm('Apakah Anda yakin ingin menghapus catatan pengeluaran ini?')) return;
+    if (db) {
+        db.ref('pengeluaran/' + id).remove();
+    } else {
+        pengeluaran = pengeluaran.filter(p => p.id !== id);
+        localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(pengeluaran));
+        renderPengeluaran();
+        updateLaporan();
+    }
+}
+
 /* LAPORAN & GRAFIK */
 function updateLaporan() {
     let totalOmset = 0;
@@ -656,9 +889,11 @@ function updateLaporan() {
     });
 
     pengeluaran.forEach(p => {
-        let tgl = p.tanggalISO || (p.waktu ? p.waktu.split(',')[0] : 'Lainnya');
-        if ((!tMulai || tgl >= tMulai) && (!tSelesai || tgl <= tSelesai)) {
-            totalPengeluaran += (p.nominal || 0);
+        if (p.jenis !== 'MODAL_MASUK') {
+            let tgl = p.tanggalISO || (p.waktu ? p.waktu.split(',')[0] : 'Lainnya');
+            if ((!tMulai || tgl >= tMulai) && (!tSelesai || tgl <= tSelesai)) {
+                totalPengeluaran += (p.nominal || 0);
+            }
         }
     });
 
@@ -878,6 +1113,7 @@ function simpanPembelianRinci() {
         if (idx !== -1) riwayatPembelian[idx] = dataPembelian;
         else riwayatPembelian.unshift(dataPembelian);
         localStorage.setItem('aya_pembelian_v3', JSON.stringify(riwayatPembelian));
+        localStorage.setItem('aya_master_menu_v3', JSON.stringify(databaseMenu));
         renderPembelianRinci();
     }
 
@@ -1098,6 +1334,7 @@ function simpanMasterDatabase() {
         } else {
             databaseMenu.push(dataBarang);
         }
+        localStorage.setItem('aya_master_menu_v3', JSON.stringify(databaseMenu));
         cariMasterData();
         renderMenu();
     }
@@ -1148,6 +1385,8 @@ function hapusMasterData(id) {
 
     if (db) {
         db.ref('menu_tambahan/' + id).remove();
+    } else {
+        localStorage.setItem('aya_master_menu_v3', JSON.stringify(databaseMenu));
     }
 
     cariMasterData();
@@ -1355,17 +1594,17 @@ function resetFormPelanggan() {
 }
 
 function editPelanggan(id) {
-    let pel = pelanggan.find(p => p.id === id);
-    if (!pel) return;
-    document.getElementById('pelangganId').value = pel.id;
-    document.getElementById('pelangganNama').value = pel.nama;
-    document.getElementById('pelangganKontak').value = pel.kontak;
-    document.getElementById('pelangganAlamat').value = pel.alamat || '';
-    if(document.getElementById('titleFormPelanggan')) document.getElementById('titleFormPelanggan').innerText = '✏️ Edit Pelanggan: ' + pel.nama;
+    let p = pelanggan.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('pelangganId').value = p.id;
+    document.getElementById('pelangganNama').value = p.nama;
+    document.getElementById('pelangganKontak').value = p.kontak;
+    document.getElementById('pelangganAlamat').value = p.alamat || '';
+    if(document.getElementById('titleFormPelanggan')) document.getElementById('titleFormPelanggan').innerText = '✏️ Edit Pelanggan: ' + p.nama;
 }
 
 function hapusPelanggan(id) {
-    if (!confirm('Hapus pelanggan ini?')) return;
+    if(!confirm('Hapus pelanggan ini?')) return;
     if (db) {
         db.ref('pelanggan/' + id).remove();
     } else {
@@ -1380,11 +1619,11 @@ function renderPelanggan() {
     let selectKasir = document.getElementById('selectPelangganKasir');
 
     if (selectKasir) {
-        let opts = '<option value="">-- Pilih Nama Pelanggan --</option>';
+        let optHtml = '<option value="">-- Pilih Nama Pelanggan --</option>';
         pelanggan.forEach(p => {
-            opts += `<option value="${p.id}">${p.nama} (${p.kontak})</option>`;
+            optHtml += `<option value="${p.id}">${p.nama} (${p.kontak})</option>`;
         });
-        selectKasir.innerHTML = opts;
+        selectKasir.innerHTML = optHtml;
     }
 
     if (!container) return;
@@ -1393,25 +1632,20 @@ function renderPelanggan() {
         return;
     }
 
-    let hutangPelangganMap = {};
-    riwayatTransaksi.forEach(t => {
-        if (t.metodePembayaran === 'HUTANG' && t.pelangganId) {
-            let sisa = t.total - (t.sudahDibayar || 0);
-            if (sisa > 0) {
-                hutangPelangganMap[t.pelangganId] = (hutangPelangganMap[t.pelangganId] || 0) + sisa;
-            }
-        }
-    });
-
     let html = '';
     pelanggan.forEach(p => {
-        let totalHutang = hutangPelangganMap[p.id] || 0;
+        let totalHutang = riwayatTransaksi
+            .filter(t => t.metodePembayaran === 'HUTANG' && String(t.pelangganId) === String(p.id))
+            .reduce((sum, t) => sum + Math.max(0, (t.total || 0) - (t.sudahDibayar || 0)), 0);
+
         html += `
             <tr class="hover:bg-orange-50/40 transition border-b border-gray-100">
                 <td class="p-3 font-bold text-gray-800 uppercase">${p.nama}</td>
                 <td class="p-3 text-gray-600">${p.kontak}</td>
                 <td class="p-3 text-gray-600">${p.alamat || '-'}</td>
-                <td class="p-3 text-right font-black ${totalHutang > 0 ? 'text-red-600' : 'text-emerald-600'}">Rp ${totalHutang.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-extrabold ${totalHutang > 0 ? 'text-red-600' : 'text-emerald-600'}">
+                    Rp ${totalHutang.toLocaleString('id-ID')}
+                </td>
                 <td class="p-3 text-center space-x-1">
                     <button onclick="editPelanggan('${p.id}')" class="px-2 py-1 bg-blue-500 text-white text-[10px] rounded font-bold hover:bg-blue-600 cursor-pointer">✏️ Edit</button>
                     <button onclick="hapusPelanggan('${p.id}')" class="px-2 py-1 bg-red-500 text-white text-[10px] rounded font-bold hover:bg-red-600 cursor-pointer">❌ Hapus</button>
@@ -1422,186 +1656,58 @@ function renderPelanggan() {
     container.innerHTML = html;
 }
 
-/* MANAJEMEN HUTANG PELANGGAN */
+/* REKAP HUTANG PELANGGAN */
 function renderHutangPelanggan() {
     let tbody = document.getElementById('tabelHutangPelanggan');
     if (!tbody) return;
 
     let keyword = (document.getElementById('cariHutang')?.value || '').toLowerCase().trim();
-    let listHutang = riwayatTransaksi.filter(t => t.metodePembayaran === 'HUTANG');
+    let listKasbon = riwayatTransaksi.filter(t => t.metodePembayaran === 'HUTANG');
 
     if (keyword) {
-        listHutang = listHutang.filter(t => (t.pelangganNama && t.pelangganNama.toLowerCase().includes(keyword)));
+        listKasbon = listKasbon.filter(t => t.pelangganNama && t.pelangganNama.toLowerCase().includes(keyword));
     }
 
-    let totalSisa = 0;
-    let totalDibayar = 0;
+    let totalSisaHutang = 0;
+    let totalSudahBayar = 0;
 
-    riwayatTransaksi.forEach(t => {
-        if (t.metodePembayaran === 'HUTANG') {
-            let dibayar = t.sudahDibayar || 0;
-            let sisa = t.total - dibayar;
-            totalDibayar += dibayar;
-            if (sisa > 0) totalSisa += sisa;
-        }
-    });
-
-    if (document.getElementById('statTotalHutang')) document.getElementById('statTotalHutang').innerText = 'Rp ' + totalSisa.toLocaleString('id-ID');
-    if (document.getElementById('statTotalHutangDibayar')) document.getElementById('statTotalHutangDibayar').innerText = 'Rp ' + totalDibayar.toLocaleString('id-ID');
-    if (document.getElementById('statJumlahKasbon')) document.getElementById('statJumlahKasbon').innerText = listHutang.length + ' Transaksi';
-
-    if (listHutang.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-400 italic">Belum ada transaksi hutang / kasbon.</td></tr>`;
-        return;
-    }
-
-    let html = '';
-    listHutang.forEach(t => {
+    listKasbon.forEach(t => {
         let dibayar = t.sudahDibayar || 0;
-        let sisa = t.total - dibayar;
-        let statusTag = sisa <= 0 
-            ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">LUNAS</span>`
-            : `<span class="px-2 py-0.5 bg-red-100 text-red-800 rounded font-bold text-[10px]">BELUM LUNAS</span>`;
-
-        html += `
-            <tr class="hover:bg-orange-50/40 transition border-b border-gray-100">
-                <td class="p-3 font-bold text-gray-700">${t.id}</td>
-                <td class="p-3 font-bold text-gray-800 uppercase">${t.pelangganNama || 'Umum'}<br><span class="text-[10px] text-gray-400 font-normal">📞 ${t.pelangganKontak || '-'}</span></td>
-                <td class="p-3 text-center text-gray-500">${t.waktu}</td>
-                <td class="p-3 text-right font-bold text-gray-800">Rp ${t.total.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-right text-emerald-600 font-bold">Rp ${dibayar.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-right text-red-600 font-extrabold">Rp ${sisa.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-center">${statusTag}</td>
-                <td class="p-3 text-center">
-                    ${sisa > 0 ? `<button onclick="bayarHutang('${t.id}')" class="px-2 py-1 bg-emerald-600 text-white text-[10px] rounded font-bold hover:bg-emerald-700">💳 Pelunasan</button>` : '-'}
-                </td>
-            </tr>
-        `;
+        let sisa = Math.max(0, (t.total || 0) - dibayar);
+        totalSisaHutang += sisa;
+        totalSudahBayar += dibayar;
     });
-    tbody.innerHTML = html;
-}
 
-function bayarHutang(idNota) {
-    let t = riwayatTransaksi.find(x => x.id === idNota);
-    if (!t) return;
-    let sisa = t.total - (t.sudahDibayar || 0);
-    let bayar = prompt(`Masukkan nominal pelunasan hutang untuk ${t.pelangganNama} (Sisa: Rp ${sisa.toLocaleString('id-ID')}):`, sisa);
-    if (!bayar) return;
+    if (document.getElementById('statTotalHutang')) document.getElementById('statTotalHutang').innerText = 'Rp ' + totalSisaHutang.toLocaleString('id-ID');
+    if (document.getElementById('statTotalHutangDibayar')) document.getElementById('statTotalHutangDibayar').innerText = 'Rp ' + totalSudahBayar.toLocaleString('id-ID');
+    if (document.getElementById('statJumlahKasbon')) document.getElementById('statJumlahKasbon').innerText = listKasbon.length + ' Transaksi';
 
-    let nominal = parseInt(bayar) || 0;
-    if (nominal <= 0) return alert('Nominal bayar tidak valid!');
-
-    t.sudahDibayar = (t.sudahDibayar || 0) + nominal;
-    localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
-    renderHutangPelanggan();
-    alert('Pelunasan hutang telah berhasil diperbarui!');
-}
-
-/* PENGELUARAN & TITIPAN BARANG */
-function tambahKeDaftarBelanja() {
-    let nama = document.getElementById('namaPengeluaran')?.value.trim();
-    let harga = parseInt(document.getElementById('hargaPengeluaran')?.value) || 0;
-    let qty = parseInt(document.getElementById('qtyPengeluaran')?.value) || 1;
-    let satuan = document.getElementById('satuanPengeluaran')?.value || 'pcs';
-
-    if (!nama || harga <= 0) return alert('Lengkapi data pengeluaran dengan benar!');
-
-    keranjangPengeluaran.push({ nama, harga, qty, satuan, subtotal: harga * qty });
-    document.getElementById('namaPengeluaran').value = '';
-    document.getElementById('hargaPengeluaran').value = '';
-    document.getElementById('qtyPengeluaran').value = '1';
-
-    renderDaftarBelanjaPengeluaran();
-}
-
-function renderDaftarBelanjaPengeluaran() {
-    let container = document.getElementById('tabelBelanjaPengeluaran');
-    let totalEl = document.getElementById('totalBelanjaPengeluaran');
-    if (!container) return;
-
-    if (keranjangPengeluaran.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 text-center py-4 text-xs">Belum ada barang di daftar belanja</p>';
-        if (totalEl) totalEl.innerText = 'Rp 0';
-        return;
-    }
-
-    let total = 0;
-    let html = '';
-    keranjangPengeluaran.forEach((item, index) => {
-        total += item.subtotal;
-        html += `
-            <div class="flex justify-between items-center py-1 border-b text-xs">
-                <span>${item.nama} (${item.qty} ${item.satuan} x Rp ${item.harga.toLocaleString('id-ID')})</span>
-                <div class="flex items-center gap-2">
-                    <span class="font-bold text-red-600">Rp ${item.subtotal.toLocaleString('id-ID')}</span>
-                    <button onclick="keranjangPengeluaran.splice(${index},1); renderDaftarBelanjaPengeluaran();" class="text-red-500 font-bold text-xs">❌</button>
-                </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-    if (totalEl) totalEl.innerText = 'Rp ' + total.toLocaleString('id-ID');
-}
-
-function simpanPengeluaran() {
-    if (keranjangPengeluaran.length === 0) return alert('Daftar pengeluaran kosong!');
-
-    let totalNominal = keranjangPengeluaran.reduce((sum, item) => sum + item.subtotal, 0);
-    let ket = keranjangPengeluaran.map(i => `${i.nama} (${i.qty} ${i.satuan})`).join(', ');
-
-    let data = {
-        id: 'EXP-' + Date.now(),
-        waktu: new Date().toLocaleString('id-ID'),
-        tanggalISO: dapatkanTanggalLokal(),
-        keterangan: ket,
-        nominal: totalNominal
-    };
-
-    pengeluaran.unshift(data);
-    localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(pengeluaran));
-    keranjangPengeluaran = [];
-    renderDaftarBelanjaPengeluaran();
-    renderPengeluaran();
-    alert('Pengeluaran berhasil dicatat!');
-}
-
-function simpanModalTambahan() {
-    let input = parseInt(document.getElementById('inputModalTambahan')?.value) || 0;
-    if (input <= 0) return alert('Nominal modal harus lebih besar dari 0!');
-
-    let data = {
-        id: 'MODAL-' + Date.now(),
-        waktu: new Date().toLocaleString('id-ID'),
-        tanggalISO: dapatkanTanggalLokal(),
-        keterangan: 'INPUT MODAL CASH TAMBAHAN',
-        nominal: -input
-    };
-
-    pengeluaran.unshift(data);
-    localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(pengeluaran));
-    document.getElementById('inputModalTambahan').value = '';
-    renderPengeluaran();
-    alert('Modal cash berhasil ditambahkan!');
-}
-
-function renderPengeluaran() {
-    let tbody = document.getElementById('tabelPengeluaran');
-    if (!tbody) return;
-
-    if (pengeluaran.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400 italic">Belum ada catatan pengeluaran.</td></tr>`;
+    if (listKasbon.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-400 italic">Tidak ada catatan hutang / kasbon.</td></tr>`;
         return;
     }
 
     let html = '';
-    pengeluaran.forEach(p => {
+    listKasbon.forEach(t => {
+        let dibayar = t.sudahDibayar || 0;
+        let sisa = Math.max(0, (t.total || 0) - dibayar);
+        let isLunas = sisa === 0;
+
+        let statusBadge = isLunas 
+            ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded text-[10px]">LUNAS</span>`
+            : `<span class="px-2 py-0.5 bg-red-100 text-red-800 font-bold rounded text-[10px]">BELUM LUNAS</span>`;
+
         html += `
             <tr class="hover:bg-orange-50/40 border-b border-gray-100">
-                <td class="p-3 text-gray-500 text-xs">${p.waktu}</td>
-                <td class="p-3 font-bold text-gray-800 text-xs uppercase">${p.keterangan}</td>
-                <td class="p-3 text-right font-bold text-red-600 text-xs">Rp ${(p.nominal || 0).toLocaleString('id-ID')}</td>
+                <td class="p-3 font-bold text-gray-800">${t.id}</td>
+                <td class="p-3 font-bold text-gray-800 uppercase">${t.pelangganNama || 'Umum'}</td>
+                <td class="p-3 text-center text-gray-500">${t.waktu}</td>
+                <td class="p-3 text-right font-bold text-gray-800">Rp ${t.total.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-bold text-emerald-600">Rp ${dibayar.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-extrabold text-red-600">Rp ${sisa.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-center">${statusBadge}</td>
                 <td class="p-3 text-center">
-                    <button onclick="hapusPengeluaran('${p.id}')" class="px-2 py-1 bg-red-500 text-white text-[10px] rounded font-bold hover:bg-red-600 cursor-pointer">❌ Hapus</button>
+                    ${!isLunas ? `<button onclick="bayarCicilanHutang('${t.id}')" class="px-2 py-1 bg-emerald-600 text-white font-bold text-[10px] rounded hover:bg-emerald-700 cursor-pointer">💵 Pelunasan</button>` : '<span class="text-xs text-gray-400">-</span>'}
                 </td>
             </tr>
         `;
@@ -1609,14 +1715,88 @@ function renderPengeluaran() {
     tbody.innerHTML = html;
 }
 
-function hapusPengeluaran(id) {
-    if (!confirm('Hapus catatan pengeluaran ini?')) return;
-    pengeluaran = pengeluaran.filter(p => p.id !== id);
-    localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(pengeluaran));
-    renderPengeluaran();
+function bayarCicilanHutang(idNota) {
+    let t = riwayatTransaksi.find(x => x.id === idNota);
+    if (!t) return;
+
+    let sisa = Math.max(0, (t.total || 0) - (t.sudahDibayar || 0));
+    let bayar = prompt(`Sisa hutang untuk nota [${t.id}] adalah Rp ${sisa.toLocaleString('id-ID')}.\nMasukkan nominal pembayaran:`, sisa);
+
+    if (bayar === null) return;
+    let nominal = parseInt(bayar) || 0;
+
+    if (nominal <= 0) return alert('Nominal pembayaran tidak valid!');
+
+    t.sudahDibayar = (t.sudahDibayar || 0) + nominal;
+
+    if (db) {
+        db.ref('transaksi/' + t.id).set(t);
+    } else {
+        localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
+        renderHutangPelanggan();
+        renderPelanggan();
+    }
+
+    alert('Pembayaran hutang berhasil dicatat!');
+}
+
+/* BARANG TITIPAN / KONSINYASI */
+function tambahBarangTitipan() {
+    let nama = document.getElementById('titipanNama')?.value.trim();
+    let jumlah = parseInt(document.getElementById('titipanJumlah')?.value) || 0;
+    let kontak = document.getElementById('titipanKontak')?.value.trim();
+    let hargaBeli = parseInt(document.getElementById('titipanHargaBeli')?.value) || 0;
+    let hargaJual = parseInt(document.getElementById('titipanHargaJual')?.value) || 0;
+
+    if (!nama || jumlah <= 0 || hargaJual <= 0) {
+        return alert('Isi data barang titipan dengan lengkap!');
+    }
+
+    let idTitip = 'TITIP-' + Date.now();
+    let item = {
+        id: idTitip,
+        nama: nama,
+        jumlahTitip: jumlah,
+        terjual: 0,
+        retur: 0,
+        kontak: kontak,
+        hargaBeli: hargaBeli,
+        hargaJual: hargaJual,
+        sudahDisetor: 0
+    };
+
+    barangTitipan.push(item);
+    localStorage.setItem('aya_titipan_v3', JSON.stringify(barangTitipan));
+
+    document.getElementById('titipanNama').value = '';
+    document.getElementById('titipanJumlah').value = '';
+    document.getElementById('titipanKontak').value = '';
+    document.getElementById('titipanHargaBeli').value = '';
+    document.getElementById('titipanHargaJual').value = '';
+
+    renderDaftarTitipan();
+    alert('Barang titipan berhasil ditambahkan!');
 }
 
 function hitungOtomatisTerjualTitipan() {
+    barangTitipan.forEach(t => {
+        let count = 0;
+        riwayatTransaksi.forEach(tr => {
+            if (tr.items) {
+                tr.items.forEach(i => {
+                    if (i.nama.toLowerCase() === t.nama.toLowerCase()) {
+                        count += i.qty;
+                    }
+                });
+            }
+        });
+        t.terjual = count;
+    });
+    localStorage.setItem('aya_titipan_v3', JSON.stringify(barangTitipan));
+    renderDaftarTitipan();
+}
+
+function renderDaftarTitipan() {
     let tbody = document.getElementById('tabelDaftarTitipan');
     if (!tbody) return;
 
@@ -1626,27 +1806,25 @@ function hitungOtomatisTerjualTitipan() {
     }
 
     let html = '';
-    barangTitipan.forEach(b => {
-        let hBeli = b.hargaBeli || 0;
-        let hJual = b.hargaJual || 0;
-        let terjual = b.terjual || 0;
-        let sisa = b.jumlah - terjual - (b.retur || 0);
-        let hutangKeTitip = terjual * hBeli;
-        let profit = terjual * (hJual - hBeli);
+    barangTitipan.forEach(t => {
+        let sisa = Math.max(0, t.jumlahTitip - t.terjual - t.retur);
+        let hutangPenitip = Math.max(0, (t.terjual * t.hargaBeli) - (t.sudahDisetor || 0));
+        let profitToko = t.terjual * (t.hargaJual - t.hargaBeli);
 
         html += `
             <tr class="hover:bg-orange-50/40 border-b border-gray-100">
-                <td class="p-3 font-bold text-gray-800 uppercase">${b.nama}</td>
-                <td class="p-3 text-center">${b.jumlah}</td>
-                <td class="p-3 text-center font-bold text-emerald-600">${terjual}</td>
-                <td class="p-3 text-center text-red-500">${b.retur || 0}</td>
-                <td class="p-3 text-center font-bold text-gray-700">${sisa}</td>
-                <td class="p-3 text-right">Rp ${hBeli.toLocaleString('id-ID')} / Rp ${hJual.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-right font-bold text-red-600">Rp ${hutangKeTitip.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-right font-bold text-emerald-600">Rp ${(b.sudahDibayar || 0).toLocaleString('id-ID')}</td>
-                <td class="p-3 text-right font-extrabold text-blue-600">Rp ${profit.toLocaleString('id-ID')}</td>
-                <td class="p-3 text-center">
-                    <button onclick="hapusTitipan('${b.id}')" class="px-2 py-1 bg-red-500 text-white text-[10px] rounded font-bold hover:bg-red-600 cursor-pointer">❌ Hapus</button>
+                <td class="p-3 font-bold text-gray-800 uppercase">${t.nama}<br><span class="text-[10px] text-gray-400 font-normal">Penyetor: ${t.kontak || '-'}</span></td>
+                <td class="p-3 text-center font-bold">${t.jumlahTitip}</td>
+                <td class="p-3 text-center font-bold text-emerald-600">${t.terjual}</td>
+                <td class="p-3 text-center font-bold text-orange-600">${t.retur}</td>
+                <td class="p-3 text-center font-bold text-gray-600">${sisa}</td>
+                <td class="p-3 text-right text-gray-600">Rp ${t.hargaBeli.toLocaleString('id-ID')} / Rp ${t.hargaJual.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-bold text-red-600">Rp ${hutangPenitip.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-bold text-emerald-600">Rp ${(t.sudahDisetor || 0).toLocaleString('id-ID')}</td>
+                <td class="p-3 text-right font-extrabold text-blue-600">Rp ${profitToko.toLocaleString('id-ID')}</td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="bayarSetoranPenitip('${t.id}')" class="px-2 py-1 bg-emerald-600 text-white font-bold text-[10px] rounded hover:bg-emerald-700 cursor-pointer">💵 Setor</button>
+                    <button onclick="hapusBarangTitipan('${t.id}')" class="px-2 py-1 bg-red-500 text-white font-bold text-[10px] rounded hover:bg-red-600 cursor-pointer">❌ Hapus</button>
                 </td>
             </tr>
         `;
@@ -1654,29 +1832,27 @@ function hitungOtomatisTerjualTitipan() {
     tbody.innerHTML = html;
 }
 
-function tambahBarangTitipan() {
-    let nama = document.getElementById('titipanNama')?.value.trim();
-    let jumlah = parseInt(document.getElementById('titipanJumlah')?.value) || 0;
-    let kontak = document.getElementById('titipanKontak')?.value.trim();
-    let hargaBeli = parseInt(document.getElementById('titipanHargaBeli')?.value) || 0;
-    let hargaJual = parseInt(document.getElementById('titipanHargaJual')?.value) || 0;
+function bayarSetoranPenitip(id) {
+    let t = barangTitipan.find(x => x.id === id);
+    if (!t) return;
 
-    if (!nama || jumlah <= 0 || hargaJual <= 0) return alert('Data barang titipan belum lengkap!');
+    let hutangPenitip = Math.max(0, (t.terjual * t.hargaBeli) - (t.sudahDisetor || 0));
+    let bayar = prompt(`Tagihan setor ke penitip [${t.nama}] adalah Rp ${hutangPenitip.toLocaleString('id-ID')}.\nMasukkan nominal uang yang disetorkan:`, hutangPenitip);
 
-    let data = {
-        id: 'TITIP-' + Date.now(),
-        nama, jumlah, kontak, hargaBeli, hargaJual, terjual: 0, retur: 0, sudahDibayar: 0
-    };
+    if (bayar === null) return;
+    let nominal = parseInt(bayar) || 0;
 
-    barangTitipan.push(data);
+    if (nominal <= 0) return alert('Nominal setoran tidak valid!');
+
+    t.sudahDisetor = (t.sudahDisetor || 0) + nominal;
     localStorage.setItem('aya_titipan_v3', JSON.stringify(barangTitipan));
-    hitungOtomatisTerjualTitipan();
-    alert('Barang titipan berhasil ditambahkan!');
+    renderDaftarTitipan();
+    alert('Setoran berhasil dicatat!');
 }
 
-function hapusTitipan(id) {
-    if (!confirm('Hapus barang titipan ini?')) return;
-    barangTitipan = barangTitipan.filter(b => b.id !== id);
+function hapusBarangTitipan(id) {
+    if (!confirm('Apakah Anda yakin ingin menghapus data barang titipan ini?')) return;
+    barangTitipan = barangTitipan.filter(x => x.id !== id);
     localStorage.setItem('aya_titipan_v3', JSON.stringify(barangTitipan));
-    hitungOtomatisTerjualTitipan();
+    renderDaftarTitipan();
 }
