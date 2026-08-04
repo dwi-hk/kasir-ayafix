@@ -122,7 +122,7 @@ function simpanMasterDatabase() {
     if(db) {
         db.ref('menu_tambahan/' + barcode).set(item);
     } else {
-        databaseMenu.push(item);
+        if(typeof databaseMenu !== 'undefined') databaseMenu.push(item);
     }
     resetFormMaster();
     renderMasterData();
@@ -139,7 +139,7 @@ function resetFormMaster() {
 
 function renderMasterData() {
     let tbody = document.getElementById('tabelMasterData');
-    if (!tbody) return;
+    if (!tbody || typeof databaseMenu === 'undefined') return;
     let html = '';
     databaseMenu.forEach(item => {
         let hpp = item.hargaBeli || 0;
@@ -165,8 +165,10 @@ function renderMasterData() {
 function hapusMasterData(id) {
     if(!confirm('Hapus barang ini dari database?')) return;
     if(db) db.ref('menu_tambahan/' + id).remove();
-    let idx = databaseMenu.findIndex(m => String(m.id) === String(id));
-    if(idx !== -1) databaseMenu.splice(idx, 1);
+    if(typeof databaseMenu !== 'undefined') {
+        let idx = databaseMenu.findIndex(m => String(m.id) === String(id));
+        if(idx !== -1) databaseMenu.splice(idx, 1);
+    }
     renderMasterData();
     renderMenu();
 }
@@ -190,6 +192,7 @@ function cariMenuKasir() {
         renderMenu();
         return;
     }
+    if(typeof databaseMenu === 'undefined') return;
     let filtered = databaseMenu.filter(m => 
         (m.nama && m.nama.toLowerCase().includes(query)) || String(m.id).toLowerCase().includes(query)
     );
@@ -198,7 +201,7 @@ function cariMenuKasir() {
 
 function renderMenu(customList = null) {
     const container = document.getElementById('container-menu');
-    if(!container) return;
+    if(!container || typeof databaseMenu === 'undefined') return;
     container.innerHTML = '';
 
     let list = customList || databaseMenu.filter(m => m.kategori === kategoriAktif);
@@ -217,6 +220,7 @@ function renderMenu(customList = null) {
 }
 
 function tambahItem(id) {
+    if(typeof databaseMenu === 'undefined') return;
     let prod = databaseMenu.find(p => String(p.id) === String(id));
     if(!prod) return;
     let ada = keranjang.find(k => String(k.id) === String(id));
@@ -532,25 +536,32 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         if (t.metodePembayaran === 'QRIS') totalQris += sumTotal;
         else if (t.metodePembayaran === 'TUNAI') totalCash += sumTotal;
 
+        // Mendukung format Array maupun Object Firebase untuk t.items
+        let itemList = [];
         if (Array.isArray(t.items)) {
-            t.items.forEach(item => {
-                let qty = parseInt(item.qty) || 0;
-                let harga = parseInt(item.harga) || 0;
-                let namaItem = item.nama || 'Tidak Diketahui';
-                totalQty += qty;
-
-                if (!itemMap[namaItem]) {
-                    itemMap[namaItem] = {
-                        nama: namaItem,
-                        kategori: item.kategori || 'Umum',
-                        qty: 0,
-                        subtotal: 0
-                    };
-                }
-                itemMap[namaItem].qty += qty;
-                itemMap[namaItem].subtotal += (harga * qty);
-            });
+            itemList = t.items;
+        } else if (t.items && typeof t.items === 'object') {
+            itemList = Object.values(t.items);
         }
+
+        itemList.forEach(item => {
+            if(!item) return;
+            let qty = parseInt(item.qty) || 0;
+            let harga = parseInt(item.harga) || 0;
+            let namaItem = item.nama || 'Tidak Diketahui';
+            totalQty += qty;
+
+            if (!itemMap[namaItem]) {
+                itemMap[namaItem] = {
+                    nama: namaItem,
+                    kategori: item.kategori || 'Umum',
+                    qty: 0,
+                    subtotal: 0
+                };
+            }
+            itemMap[namaItem].qty += qty;
+            itemMap[namaItem].subtotal += (harga * qty);
+        });
     });
 
     let elOmset = document.getElementById('statOmset');
@@ -596,7 +607,16 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         } else {
             let htmlRiwayat = '';
             filtered.forEach(t => {
-                let detailItemsStr = (t.items || []).map(i => `<span class="inline-block bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded mr-1 mb-1 font-semibold">${i.nama || '-'} <b>(x${i.qty || 0})</b></span>`).join('');
+                let itemList = [];
+                if (Array.isArray(t.items)) {
+                    itemList = t.items;
+                } else if (t.items && typeof t.items === 'object') {
+                    itemList = Object.values(t.items);
+                }
+
+                let detailItemsStr = itemList.map(i => `<span class="inline-block bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded mr-1 mb-1 font-semibold">${i.nama || '-'} <b>(x${i.qty || 0})</b></span>`).join('');
+                if(!detailItemsStr) detailItemsStr = '<span class="text-gray-400 italic">Detail item kosong</span>';
+
                 htmlRiwayat += `
                     <tr class="hover:bg-orange-50 border-b">
                         <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${t.id || '-'}</td>
@@ -668,7 +688,6 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
         mapKategori[kat] += nominal;
     });
 
-    // Hitung Arus Kas Bersih (Net Cash Flow) dari Total Omset - Total Beban
     let totalOmsetSaatIni = 0;
     let sumberTx = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
     sumberTx.filter(t => {
@@ -687,7 +706,6 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
 
     let arusKasBersih = totalOmsetSaatIni - totalPengeluaran;
 
-    // Render Stats Pengeluaran
     let elTotalExp = document.getElementById('statTotalPengeluaran');
     let elTunaiExp = document.getElementById('statPengeluaranTunai');
     let elTrfExp = document.getElementById('statPengeluaranTransfer');
@@ -701,7 +719,6 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
         elKasBersih.className = arusKasBersih >= 0 ? "text-lg font-black text-emerald-700" : "text-lg font-black text-red-600";
     }
 
-    // Render Tabel Riwayat Pengeluaran
     let containerTabel = document.getElementById('tabelRiwayatPengeluaran');
     if (containerTabel) {
         if (filtered.length === 0) {
@@ -837,10 +854,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setTanggalHariIniIfEmpty();
     
     if(db) {
-        // Listener Realtime Database untuk Menu Tambahan
         db.ref('menu_tambahan').on('value', (s) => {
             let val = s.val();
-            if(val) {
+            if(val && typeof databaseMenu !== 'undefined') {
                 Object.values(val).forEach(m => {
                     let idx = databaseMenu.findIndex(dm => String(dm.id) === String(m.id));
                     if(idx !== -1) databaseMenu[idx] = m;
@@ -851,7 +867,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Listener Realtime Database untuk Transaksi Penjualan
         db.ref('transaksi').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
@@ -864,7 +879,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateLaporanPengeluaran();
         });
 
-        // Listener Realtime Database untuk Pengeluaran Kas
         db.ref('pengeluaran').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
