@@ -485,11 +485,9 @@ function parseTanggalISO(exp) {
     
     let timeStr = exp.waktu || exp.timestamp || exp.date || '';
     if (timeStr) {
-        // Jika format YYYY-MM-DD
         if (/^\d{4}-\d{2}-\d{2}/.test(timeStr)) {
             return timeStr.substring(0, 10);
         }
-        // Jika format DD/MM/YYYY atau D/M/YYYY
         let parts = timeStr.split(',')[0].split('/');
         if (parts.length === 3) {
             let day = parts[0].trim().padStart(2, '0');
@@ -504,16 +502,23 @@ function parseTanggalISO(exp) {
 }
 
 /* ================= LAPORAN TRANSAKSI PENJUALAN ================= */
+
+// DIPERBARUI: Mengatur default filter tanggal menjadi HARI INI jika belum diisi
 function setTanggalHariIniIfEmpty() {
     let todayISO = new Date().toISOString().split('T')[0];
+    
     let tglMulai = document.getElementById('filterTanggalMulai');
     let tglSelesai = document.getElementById('filterTanggalSelesai');
-    
+    if (tglMulai && !tglMulai.value) tglMulai.value = todayISO;
+    if (tglSelesai && !tglSelesai.value) tglSelesai.value = todayISO;
+
     let tglExpMulai = document.getElementById('filterTglPengeluaranMulai');
     let tglExpSelesai = document.getElementById('filterTglPengeluaranSelesai');
+    if (tglExpMulai && !tglExpMulai.value) tglExpMulai.value = todayISO;
+    if (tglExpSelesai && !tglExpSelesai.value) tglExpSelesai.value = todayISO;
 
     let pengeluaranTglInput = document.getElementById('pengeluaranTanggal');
-    if(pengeluaranTglInput && !pengeluaranTglInput.value) pengeluaranTglInput.value = todayISO;
+    if (pengeluaranTglInput && !pengeluaranTglInput.value) pengeluaranTglInput.value = todayISO;
 }
 
 function terapkanFilterLaporan() {
@@ -521,8 +526,9 @@ function terapkanFilterLaporan() {
 }
 
 function resetFilterLaporan() {
-    if(document.getElementById('filterTanggalMulai')) document.getElementById('filterTanggalMulai').value = '';
-    if(document.getElementById('filterTanggalSelesai')) document.getElementById('filterTanggalSelesai').value = '';
+    let todayISO = new Date().toISOString().split('T')[0];
+    if(document.getElementById('filterTanggalMulai')) document.getElementById('filterTanggalMulai').value = todayISO;
+    if(document.getElementById('filterTanggalSelesai')) document.getElementById('filterTanggalSelesai').value = todayISO;
     updateLaporan();
 }
 
@@ -905,7 +911,6 @@ document.addEventListener('DOMContentLoaded', () => {
         db.ref('transaksi').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
-                // Mendukung jika data tersimpan dalam bentuk array maupun object
                 dataTransaksiFirebase = Array.isArray(data) ? data : Object.values(data);
                 dataTransaksiFirebase.sort((a, b) => ((b.id || '') > (a.id || '') ? 1 : -1));
             } else {
@@ -918,7 +923,6 @@ document.addEventListener('DOMContentLoaded', () => {
         db.ref('pengeluaran').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
-                // Mendukung jika data tersimpan dalam bentuk array maupun object
                 dataPengeluaranFirebase = Array.isArray(data) ? data : Object.values(data);
                 dataPengeluaranFirebase.sort((a, b) => ((b.id || '') > (a.id || '') ? 1 : -1));
             } else {
