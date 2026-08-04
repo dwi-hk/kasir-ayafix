@@ -787,30 +787,40 @@ function hapusPengeluaranFirebase(id) {
     }
 }
 
-/* ================= MANAJEMEN PEMBELIAN / KULAKAN (PERBAIKAN FITUR LENGKAP) ================= */
+/* ================= MANAJEMEN PEMBELIAN / KULAKAN (KODE TERPERBAIKI) ================= */
 
 function renderOpsiMasterPembelian() {
     let inputNama = document.getElementById('pembelianNamaBarang');
-    if (!inputNama || typeof databaseMenu === 'undefined') return;
+    if (!inputNama) return;
 
-    // Menyiapkan Datalist Dinamis untuk Autocomplete / Dropdown Pilihan Barang
+    // Menyiapkan Datalist Dinamis untuk Dropdown Pilihan Barang dari Master Data
     let datalist = document.getElementById('listMasterPembelian');
     if (!datalist) {
         datalist = document.createElement('datalist');
         datalist.id = 'listMasterPembelian';
         document.body.appendChild(datalist);
-        inputNama.setAttribute('list', 'listMasterPembelian');
+    }
+    
+    // Hubungkan input nama barang dengan datalist
+    inputNama.setAttribute('list', 'listMasterPembelian');
+    inputNama.setAttribute('autocomplete', 'off');
+
+    // Populate opsi pilihan dari databaseMenu
+    if (typeof databaseMenu !== 'undefined' && Array.isArray(databaseMenu)) {
+        let html = '';
+        databaseMenu.forEach(item => {
+            let hpp = item.hargaBeli || 0;
+            let hjual = item.harga || 0;
+            html += `<option value="${item.nama}">ID: ${item.id} | Modal: Rp ${hpp.toLocaleString('id-ID')} | Jual: Rp ${hjual.toLocaleString('id-ID')}</option>`;
+        });
+        datalist.innerHTML = html;
     }
 
-    let html = '';
-    databaseMenu.forEach(item => {
-        html += `<option value="${item.nama}">${item.id} - Jual: Rp ${(item.harga || 0).toLocaleString('id-ID')}</option>`;
-    });
-    datalist.innerHTML = html;
+    // Fungsi otomatis melengkapi form saat nama barang dipilih / diinput
+    let handleAutoFill = function() {
+        let val = inputNama.value.trim();
+        if (!val || typeof databaseMenu === 'undefined') return;
 
-    // Event listener untuk otomatis isi detail barang jika nama barang yang dimasukkan cocok dengan Master Data
-    inputNama.oninput = function() {
-        let val = this.value.trim();
         let matched = databaseMenu.find(m => m.nama.toLowerCase() === val.toLowerCase() || String(m.id).toLowerCase() === val.toLowerCase());
         if (matched) {
             let barcodeInput = document.getElementById('pembelianBarcode');
@@ -821,12 +831,29 @@ function renderOpsiMasterPembelian() {
             if (barcodeInput) barcodeInput.value = matched.id || '';
             if (hJualInput) hJualInput.value = matched.harga || 0;
             if (isiInput) isiInput.value = matched.isi || 1;
-            if (hBeliInput && matched.hargaBeliTotal) hBeliInput.value = matched.hargaBeliTotal;
-            else if (hBeliInput && matched.hargaBeli) hBeliInput.value = matched.hargaBeli * (matched.isi || 1);
+            
+            if (hBeliInput) {
+                if (matched.hargaBeliTotal && matched.hargaBeliTotal > 0) {
+                    hBeliInput.value = matched.hargaBeliTotal;
+                } else if (matched.hargaBeli && matched.hargaBeli > 0) {
+                    hBeliInput.value = matched.hargaBeli * (matched.isi || 1);
+                }
+            }
 
             hitungEstimasiProfitPembelian();
         }
     };
+
+    inputNama.oninput = handleAutoFill;
+    inputNama.onchange = handleAutoFill;
+
+    // Pasang Event Listener Kalkulasi Realtime
+    ['pembelianHargaBeli', 'pembelianIsiBeli', 'pembelianHargaJual'].forEach(id => {
+        let el = document.getElementById(id);
+        if (el) {
+            el.oninput = hitungEstimasiProfitPembelian;
+        }
+    });
 }
 
 function hitungEstimasiProfitPembelian() {
@@ -840,10 +867,16 @@ function hitungEstimasiProfitPembelian() {
 
     let elProfit = document.getElementById('pembelianEstimasiProfit');
     if (elProfit) {
-        if (totalHargaBeli > 0 && hargaJualSatuan > 0) {
+        if (totalHargaBeli > 0 || hargaJualSatuan > 0) {
             elProfit.innerHTML = `
-                <span class="block text-xs font-bold text-emerald-800">HPP/Pcs: Rp ${hppSatuan.toLocaleString('id-ID')}</span>
-                <span class="block text-[11px] text-emerald-700">Profit/Pcs: Rp ${profitSatuan.toLocaleString('id-ID')} (Total: Rp ${totalProfitEstimasi.toLocaleString('id-ID')})</span>
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-xs font-bold ${profitSatuan >= 0 ? 'text-emerald-800' : 'text-red-800'}">
+                        HPP/Pcs: Rp ${hppSatuan.toLocaleString('id-ID')}
+                    </span>
+                    <span class="text-[11px] font-bold ${profitSatuan >= 0 ? 'text-emerald-700' : 'text-red-700'}">
+                        Profit/Pcs: Rp ${profitSatuan.toLocaleString('id-ID')} (Total Margin: Rp ${totalProfitEstimasi.toLocaleString('id-ID')})
+                    </span>
+                </div>
             `;
             elProfit.className = profitSatuan >= 0 
                 ? "p-2 bg-emerald-100 text-emerald-800 font-bold rounded border border-emerald-300"
@@ -912,7 +945,7 @@ function renderPembelian() {
     if (!tbody) return;
 
     if (pembelianList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-400">Belum ada data transaksi pembelian / kulakan</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-gray-400">Belum ada data transaksi pembelian / kulakan</td></tr>`;
         return;
     }
 
@@ -941,12 +974,12 @@ function renderPembelian() {
                     Rp ${hJual.toLocaleString('id-ID')}
                 </td>
                 <td class="p-2 text-center font-semibold text-gray-700">${item.supplier || 'Umum'}</td>
-                <td class="p-2 text-right">
+                <td class="p-2 text-right bg-amber-50/50">
                     <span class="font-black ${totalProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}">
                         Rp ${totalProfit.toLocaleString('id-ID')}
                     </span>
                     <span class="block text-[9px] ${profitPcs >= 0 ? 'text-emerald-700' : 'text-red-700'} font-semibold">
-                        (Margin: Rp ${profitPcs.toLocaleString('id-ID')}/pcs)
+                        (Profit: Rp ${profitPcs.toLocaleString('id-ID')}/pcs)
                     </span>
                 </td>
                 <td class="p-2 text-center">
