@@ -1,6 +1,6 @@
 /* css/style.css */
 
-/* PERBAIKAN CSS CETAK: Menjamin area nota terlihat & elemen lain tersembunyi total saat print */
+/* Pengaturan Cetak Nota Thermal 58mm untuk Android & PC */
 @media print {
     body * { 
         visibility: hidden !important; 
@@ -19,17 +19,17 @@
         position: absolute !important; 
         left: 0 !important; 
         top: 0 !important; 
-        width: 100% !important; 
-        max-width: 100% !important;
+        width: 58mm !important; 
+        max-width: 58mm !important;
         font-family: monospace !important; 
         color: #000 !important;
         background: #fff !important;
-        padding: 5px !important;
+        padding: 2px !important;
     }
     #notaItems {
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 4px 8px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
     }
     .nota-item-row {
         display: flex !important;
@@ -40,6 +40,6 @@
     .nota-item-detail {
         display: flex !important;
         justify-content: space-between !important;
-        font-size: 10px !important;
+        font-size: 9px !important;
     }
 }
