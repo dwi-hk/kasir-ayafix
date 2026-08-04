@@ -3,531 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kasir AYA GROUP (Firebase Realtime & Multi-Payment)</title>
+    <title>AYA GROUP – MULTI PAYMENT</title>
     
-    <!-- Framework & Library Eksternal -->
+    <!-- Tailwind CSS & Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Firebase SDK (Kompatibel Komputer & Tablet) -->
+    <!-- Firebase SDK Compat -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-    <!-- File CSS Kustom Eksternal -->
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-orange-50 font-sans text-gray-800 min-h-screen flex flex-col">
+<body class="bg-orange-50 font-sans text-gray-800 min-h-screen flex">
 
-    <header class="bg-orange-600 text-white p-4 shadow-md sticky top-0 z-50 flex justify-between items-center flex-wrap gap-2">
-        <h1 class="text-2xl font-bold tracking-wider">🍊 AYA GROUP KASIR</h1>
-        <div class="space-x-1 sm:space-x-2 flex flex-wrap">
-            <button onclick="switchTab('kasir')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">🛒 Kasir</button>
-            <button onclick="switchTab('master')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">📂 Master Data</button>
-            <button onclick="switchTab('titipan')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">📦 Barang Titipan</button>
-            <button onclick="switchTab('pengeluaran')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">💸 Pengeluaran</button>
-            <button onclick="switchTab('laporan')" class="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-800 text-white rounded font-semibold text-xs sm:text-sm hover:bg-orange-900 transition cursor-pointer">📊 Rekap & Grafik</button>
-        </div>
-    </header>
-
-    <div class="container mx-auto p-4 flex-1">
-        
-        <!-- TAB KASIR -->
-        <div id="tab-kasir" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col">
-                <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
-                    <div>
-                        <h2 class="text-xl font-bold text-orange-600">➕ Pilihan Menu & Topping</h2>
-                        <p class="text-xs text-gray-500">Pilih kategori atau cari menu di bawah, lalu klik item untuk menambah pesanan.</p>
-                    </div>
-                    <div class="w-full sm:w-64">
-                        <input type="text" id="cariMenuKasir" oninput="cariMenuKasir()" 
-                            class="w-full p-2 border border-orange-200 rounded-lg text-xs focus:outline-orange-500 bg-orange-50/50" 
-                            placeholder="🔍 Cari menu di tab kasir...">
-                    </div>
-                </div>
-
-                <div class="flex gap-2 mb-4 border-b border-gray-200 pb-3 overflow-x-auto">
-                    <button id="btn-kat-topping" onclick="filterKategori('topping')" class="px-4 py-2 bg-orange-500 text-white font-bold text-xs sm:text-sm rounded-lg shadow transition cursor-pointer whitespace-nowrap">🍢 Topping / Krupuk Seblak</button>
-                    <button id="btn-kat-makanan" onclick="filterKategori('makanan')" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold text-xs sm:text-sm rounded-lg transition cursor-pointer whitespace-nowrap">🍲 Makanan / Bakaran</button>
-                    <button id="btn-kat-dingin" onclick="filterKategori('dingin')" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold text-xs sm:text-sm rounded-lg transition cursor-pointer whitespace-nowrap">❄️ Minuman Dingin</button>
-                    <button id="btn-kat-panas" onclick="filterKategori('panas')" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold text-xs sm:text-sm rounded-lg transition cursor-pointer whitespace-nowrap">☕ Minuman Hangat</button>
-                    <button id="btn-kat-jajanan" onclick="filterKategori('jajanan')" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold text-xs sm:text-sm rounded-lg transition cursor-pointer whitespace-nowrap">🚬 Jajanan / Rokok</button>
-                </div>
-
-                <div class="max-h-[60vh] overflow-y-auto pr-2 flex-1">
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="container-menu"></div>
-                </div>
+    <!-- SIDEBAR LEFT TAB NAVIGATION -->
+    <aside class="w-64 bg-orange-600 text-white min-h-screen p-4 flex flex-col justify-between shadow-xl sticky top-0 h-screen z-50">
+        <div>
+            <div class="mb-6 pb-4 border-b border-orange-500">
+                <h1 class="text-xl font-extrabold tracking-wide text-white flex items-center gap-2">
+                    🍊 AYA GROUP
+                </h1>
+                <p class="text-[10px] text-orange-200 font-medium">MULTI PAYMENT POS SYSTEM</p>
             </div>
 
-            <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col justify-between h-fit lg:sticky lg:top-24">
-                <div>
-                    <h2 class="text-xl font-bold text-orange-600 mb-4">📝 Detail Pesanan</h2>
-                    <div class="border-b pb-2 mb-2 max-h-[35vh] overflow-y-auto" id="tabelKeranjang">
-                        <p class="text-gray-400 text-center py-4">Belum ada item dipilih</p>
-                    </div>
+            <!-- Cabang Selector -->
+            <div class="mb-6 bg-orange-700/60 p-2.5 rounded-xl border border-orange-500">
+                <label class="block text-[10px] font-bold uppercase text-orange-200 mb-1">📍 Cabang Aktif:</label>
+                <select id="selectCabangAktif" onchange="gantiCabangManual(this.value)" class="w-full bg-white text-orange-900 font-bold text-xs p-2 rounded shadow focus:outline-none cursor-pointer">
+                    <option value="AYA TOKO Sembako">AYA TOKO Sembako</option>
+                    <option value="DAPUR AYA">DAPUR AYA (Warkop)</option>
+                    <option value="AYA SEBLAK DAN ANGKRINGAN">AYA SEBLAK & ANGKRINGAN</option>
+                </select>
+            </div>
+
+            <nav class="space-y-1 text-xs font-bold" id="menuSidebarNav">
+                <button onclick="switchTab('master')" id="tab-btn-master" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">📂 1. Master Data</button>
+                <button onclick="switchTab('cabang')" id="tab-btn-cabang" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">🏢 2. Data Cabang & Inventaris</button>
+                <button onclick="switchTab('kasir')" id="tab-btn-kasir" class="w-full text-left px-3 py-2.5 rounded-lg bg-orange-800 text-white transition flex items-center gap-2 shadow">🛒 3. Transaksi & Kasir</button>
+                <button onclick="switchTab('backoffice')" id="tab-btn-backoffice" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">⚙️ 4. Back Office & Absensi</button>
+                <button onclick="switchTab('laporan')" id="tab-btn-laporan" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">📊 5. Laporan Detail</button>
+                <button onclick="switchTab('user')" id="tab-btn-user" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">👥 6. Management User & SOP</button>
+                <button onclick="switchTab('setting')" id="tab-btn-setting" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">⚙️ 7. Setting Printer Thermal</button>
+            </nav>
+        </div>
+
+        <div class="border-t border-orange-500 pt-3 text-[10px] text-orange-200">
+            <p>User Logged: <b id="userRoleBadge" class="text-white uppercase">Owner</b></p>
+            <p class="mt-0.5">Online Sync: <span class="text-emerald-300 font-bold">● Connected</span></p>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 p-6 overflow-y-auto">
+
+        <!-- TAB 1: MASTER DATA -->
+        <section id="tab-master" class="tab-content hidden space-y-6">
+            <h2 class="text-2xl font-bold text-orange-700">📂 Master Data Management</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Sub Menu Master -->
+                <button onclick="showMasterSub('stok')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">📦 Stock Barang, Harga & Komposisi</button>
+                <button onclick="showMasterSub('pelanggan')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">👤 Data Pelanggan & Hutang</button>
+                <button onclick="showMasterSub('supplier')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">🚚 Data Supplier & Piutang</button>
+                <button onclick="showMasterSub('karyawan')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">👔 Data Karyawan & Kasbon</button>
+                <button onclick="showMasterSub('titipan')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">🤝 Barang Titipan / Konsinyasi</button>
+            </div>
+
+            <!-- Dynamic Sub Content Area -->
+            <div id="masterSubContainer" class="bg-white p-6 rounded-xl shadow border border-orange-100 mt-4">
+                <p class="text-gray-500 italic">Pilih sub-menu master data di atas untuk mengelola data.</p>
+            </div>
+        </section>
+
+        <!-- TAB 2: DATA CABANG & INVENTARIS -->
+        <section id="tab-cabang" class="tab-content hidden space-y-6">
+            <h2 class="text-2xl font-bold text-orange-700">🏢 Management Cabang & Inventaris Operasional</h2>
+            <div class="bg-white p-6 rounded-xl shadow border border-orange-100">
+                <h3 class="font-bold text-lg text-gray-800 mb-3">🛠️ Inventaris Alat Operasional Cabang</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                    <input type="text" id="invNama" placeholder="Nama Alat / Barang" class="p-2 border rounded text-xs">
+                    <input type="date" id="invTgl" class="p-2 border rounded text-xs">
+                    <input type="number" id="invHarga" placeholder="Harga Satuan (Rp)" class="p-2 border rounded text-xs">
+                    <button onclick="tambahInventaris()" class="bg-orange-600 text-white font-bold text-xs p-2 rounded hover:bg-orange-700">➕ Tambah Inventaris</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-orange-100 text-orange-800 font-bold">
+                            <tr><th class="p-2">Nama Barang</th><th class="p-2">Tanggal Pembelian</th><th class="p-2 text-right">Harga Satuan</th></tr>
+                        </thead>
+                        <tbody id="tabelInventaris"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: TRANSAKSI & KASIR (MAIN POS) -->
+        <section id="tab-kasir" class="tab-content grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-orange-600">🛒 POS Kasir Penjualan</h2>
+                    <input type="text" id="cariMenuKasir" oninput="cariMenuKasir()" class="p-2 border border-orange-200 rounded text-xs w-64 bg-orange-50/50" placeholder="🔍 Cari nama barang / barcode...">
                 </div>
 
-                <div class="bg-orange-100/50 p-4 rounded-lg mt-4 border border-orange-200">
-                    <div class="grid grid-cols-2 gap-2 mb-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Jml Styrofoam (Mnl):</label>
-                            <input type="number" id="inputStyrofoam" oninput="updateKeranjang()" class="w-full p-2 border border-orange-300 bg-white rounded focus:outline-orange-500 text-xs font-bold" placeholder="0" min="0">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Ongkos Kirim (Rp):</label>
-                            <input type="number" id="inputOngkir" oninput="updateKeranjang()" class="w-full p-2 border border-orange-300 bg-white rounded focus:outline-orange-500 text-xs font-bold" placeholder="0" min="0">
-                        </div>
-                    </div>
+                <div class="flex gap-2 mb-4 border-b pb-3 overflow-x-auto" id="kategoriKasirContainer">
+                    <button onclick="filterKategori('all')" class="px-3 py-1.5 bg-orange-500 text-white font-bold text-xs rounded-lg">Semua</button>
+                    <button onclick="filterKategori('topping')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg">Topping Seblak</button>
+                    <button onclick="filterKategori('makanan')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg">Makanan / Bakaran</button>
+                    <button onclick="filterKategori('dingin')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg">Minuman</button>
+                    <button onclick="filterKategori('sembako')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg">Sembako Retail</button>
+                </div>
 
-                    <div class="flex justify-between text-lg font-bold mb-2 text-gray-800">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[60vh]" id="container-menu"></div>
+            </div>
+
+            <!-- Keranjang & Checkout -->
+            <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-lg text-orange-600">📝 Detail Pesanan</h3>
+                        <button onclick="tahanTransaksi()" class="text-xs bg-amber-500 text-white font-bold px-2 py-1 rounded">⏸️ Tahan Pesanan</button>
+                    </div>
+                    <div id="tabelKeranjang" class="border-b pb-2 mb-2 max-h-[35vh] overflow-y-auto"></div>
+                </div>
+
+                <div class="bg-orange-50 p-4 rounded-xl border border-orange-200 space-y-3">
+                    <div class="flex justify-between text-lg font-bold">
                         <span>Total:</span>
                         <span class="text-orange-600 text-xl" id="textTotal">Rp 0</span>
                     </div>
 
-                    <div class="mb-3">
+                    <div>
                         <label class="block text-xs font-bold text-gray-600 mb-1">Metode Pembayaran:</label>
-                        <div class="grid grid-cols-3 gap-1">
-                            <button id="btn-bayar-tunai" onclick="setMetodePembayaran('TUNAI')" class="py-2 text-center text-[10px] font-bold rounded-lg bg-orange-600 text-white shadow border border-orange-600 cursor-pointer transition">💵 TUNAI</button>
-                            <button id="btn-bayar-qris" onclick="setMetodePembayaran('QRIS')" class="py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition">📱 QRIS</button>
-                            <button id="btn-bayar-konsumsi" onclick="setMetodePembayaran('KONSUMSI')" class="py-2 text-center text-[10px] font-bold rounded-lg bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer transition">🍔 PERSONAL</button>
+                        <div class="grid grid-cols-4 gap-1 text-[10px] font-bold">
+                            <button onclick="setMetodePembayaran('TUNAI')" id="btn-bayar-TUNAI" class="p-2 bg-orange-600 text-white rounded">TUNAI</button>
+                            <button onclick="setMetodePembayaran('QRIS')" id="btn-bayar-QRIS" class="p-2 bg-gray-200 text-gray-700 rounded">QRIS</button>
+                            <button onclick="setMetodePembayaran('HUTANG')" id="btn-bayar-HUTANG" class="p-2 bg-gray-200 text-gray-700 rounded">HUTANG</button>
+                            <button onclick="setMetodePembayaran('PERSONAL')" id="btn-bayar-PERSONAL" class="p-2 bg-gray-200 text-gray-700 rounded">PERSONAL</button>
                         </div>
                     </div>
 
-                    <div id="wrapperUangBayar" class="mb-2">
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Uang Bayar (Rp):</label>
-                        <input type="number" id="inputBayar" oninput="hitungKembalian()" class="w-full p-2 border border-orange-300 bg-white rounded focus:outline-orange-500 font-bold" placeholder="0">
-                    </div>
-                    <div id="wrapperKembalian" class="flex justify-between text-lg font-bold text-gray-700 mb-4">
-                        <span>Kembalian:</span>
-                        <span id="textKembalian" class="text-gray-900">Rp 0</span>
+                    <div id="wrapperUangBayar">
+                        <input type="number" id="inputBayar" oninput="hitungKembalian()" placeholder="Nominal Uang Bayar (Rp)" class="w-full p-2 border border-orange-300 rounded text-xs font-bold">
+                        <div class="flex justify-between text-xs font-bold mt-1">
+                            <span>Kembalian:</span>
+                            <span id="textKembalian">Rp 0</span>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="tombolSimpanSaja()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded shadow hover:bg-emerald-700 transition cursor-pointer">💾 Simpan</button>
-                        <button onclick="cetakNota()" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded shadow hover:bg-blue-700 transition cursor-pointer">🖨️ Cetak Nota</button>
+                    <div class="grid grid-cols-2 gap-2 pt-2">
+                        <button onclick="tombolSimpanSaja()" class="bg-emerald-600 text-white font-bold py-2 rounded text-xs hover:bg-emerald-700">💾 Simpan</button>
+                        <button onclick="cetakNota()" class="bg-blue-600 text-white font-bold py-2 rounded text-xs hover:bg-blue-700">🖨️ Cetak Nota</button>
                     </div>
-                    <button onclick="bersihkanKeranjang()" class="w-full mt-3 text-xs text-red-500 hover:underline block text-center cursor-pointer">Kosongkan Keranjang</button>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- TAB MASTER DATA BARANG -->
-        <div id="tab-master" class="hidden space-y-6">
-            <div class="bg-white p-6 rounded-xl shadow border border-orange-100 max-w-6xl mx-auto">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-                    <h2 class="text-xl font-bold text-orange-600">📂 Master Data Barang & Menu</h2>
-                    <div class="w-full sm:w-72">
-                        <input type="text" id="cariMasterData" oninput="cariMasterData()" 
-                            class="w-full p-2 border border-orange-200 rounded-lg text-xs focus:outline-orange-500 bg-orange-50/50" 
-                            placeholder="🔍 Cari nama barang atau kategori...">
+        <!-- TAB 4: BACK OFFICE & ABSENSI -->
+        <section id="tab-backoffice" class="tab-content hidden space-y-6">
+            <h2 class="text-2xl font-bold text-orange-700">⚙️ Back Office & Management Gaji Karyawan</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Absensi & Gaji -->
+                <div class="bg-white p-5 rounded-xl shadow border border-orange-100">
+                    <h3 class="font-bold text-md text-gray-800 mb-3">📅 Log Absensi & Estimasi Gaji Perhari</h3>
+                    <div class="space-y-2 text-xs">
+                        <input type="text" id="absenNama" placeholder="Nama Karyawan" class="w-full p-2 border rounded">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="time" id="absenMasuk" class="p-2 border rounded">
+                            <input type="time" id="absenPulang" class="p-2 border rounded">
+                        </div>
+                        <input type="number" id="absenGajiPerHari" placeholder="Gaji Perhari (Input Manual Rp)" class="w-full p-2 border rounded font-bold">
+                        <button onclick="simpanAbsensi()" class="w-full bg-orange-600 text-white font-bold p-2 rounded hover:bg-orange-700">💾 Simpan Absensi & Hitung Gaji</button>
                     </div>
                 </div>
 
-                <div class="bg-orange-50 p-4 rounded-xl border border-orange-200 mb-6">
-                    <h3 id="masterFormTitle" class="text-sm font-bold text-gray-700 mb-3">➕ Input Master Barang Baru</h3>
-                    <input type="hidden" id="masterId">
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3">
-                        <div class="sm:col-span-1">
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Barang:</label>
-                            <input type="text" id="masterNama" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="Contoh: Bakso Mercon">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Kategori:</label>
-                            <select id="masterKategori" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500">
-                                <option value="topping">🍢 Topping / Krupuk Seblak</option>
-                                <option value="makanan">🍲 Makanan / Bakaran</option>
-                                <option value="dingin">❄️ Minuman Dingin</option>
-                                <option value="panas">☕ Minuman Hangat</option>
-                                <option value="jajanan">🚬 Jajanan / Rokok</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Satuan Jual:</label>
-                            <select id="masterSatuan" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500">
-                                <option value="pcs" selected>pcs</option>
-                                <option value="porsi">porsi</option>
-                                <option value="bungkus">bungkus</option>
-                                <option value="pack">pack</option>
-                                <option value="pck">pck</option>
-                                <option value="botol">botol</option>
-                                <option value="cup">cup</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Stok Awal:</label>
-                            <input type="number" id="masterStok" min="0" value="0" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
+                <!-- Kalkulator Sederhana -->
+                <div class="bg-white p-5 rounded-xl shadow border border-orange-100">
+                    <h3 class="font-bold text-md text-gray-800 mb-3">🧮 Kalkulator Cepat Operasional</h3>
+                    <div class="space-y-2">
+                        <input type="text" id="calcDisplay" readonly class="w-full p-3 bg-gray-100 border text-right font-mono text-xl font-bold rounded">
+                        <div class="grid grid-cols-4 gap-2 text-xs font-bold">
+                            <button onclick="calcInput('7')" class="p-3 bg-gray-200 rounded">7</button>
+                            <button onclick="calcInput('8')" class="p-3 bg-gray-200 rounded">8</button>
+                            <button onclick="calcInput('9')" class="p-3 bg-gray-200 rounded">9</button>
+                            <button onclick="calcInput('/')" class="p-3 bg-orange-500 text-white rounded">÷</button>
+                            <button onclick="calcInput('4')" class="p-3 bg-gray-200 rounded">4</button>
+                            <button onclick="calcInput('5')" class="p-3 bg-gray-200 rounded">5</button>
+                            <button onclick="calcInput('6')" class="p-3 bg-gray-200 rounded">6</button>
+                            <button onclick="calcInput('*')" class="p-3 bg-orange-500 text-white rounded">×</button>
+                            <button onclick="calcInput('1')" class="p-3 bg-gray-200 rounded">1</button>
+                            <button onclick="calcInput('2')" class="p-3 bg-gray-200 rounded">2</button>
+                            <button onclick="calcInput('3')" class="p-3 bg-gray-200 rounded">3</button>
+                            <button onclick="calcInput('-')" class="p-3 bg-orange-500 text-white rounded">-</button>
+                            <button onclick="calcClear()" class="p-3 bg-red-500 text-white rounded">C</button>
+                            <button onclick="calcInput('0')" class="p-3 bg-gray-200 rounded">0</button>
+                            <button onclick="calcEqual()" class="p-3 bg-emerald-600 text-white rounded">=</button>
+                            <button onclick="calcInput('+')" class="p-3 bg-orange-500 text-white rounded">+</button>
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Isi per Beli/Pck:</label>
-                            <input type="number" id="masterIsi" min="1" value="1" oninput="hitungEstimasiProfitMaster()" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="1">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Beli Total/Modal (Rp):</label>
-                            <input type="number" id="masterHargaBeli" min="0" oninput="hitungEstimasiProfitMaster()" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Jual per Satuan (Rp):</label>
-                            <input type="number" id="masterHargaJual" min="0" oninput="hitungEstimasiProfitMaster()" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Laba / Profit Satuan:</label>
-                            <div id="masterEstimasiProfit" class="p-2 bg-emerald-100 text-emerald-800 text-xs font-bold rounded border border-emerald-300">Rp 0</div>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-2 justify-end">
-                        <button onclick="resetFormMaster()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-semibold rounded hover:bg-gray-300 cursor-pointer">Batal / Reset</button>
-                        <button onclick="simpanMasterDatabase()" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700 cursor-pointer">💾 Simpan Data Master</button>
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto border border-gray-100 rounded-lg shadow-sm max-h-[500px] overflow-y-auto">
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead class="sticky top-0 bg-orange-50 text-orange-700 uppercase font-bold text-[10px] border-b border-orange-200 z-10">
-                            <tr>
-                                <th class="p-3">Nama Barang</th>
-                                <th class="p-3 text-center">Kategori</th>
-                                <th class="p-3 text-center">Stok Sisa</th>
-                                <th class="p-3 text-center">Isi / Satuan</th>
-                                <th class="p-3 text-right">Modal / HPP Satuan</th>
-                                <th class="p-3 text-right">Harga Jual</th>
-                                <th class="p-3 text-right">Profit / Satuan</th>
-                                <th class="p-3 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelMasterData" class="divide-y divide-gray-100 bg-white">
-                            <tr>
-                                <td colspan="8" class="p-4 text-center text-gray-400 italic">Belum ada data master barang.</td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- TAB BARANG TITIPAN -->
-        <div id="tab-titipan" class="hidden space-y-6">
-            <div class="bg-white p-6 rounded-xl shadow border border-orange-100 max-w-4xl mx-auto">
-                <h2 class="text-xl font-bold text-orange-600 mb-4">📦 Manajemen Barang Titipan</h2>
-                
-                <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 mb-6">
-                    <h3 class="text-sm font-bold text-gray-700 mb-3">➕ Input / Tambah Barang Titipan Baru</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Barang:</label>
-                            <input type="text" id="titipanNama" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="Contoh: Kripik Singkong">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Jumlah Awal Titipan:</label>
-                            <input type="number" id="titipanJumlah" min="1" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Kontak Person:</label>
-                            <input type="text" id="titipanKontak" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="Contoh: Pak Budi (081x)">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Titipan (Modal Rp):</label>
-                            <input type="number" id="titipanHargaBeli" min="0" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Jual (Rp):</label>
-                            <input type="number" id="titipanHargaJual" min="0" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
-                        </div>
-                    </div>
-                    <button onclick="tambahBarangTitipan()" class="w-full bg-orange-500 text-white text-xs font-bold py-2.5 rounded shadow hover:bg-orange-600 transition cursor-pointer">➕ Daftarkan Barang Titipan</button>
+        <!-- TAB 5: LAPORAN -->
+        <section id="tab-laporan" class="tab-content hidden space-y-6">
+            <h2 class="text-2xl font-bold text-orange-700">📊 Laporan Finance & Grafik Analisis</h2>
+            <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex gap-4 items-center flex-wrap">
+                <input type="date" id="filterTglMulai" class="p-2 border rounded text-xs">
+                <input type="date" id="filterTglSelesai" class="p-2 border rounded text-xs">
+                <button onclick="updateLaporan()" class="px-4 py-2 bg-orange-600 text-white font-bold text-xs rounded hover:bg-orange-700">Tampilkan Laporan</button>
+                <button onclick="window.print()" class="px-4 py-2 bg-gray-800 text-white font-bold text-xs rounded hover:bg-black">🖨️ Cetak Laporan</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow border text-center">
+                    <p class="text-xs text-gray-500 font-bold">TOTAL OMZET</p>
+                    <p class="text-2xl font-extrabold text-emerald-600" id="statOmset">Rp 0</p>
                 </div>
-
-                <div class="overflow-x-auto border border-gray-100 rounded-lg shadow-sm">
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead class="bg-orange-50 text-orange-700 uppercase font-bold text-[10px] border-b border-orange-200">
-                            <tr>
-                                <th class="p-3">Nama Barang / Kontak</th>
-                                <th class="p-3 text-center">Titipan</th>
-                                <th class="p-3 text-center">Terjual</th>
-                                <th class="p-3 text-center">Retur</th>
-                                <th class="p-3 text-center">Stok</th>
-                                <th class="p-3 text-right">Harga (Titip/Jual)</th>
-                                <th class="p-3 text-right">Hutang Terjual</th>
-                                <th class="p-3 text-right">Sudah Dibayar</th>
-                                <th class="p-3 text-right">Profit</th>
-                                <th class="p-3 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelDaftarTitipan" class="divide-y divide-gray-100 bg-white">
-                            <tr>
-                                <td colspan="10" class="p-4 text-center text-gray-400 italic">Belum ada data barang titipan.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="bg-white p-4 rounded-xl shadow border text-center">
+                    <p class="text-xs text-gray-500 font-bold">UANG CASH RIIL FISIK</p>
+                    <p class="text-2xl font-extrabold text-blue-600" id="statUangCash">Rp 0</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border text-center">
+                    <p class="text-xs text-gray-500 font-bold">LABA / RUGI BERSIH</p>
+                    <p class="text-2xl font-extrabold text-orange-600" id="statLabaRugi">Rp 0</p>
                 </div>
             </div>
-        </div>
 
-        <!-- TAB PENGELUARAN -->
-        <div id="tab-pengeluaran" class="hidden bg-white p-6 rounded-xl shadow border border-orange-100 max-w-xl mx-auto">
-            <h2 class="text-xl font-bold text-orange-600 mb-4">💸 Catat Pengeluaran Operasional</h2>
-            <div class="space-y-3 bg-orange-50 p-4 rounded-xl border border-orange-100 mb-4">
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                    <div class="sm:col-span-1">
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Barang:</label>
-                        <input type="text" id="namaPengeluaran" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="Contoh: Es batu">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Satuan:</label>
-                        <input type="number" id="hargaPengeluaran" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="0">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Qty:</label>
-                        <input type="number" id="qtyPengeluaran" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500" placeholder="1" value="1" min="1">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Satuan:</label>
-                        <select id="satuanPengeluaran" class="w-full p-2 border border-gray-300 bg-white text-xs rounded focus:outline-orange-500">
-                            <option value="pcs" selected>pcs</option>
-                            <option value="kg">kg</option>
-                            <option value="liter">liter</option>
-                            <option value="bungkus">bungkus</option>
-                            <option value="pack">pack</option>
-                            <option value="ikat">ikat</option>
-                            <option value="dus">dus</option>
-                            <option value="renteng">renteng</option>
-                            <option value="lembar">lembar</option>
+            <div class="bg-white p-5 rounded-xl shadow">
+                <h3 class="font-bold text-gray-700 mb-3">📈 Grafik Omzet Harian</h3>
+                <canvas id="chartOmsetHarian" class="max-h-64"></canvas>
+            </div>
+        </section>
+
+        <!-- TAB 6: MANAGEMENT USER & SOP -->
+        <section id="tab-user" class="tab-content hidden space-y-6">
+            <h2 class="text-2xl font-bold text-orange-700">👥 User Management, SPK & Standar Operasional (SOP)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- User Control -->
+                <div class="bg-white p-5 rounded-xl shadow">
+                    <h3 class="font-bold text-md text-gray-800 mb-3">➕ Tambah User Hak Akses</h3>
+                    <div class="space-y-2 text-xs">
+                        <input type="text" id="userUsername" placeholder="Username" class="w-full p-2 border rounded">
+                        <input type="password" id="userPassword" placeholder="Password" class="w-full p-2 border rounded">
+                        <select id="userRole" class="w-full p-2 border rounded font-bold">
+                            <option value="kasir">Kasir (Transaksi & Pembelian Saja)</option>
+                            <option value="supervisor">Supervisor (Laporan & Akses Terbatas)</option>
+                            <option value="owner">Owner (Akses Full Fitur System)</option>
                         </select>
+                        <button onclick="tambahUser()" class="w-full bg-orange-600 text-white font-bold p-2 rounded hover:bg-orange-700">Simpan User</button>
                     </div>
                 </div>
-                <button onclick="tambahKeDaftarBelanja()" class="w-full bg-orange-500 text-white text-xs font-bold py-2 rounded hover:bg-orange-600 transition cursor-pointer">➕ Masukkan ke Daftar Belanja</button>
-            </div>
 
-            <div class="border border-orange-200 rounded-lg p-3 bg-white mb-4">
-                <h4 class="text-xs font-bold text-orange-600 mb-2">📋 Daftar Belanja Saat Ini</h4>
-                <div id="tabelBelanjaPengeluaran" class="max-h-[25vh] overflow-y-auto divide-y divide-gray-100 text-xs">
-                    <p class="text-gray-400 text-center py-4">Belum ada barang di daftar belanja</p>
-                </div>
-                <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-200 font-bold text-sm text-gray-800">
-                    <span>Total Pengeluaran:</span>
-                    <span id="totalBelanjaPengeluaran" class="text-red-500">Rp 0</span>
+                <!-- Cetak Surat Perjanjian Kerja -->
+                <div class="bg-white p-5 rounded-xl shadow">
+                    <h3 class="font-bold text-md text-gray-800 mb-3">📄 Cetak Surat Perjanjian Kerja (SPK)</h3>
+                    <div class="space-y-2 text-xs">
+                        <input type="text" id="spkNama" placeholder="Nama Karyawan" class="w-full p-2 border rounded">
+                        <input type="text" id="spkJabatan" placeholder="Jabatan (Kasir/Cook/Waitress)" class="w-full p-2 border rounded">
+                        <button onclick="cetakSPK()" class="w-full bg-blue-600 text-white font-bold p-2 rounded hover:bg-blue-700">🖨️ Cetak Dokumen SPK</button>
+                    </div>
                 </div>
             </div>
 
-            <button onclick="simpanPengeluaran()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded shadow hover:bg-emerald-700 transition cursor-pointer">💾 Simpan Semua Pengeluaran</button>
+            <!-- Standar Operasional Prosedur (SOP) -->
+            <div class="bg-white p-6 rounded-xl shadow border border-orange-100 space-y-4">
+                <h3 class="font-bold text-lg text-orange-600">📋 Standar Operasional Prosedur (SOP) Profesional AYA GROUP</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <h4 class="font-bold text-orange-800 border-b pb-1 mb-2">🍜 SOP Warung & Angkringan</h4>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li>Pengecekan kebersihan meja, area bakaran & peralatan.</li>
+                            <li>Standard stok kuah seblak & kelengkapan topping prasmanan.</li>
+                            <li>Pelayanan cepat, ramah, dan mengonfirmasi tingkat kepedasan.</li>
+                        </ul>
+                    </div>
+                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <h4 class="font-bold text-orange-800 border-b pb-1 mb-2">☕ SOP Rumah Makan / Warkop</h4>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li>Penyajian kopi dan racikan minuman konsisten (suhu & takaran).</li>
+                            <li>Rotasi bahan baku FIFO (First In First Out).</li>
+                            <li>Pencatatan penggunaan bahan untuk makan karyawan (PERSONAL).</li>
+                        </ul>
+                    </div>
+                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <h4 class="font-bold text-orange-800 border-b pb-1 mb-2">🛒 SOP Toko Retail / Mart</h4>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li>Scanning Barcode / pencatatan kode barang akurat saat transaksi.</li>
+                            <li>Stock opname berkala dan penyesuaian koreksi stok.</li>
+                            <li>Setoran uang tunai kasir sesuai dengan rekap laporan bulanan.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-            <h3 class="font-bold text-gray-700 mt-6 mb-2 border-b pb-1">Daftar Pengeluaran Tersimpan</h3>
-            <div class="grid grid-cols-2 gap-2 mb-3">
+        <!-- TAB 7: SETTING PRINTER THERMAL -->
+        <section id="tab-setting" class="tab-content hidden space-y-6">
+            <h2 class="text-2xl font-bold text-orange-700">⚙️ Pengaturan Header, Footer & Printer Bluetooth 58mm</h2>
+            <div class="bg-white p-6 rounded-xl shadow border border-orange-100 max-w-xl space-y-3 text-xs">
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-500 mb-0.5">Mulai Tanggal:</label>
-                    <input type="date" id="filterPengeluaranMulai" class="w-full p-2 border border-orange-200 rounded text-xs focus:outline-orange-500">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-500 mb-0.5">Sampai Tanggal:</label>
-                    <input type="date" id="filterPengeluaranSelesai" class="w-full p-2 border border-orange-200 rounded text-xs focus:outline-orange-500">
-                </div>
-            </div>
-            <div class="flex gap-2 mb-4">
-                <button onclick="terapkanFilterPengeluaran()" class="w-1/2 bg-orange-600 text-white text-xs font-bold py-2 rounded hover:bg-orange-700 cursor-pointer transition">Cari Periode</button>
-                <button onclick="resetFilterPengeluaran()" class="w-1/2 bg-gray-200 text-gray-700 text-xs font-semibold py-2 rounded hover:bg-gray-300 cursor-pointer transition">Hari Ini</button>
-            </div>
-
-            <div id="listPengeluaran" class="text-sm space-y-1.5 divide-y divide-gray-100 max-h-[30vh] overflow-y-auto">
-            </div>
-        </div>
-
-        <!-- TAB LAPORAN REKAP -->
-        <div id="tab-laporan" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-wrap items-end justify-between gap-4">
-                <div class="flex flex-wrap items-end gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Tanggal Mulai:</label>
-                        <input type="date" id="filterTanggalMulai" class="p-2 border border-orange-200 rounded text-sm focus:outline-orange-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Tanggal Selesai:</label>
-                        <input type="date" id="filterTanggalSelesai" class="p-2 border border-orange-200 rounded text-sm focus:outline-orange-500">
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="terapkanFilterTanggal()" class="px-4 py-2 bg-orange-600 text-white text-sm font-bold rounded hover:bg-orange-700 cursor-pointer transition">Cari Periode</button>
-                        <button onclick="resetFilterTanggal()" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-semibold rounded hover:bg-gray-300 cursor-pointer transition">Hari Ini</button>
-                    </div>
-                </div>
-                
-                <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 flex items-end gap-2 w-full sm:w-auto">
-                    <div>
-                        <label class="block text-[11px] font-bold text-orange-700 mb-1">➕ Tambah Modal Cash Riil (Masuk Kas):</label>
-                        <input type="number" id="inputModalTambahan" class="p-2 bg-white border border-orange-300 rounded text-sm font-bold focus:outline-orange-500 w-full sm:w-48" placeholder="Masukkan Nominal">
-                    </div>
-                    <button onclick="simpanModalTambahan()" class="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded hover:bg-emerald-700 transition cursor-pointer">Simpan</button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col justify-between">
-                    <div>
-                        <p class="text-xs text-gray-500 font-semibold uppercase">Total Omset Bisnis</p>
-                        <p class="text-2xl font-bold text-emerald-600" id="statOmset">Rp 0</p>
-                    </div>
-                    <div class="mt-2 pt-2 border-t border-gray-100 text-[11px] space-y-0.5 text-gray-600">
-                        <div class="flex justify-between"><span>💵 Tunai:</span><span class="font-bold" id="statOmsetTunai">Rp 0</span></div>
-                        <div class="flex justify-between"><span>📱 QRIS:</span><span class="font-bold" id="statOmsetQris">Rp 0</span></div>
-                        <div class="flex justify-between text-teal-600"><span>📦 Modal Tambahan (Non-Omset):</span><span class="font-bold" id="statOmsetModalMasuk">Rp 0</span></div>
-                        <div class="flex justify-between text-purple-600"><span>😋 Konsumsi Sendiri:</span><span class="font-bold" id="statOmsetKonsumsi">Rp 0</span></div>
-                    </div>
-                </div>
-                
-                <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col justify-between">
-                    <div>
-                        <p class="text-xs text-gray-500 font-semibold uppercase">Total Uang Cash Riil</p>
-                        <p class="text-2xl font-bold text-blue-600" id="statUangCash">Rp 0</p>
-                    </div>
-                    <div class="mt-2 pt-2 border-t border-gray-100 text-[11px] space-y-0.5 text-gray-600">
-                        <div class="flex justify-between"><span>💰 Modal Harian:</span><span class="font-bold" id="statModal">Rp 70.000</span></div>
-                        <div class="flex justify-between text-emerald-600"><span>💵 Modal Tambahan:</span><span class="font-bold" id="statModalTambahan">Rp 0</span></div>
-                        <div class="flex justify-between"><span>➕ Kas Masuk (Tunai):</span><span class="font-bold" id="statCashMasuk">Rp 0</span></div>
-                        <div class="flex justify-between"><span>➖ Pengeluaran Cash:</span><span class="font-bold" id="statBebanCash">Rp 0</span></div>
-                    </div>
-                </div>
-
-                <div class="p-4 rounded-xl shadow border flex flex-col justify-between" id="boxLabaRugi">
-                    <div>
-                        <p class="text-xs text-gray-500 font-semibold uppercase" id="labelLabaRugi">Laba / Rugi Bersih</p>
-                        <p class="text-2xl font-extrabold" id="statLabaRugi">Rp 0</p>
-                    </div>
-                    <p class="text-[10px] text-gray-400 mt-2 border-t border-gray-200/50 pt-1">*Laba Bersih = Omset Bisnis - HPP Terjual - Pengeluaran Beban</p>
-                </div>
-
-                <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col justify-between">
-                    <div>
-                        <p class="text-xs text-gray-500 font-semibold uppercase">Pengeluaran & Nota</p>
-                        <p class="text-xl font-bold text-red-500" id="statPengeluaran">Rp 0</p>
-                    </div>
-                    <div class="mt-2 pt-2 border-t border-gray-100 text-[11px] flex justify-between text-gray-600">
-                        <span>Jumlah Transaksi:</span><span class="font-bold text-orange-500" id="statNota">0 Nota</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 gap-6">
-                <div class="bg-white p-5 rounded-xl shadow border border-orange-100">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-                        <div>
-                            <h3 class="font-bold text-gray-700 text-base flex items-center gap-2">
-                                📦 Rekap Kuantitas, Profit & Total Pemasukan Per Item
-                            </h3>
-                            <p class="text-xs text-gray-400 mt-0.5">Menampilkan HPP/Modal, Harga Jual, Profit Satuan, Total Terjual, serta Total Profit Per Produk.</p>
-                        </div>
-                        <div class="w-full sm:w-72">
-                            <input type="text" id="cariItemRekap" oninput="cariItemDalamRekap()" 
-                                class="w-full p-2 border border-orange-200 rounded-lg text-xs focus:outline-orange-500 bg-orange-50/50" 
-                                placeholder="🔍 Cari nama produk atau kategori...">
-                        </div>
-                    </div>
-                    
-                    <div class="overflow-x-auto max-h-[400px] overflow-y-auto border border-gray-100 rounded-lg">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead class="sticky top-0 bg-orange-50/90 backdrop-blur text-orange-700 uppercase text-[10px] tracking-wider border-b border-orange-200 z-10">
-                                <tr>
-                                    <th class="p-3">Nama Produk</th>
-                                    <th class="p-3 text-center">Kategori</th>
-                                    <th class="p-3 text-right">Modal/HPP</th>
-                                    <th class="p-3 text-right">Harga Jual</th>
-                                    <th class="p-3 text-center">Terjual</th>
-                                    <th class="p-3 text-right">Subtotal Omset</th>
-                                    <th class="p-3 text-right">Total Profit</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelRekapItemTerjual" class="divide-y divide-gray-100 bg-white"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-xl shadow border border-orange-100">
-                    <h3 class="font-bold text-gray-700 text-base mb-4">📊 5 Produk Terlaris</h3>
-                    <canvas id="chartProdukLaku" class="max-h-64"></canvas>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white p-5 rounded-xl shadow border border-orange-100">
-                        <h3 class="font-bold text-gray-700 text-base mb-3">📑 Riwayat Pengeluaran Operasional</h3>
-                        <div id="rekapPengeluaranDetail" class="space-y-3 max-h-[400px] overflow-y-auto pr-1"></div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-xl shadow border border-orange-100">
-                        <h3 class="font-bold text-gray-700 text-base mb-3">🧾 Riwayat Nota Transaksi Penjualan</h3>
-                        <div id="riwayatNota" class="space-y-3 max-h-[400px] overflow-y-auto pr-1"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL POPUP KOREKSI STOK -->
-    <div id="modalKoreksiStok" class="hidden fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-base font-bold text-orange-600">📦 Koreksi Stok Barang</h3>
-                <button onclick="tutupModalKoreksiStok()" class="text-gray-400 hover:text-gray-600 font-bold text-lg cursor-pointer">&times;</button>
-            </div>
-            
-            <input type="hidden" id="koreksiIdBarang">
-            
-            <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">Nama Barang:</label>
-                <p id="koreksiNamaBarang" class="text-sm font-extrabold text-gray-800 bg-orange-50 p-2.5 rounded-lg border border-orange-100"></p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Stok Saat Ini:</label>
-                    <input type="text" id="koreksiStokLama" readonly class="w-full p-2 bg-gray-100 border border-gray-300 text-xs font-bold rounded text-center text-gray-700">
+                    <label class="block font-bold mb-1">Header Nota (Nama Toko):</label>
+                    <input type="text" id="settingHeader" value="AYA GROUP - MULTI PAYMENT" class="w-full p-2 border rounded">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Tipe Penyesuaian:</label>
-                    <select id="koreksiTipe" class="w-full p-2 border border-gray-300 bg-white text-xs rounded font-bold focus:outline-orange-500">
-                        <option value="tambah">➕ Tambah Stok (Barang Masuk)</option>
-                        <option value="kurang">➖ Kurangi Stok (Rusak/Hilang)</option>
-                        <option value="set">✏️ Set Stok Baru (Opname)</option>
-                    </select>
+                    <label class="block font-bold mb-1">Alamat Outlet / Warung:</label>
+                    <input type="text" id="settingAlamat" value="Jl. Raya Utama No. 88, Jawa Timur" class="w-full p-2 border rounded">
                 </div>
+                <div>
+                    <label class="block font-bold mb-1">No. HP / WhatsApp Outlet:</label>
+                    <input type="text" id="settingHp" value="0812-3456-7890" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Footer Nota (Pesan Penutup):</label>
+                    <input type="text" id="settingFooter" value="Terima Kasih Atas Kunjungan Anda!" class="w-full p-2 border rounded">
+                </div>
+                <button onclick="simpanSettingNota()" class="w-full bg-emerald-600 text-white font-bold p-2.5 rounded hover:bg-emerald-700">💾 Simpan Pengaturan Nota</button>
             </div>
+        </section>
 
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Jumlah / Stok Baru:</label>
-                <input type="number" id="koreksiJumlah" min="0" class="w-full p-2 border border-gray-300 text-xs rounded font-bold focus:outline-orange-500" placeholder="Masukkan jumlah">
-            </div>
+    </main>
 
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Alasan / Catatan Koreksi:</label>
-                <textarea id="koreksiCatatan" rows="2" class="w-full p-2 border border-gray-300 text-xs rounded focus:outline-orange-500" placeholder="Contoh: Barang kadaluarsa, Retur supplier, Stok Opname..."></textarea>
-            </div>
-
-            <div class="flex gap-2 justify-end pt-2 border-t">
-                <button onclick="tutupModalKoreksiStok()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-300 cursor-pointer">Batal</button>
-                <button onclick="prosesSimpanKoreksiStok()" class="px-5 py-2 bg-orange-600 text-white text-xs font-bold rounded-lg hover:bg-orange-700 shadow cursor-pointer">💾 Simpan Koreksi</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- AREA NOTA PRINT HANYA TERLIHAT SAAT CETAK -->
+    <!-- PRINT NOTA HIDDEN AREA (FORMAT THERMAL 58MM) -->
     <div id="areaNota" style="display: none;">
         <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px;">
-            <div style="font-size: 14px; font-weight: bold;">AYA GROUP KASIR</div>
-            <div id="notaWaktu" style="font-size: 9px;"></div>
-            <div id="notaMetode" style="font-size: 9px; font-weight: bold; margin-top: 2px;"></div>
+            <div id="notaHeaderTxt" style="font-size: 13px; font-weight: bold;">AYA GROUP</div>
+            <div id="notaAlamatTxt" style="font-size: 8px;"></div>
+            <div id="notaHpTxt" style="font-size: 8px;"></div>
+            <div id="notaWaktu" style="font-size: 8px; margin-top: 2px;"></div>
+            <div id="notaMetode" style="font-size: 8px; font-weight: bold;"></div>
         </div>
         <div id="notaItems"></div>
-        <div id="notaTotal" style="border-top: 1px dashed #000; margin-top: 5px; pt-1; font-size: 10px;"></div>
-        <div style="text-align: center; margin-top: 10px; font-size: 9px; border-top: 1px dashed #000; padding-top: 5px;">
-            Terima Kasih Atas Kunjungan Anda!
-        </div>
+        <div id="notaTotal" style="border-top: 1px dashed #000; margin-top: 5px; padding-top: 3px; font-size: 9px;"></div>
+        <div id="notaFooterTxt" style="text-align: center; margin-top: 8px; font-size: 8px; border-top: 1px dashed #000; padding-top: 4px;"></div>
     </div>
 
-    <!-- Load JavaScript setelah DOM siap -->
+    <script src="js/firebase-config.js"></script>
     <script src="js/menu-data.js"></script>
+    <script src="js/script.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
