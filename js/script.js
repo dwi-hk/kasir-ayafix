@@ -1,5 +1,3 @@
-// js/script.js
-
 let keranjang = [];
 let transaksiDitahan = [];
 let cabangAktif = 'AYA SEBLAK DAN ANGKRINGAN';
@@ -320,11 +318,14 @@ function simpanTransaksi() {
     };
 
     if(db) {
+        // Simpan ke Realtime Database Firebase
         db.ref('transaksi/' + nota.id).set(nota);
-    } else {
-        riwayatTransaksi.unshift(nota);
-        localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
     }
+    
+    // Tetap simpan cadangan lokal
+    riwayatTransaksi.unshift(nota);
+    localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
+
     return true;
 }
 
@@ -333,7 +334,6 @@ function tombolSimpanSaja() {
         alert('Transaksi Berhasil Disimpan!');
         keranjang = [];
         updateKeranjang();
-        updateLaporan();
     }
 }
 
@@ -371,7 +371,6 @@ function cetakNota() {
         simpanTransaksi();
         keranjang = [];
         updateKeranjang();
-        updateLaporan();
     }, 300);
 }
 
@@ -401,9 +400,14 @@ function updateLaporan() {
     let tglSelesai = document.getElementById('filterTanggalSelesai').value;
 
     if(db) {
+        // Ambil snapshot data transaksi
         db.ref('transaksi').once('value', (snapshot) => {
             let data = snapshot.val();
             let listTransaksi = data ? Object.values(data) : [];
+            
+            // Urutkan transaksi dari yang paling baru
+            listTransaksi.sort((a, b) => (b.id > a.id ? 1 : -1));
+            
             prosesRenderLaporan(listTransaksi, tglMulai, tglSelesai);
         });
     } else {
@@ -561,7 +565,6 @@ function hapusTransaksiFirebase(id) {
         riwayatTransaksi = riwayatTransaksi.filter(t => t.id !== id);
         localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
     }
-    updateLaporan();
 }
 
 /* ================= KALKULATOR & BACK OFFICE ================= */
@@ -586,14 +589,15 @@ function simpanAbsensi() {}
 function cetakSPK() {}
 function simpanSettingNota() {}
 
-/* ================= INISIALISASI APLIKASI ================= */
+/* ================= INISIALISASI REALTIME APLIKASI ================= */
 document.addEventListener('DOMContentLoaded', () => {
     renderMenu();
     renderMasterData();
     setTanggalHariIniIfEmpty();
     
-    // Sync Realtime Database Firebase
+    // Listener Realtime Database Firebase
     if(db) {
+        // 1. Sync Realtime Master Menu Tambahan
         db.ref('menu_tambahan').on('value', (s) => {
             let val = s.val();
             if(val) {
@@ -607,7 +611,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        db.ref('transaksi').on('value', () => {
+        // 2. Sync Realtime Transaksi Penjualan (Otomatis memperbarui Laporan & History)
+        db.ref('transaksi').on('value', (snapshot) => {
+            console.log("Data transaksi realtime terbarui dari Firebase!");
             updateLaporan();
         });
     } else {
