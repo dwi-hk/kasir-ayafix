@@ -24,12 +24,11 @@ try {
 
 // Variable Global Storage Internal & Temporary
 let keranjang = [];
-let keranjangPengeluaran = [];
+let keranjangPengeluaran = []; // Storage Keranjang Pengeluaran
 let transaksiDitahan = [];
 let cabangAktif = 'SEMUA CABANG';
 let dataTransaksiFirebase = [];
 let dataPengeluaranFirebase = [];
-let dataModalFirebase = [];
 
 let pelangganList = JSON.parse(localStorage.getItem('aya_pelanggan')) || [];
 let supplierList = JSON.parse(localStorage.getItem('aya_supplier')) || [];
@@ -39,7 +38,6 @@ let inventarisList = JSON.parse(localStorage.getItem('aya_inventaris')) || [];
 let barangTitipan = JSON.parse(localStorage.getItem('aya_titipan_v3')) || [];
 let riwayatTransaksi = JSON.parse(localStorage.getItem('aya_transaksi_v3')) || [];
 let riwayatPengeluaran = JSON.parse(localStorage.getItem('aya_pengeluaran_v3')) || [];
-let riwayatModal = JSON.parse(localStorage.getItem('aya_modal_v3')) || [];
 
 let kategoriAktif = 'topping';
 let metodePembayaran = 'TUNAI';
@@ -547,158 +545,131 @@ function cetakNota() {
     }, 300);
 }
 
-/* ================= FITUR BARU: MANAJEMEN TAMBAH MODAL ================= */
-function simpanSuntikanModal() {
-    let tgl = document.getElementById('modalTanggal')?.value || new Date().toISOString().split('T')[0];
-    let nominal = parseInt(document.getElementById('modalNominal')?.value) || 0;
-    let sumber = document.getElementById('modalSumber')?.value || 'TUNAI';
-    let ket = document.getElementById('modalKeterangan')?.value.trim() || 'Tambah Modal Kasir';
+/* ================= MANAJEMEN TRANSAKSI PENGELUARAN (TERPERBAIKI DENGAN KERANJANG) ================= */
 
-    if (nominal <= 0) {
-        return alert('Mohon masukkan nominal modal yang valid!');
-    }
-
-    let modalObj = {
-        id: 'MODAL-' + Date.now(),
-        cabang: cabangAktif === 'SEMUA CABANG' ? 'AYA SEBLAK DAN ANGKRINGAN' : cabangAktif,
-        tanggalISO: tgl,
-        waktu: new Date().toLocaleString('id-ID'),
-        nominal: nominal,
-        sumber: sumber,
-        keterangan: ket
-    };
-
-    if (db) {
-        db.ref('modal/' + modalObj.id).set(modalObj);
-    }
-
-    riwayatModal.unshift(modalObj);
-    localStorage.setItem('aya_modal_v3', JSON.stringify(riwayatModal));
-
-    if (document.getElementById('modalNominal')) document.getElementById('modalNominal').value = '';
-    if (document.getElementById('modalKeterangan')) document.getElementById('modalKeterangan').value = '';
-
-    alert('Suntikan Modal Kas Berhasil Disimpan!');
-    updateLaporan();
-    updateLaporanPengeluaran();
-}
-
-function hapusModalFirebase(id) {
-    if (!confirm(`Hapus data modal ${id}?`)) return;
-    if (db) {
-        db.ref('modal/' + id).remove();
-    } else {
-        riwayatModal = riwayatModal.filter(m => m.id !== id);
-        localStorage.setItem('aya_modal_v3', JSON.stringify(riwayatModal));
-        updateLaporan();
-        updateLaporanPengeluaran();
-    }
-}
-
-/* ================= MANAJEMEN PENGELUARAN (EXPENSES) ================= */
+// Hitung otomatis subtotal item pengeluaran yang sedang diketik
 function hitungSubtotalItemPengeluaran() {
     let qty = parseInt(document.getElementById('itemPengeluaranQty')?.value) || 0;
     let harga = parseInt(document.getElementById('itemPengeluaranHarga')?.value) || 0;
     let subtotal = qty * harga;
-    let lbl = document.getElementById('lblSubtotalItemPengeluaran');
-    if (lbl) lbl.innerText = 'Rp ' + subtotal.toLocaleString('id-ID');
+    
+    let elSub = document.getElementById('lblSubtotalItemPengeluaran');
+    if (elSub) elSub.innerText = 'Rp ' + subtotal.toLocaleString('id-ID');
 }
 
+// Tambah item ke dalam keranjang pengeluaran sementara
 function tambahItemKeranjangPengeluaran() {
-    let nama = document.getElementById('itemPengeluaranNama')?.value.trim();
-    let kategori = document.getElementById('itemPengeluaranKategori')?.value;
+    let nama = document.getElementById('itemPengeluaranNama')?.value.trim() || '';
+    let kategori = document.getElementById('itemPengeluaranKategori')?.value || 'Lain-lain / Tak Terduga';
     let satuan = document.getElementById('itemPengeluaranSatuan')?.value.trim() || 'pcs';
     let qty = parseInt(document.getElementById('itemPengeluaranQty')?.value) || 0;
     let harga = parseInt(document.getElementById('itemPengeluaranHarga')?.value) || 0;
 
-    if (!nama || qty <= 0 || harga <= 0) {
-        return alert('Mohon isi nama barang, qty, dan harga satuan secara valid!');
-    }
+    if (!nama) return alert('Mohon isi nama barang / pengeluaran!');
+    if (qty <= 0 || harga <= 0) return alert('Jumlah (qty) dan harga satuan harus lebih dari 0!');
+
+    let subtotal = qty * harga;
 
     keranjangPengeluaran.push({
-        id: 'EXPI-' + Date.now(),
+        id: 'ITEM-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
         nama: nama,
         kategori: kategori,
         satuan: satuan,
         qty: qty,
         harga: harga,
-        subtotal: qty * harga
+        subtotal: subtotal
     });
 
+    // Reset Form Input Item
     if (document.getElementById('itemPengeluaranNama')) document.getElementById('itemPengeluaranNama').value = '';
-    if (document.getElementById('itemPengeluaranQty')) document.getElementById('itemPengeluaranQty').value = 1;
+    if (document.getElementById('itemPengeluaranQty')) document.getElementById('itemPengeluaranQty').value = '1';
     if (document.getElementById('itemPengeluaranHarga')) document.getElementById('itemPengeluaranHarga').value = '';
     hitungSubtotalItemPengeluaran();
+
     renderKeranjangPengeluaran();
 }
 
-function hapusItemKeranjangPengeluaran(index) {
-    keranjangPengeluaran.splice(index, 1);
-    renderKeranjangPengeluaran();
-}
-
+// Render tampilan keranjang pengeluaran
 function renderKeranjangPengeluaran() {
     let tbody = document.getElementById('tabelKeranjangPengeluaran');
-    let totalTxt = document.getElementById('textTotalPengeluaranNota');
+    let textTotal = document.getElementById('textTotalPengeluaranNota');
     if (!tbody) return;
 
     if (keranjangPengeluaran.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-400">Belum ada item ditambahkan ke keranjang pengeluaran</td></tr>`;
-        if (totalTxt) totalTxt.innerText = 'Rp 0';
+        if (textTotal) textTotal.innerText = 'Rp 0';
         return;
     }
 
     let html = '';
-    let total = 0;
+    let totalNota = 0;
+
     keranjangPengeluaran.forEach((item, index) => {
-        total += item.subtotal;
+        totalNota += item.subtotal;
         html += `
             <tr class="hover:bg-red-50 border-b">
                 <td class="p-2 text-center font-bold text-gray-500">${index + 1}</td>
-                <td class="p-2 font-bold uppercase">${item.nama}</td>
-                <td class="p-2 font-semibold text-red-700 text-[11px]">${item.kategori}</td>
+                <td class="p-2 font-bold uppercase text-gray-800">${item.nama}</td>
+                <td class="p-2 text-gray-600"><span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-semibold">${item.kategori}</span></td>
                 <td class="p-2 text-center font-bold">${item.qty} ${item.satuan}</td>
                 <td class="p-2 text-right">Rp ${item.harga.toLocaleString('id-ID')}</td>
                 <td class="p-2 text-right font-black text-red-600">Rp ${item.subtotal.toLocaleString('id-ID')}</td>
                 <td class="p-2 text-center">
-                    <button onclick="hapusItemKeranjangPengeluaran(${index})" class="text-red-500 font-bold hover:underline">❌</button>
+                    <button onclick="hapusItemKeranjangPengeluaran(${index})" class="text-red-500 font-bold hover:underline">Hapus</button>
                 </td>
             </tr>
         `;
     });
 
     tbody.innerHTML = html;
-    if (totalTxt) totalTxt.innerText = 'Rp ' + total.toLocaleString('id-ID');
+    if (textTotal) textTotal.innerText = 'Rp ' + totalNota.toLocaleString('id-ID');
 }
 
+// Hapus item dari keranjang pengeluaran
+function hapusItemKeranjangPengeluaran(index) {
+    keranjangPengeluaran.splice(index, 1);
+    renderKeranjangPengeluaran();
+}
+
+// Reset Form Pengeluaran Keseluruhan
 function resetFormPengeluaran() {
     let todayISO = new Date().toISOString().split('T')[0];
     if(document.getElementById('pengeluaranTanggal')) document.getElementById('pengeluaranTanggal').value = todayISO;
     if(document.getElementById('pengeluaranKeteranganNota')) document.getElementById('pengeluaranKeteranganNota').value = '';
+    if(document.getElementById('itemPengeluaranNama')) document.getElementById('itemPengeluaranNama').value = '';
+    if(document.getElementById('itemPengeluaranQty')) document.getElementById('itemPengeluaranQty').value = '1';
+    if(document.getElementById('itemPengeluaranHarga')) document.getElementById('itemPengeluaranHarga').value = '';
+    
     keranjangPengeluaran = [];
+    hitungSubtotalItemPengeluaran();
     renderKeranjangPengeluaran();
 }
 
+// Simpan Nota Pengeluaran beserta seluruh item keranjang ke Firebase / LocalStorage
 function simpanPengeluaran() {
     if (keranjangPengeluaran.length === 0) {
-        return alert('Keranjang pengeluaran masih kosong! Tambahkan minimal 1 item terlebih dahulu.');
+        return alert('Keranjang pengeluaran masih kosong! Silakan tambah item pengeluaran terlebih dahulu.');
     }
 
     let tanggal = document.getElementById('pengeluaranTanggal')?.value || new Date().toISOString().split('T')[0];
     let metode = document.getElementById('pengeluaranMetode')?.value || 'TUNAI';
-    let ketNota = document.getElementById('pengeluaranKeteranganNota')?.value.trim() || 'Pengeluaran Kas';
-    let totalNominal = keranjangPengeluaran.reduce((acc, curr) => acc + curr.subtotal, 0);
+    let keteranganNota = document.getElementById('pengeluaranKeteranganNota')?.value.trim() || 'Pengeluaran Kas';
+
+    let totalNominal = keranjangPengeluaran.reduce((sum, i) => sum + i.subtotal, 0);
+
+    // Kategori utama nota diambil dari kategori item terbanyak atau item pertama
+    let kategoriUtama = keranjangPengeluaran[0]?.kategori || 'Lain-lain / Tak Terduga';
 
     let expenseItem = {
         id: 'EXP-' + Date.now(),
         cabang: cabangAktif === 'SEMUA CABANG' ? 'AYA SEBLAK DAN ANGKRINGAN' : cabangAktif,
         tanggalISO: tanggal,
         waktu: new Date().toLocaleString('id-ID'),
-        kategori: keranjangPengeluaran[0].kategori || 'Operasional',
+        kategori: kategoriUtama,
         metode: metode,
         nominal: totalNominal,
-        keterangan: ketNota,
-        items: [...keranjangPengeluaran]
+        keterangan: keteranganNota,
+        items: [...keranjangPengeluaran] // Menyimpan rincian item lengkap
     };
 
     if (db) {
@@ -709,7 +680,7 @@ function simpanPengeluaran() {
     localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(riwayatPengeluaran));
 
     resetFormPengeluaran();
-    alert('Transaksi Pengeluaran Kas Berhasil Disimpan!');
+    alert('Nota & Rincian Pengeluaran Kas Berhasil Disimpan!');
     updateLaporanPengeluaran();
 }
 
@@ -759,7 +730,7 @@ function parseTanggalISO(exp) {
     return '';
 }
 
-/* ================= LAPORAN TRANSAKSI PENJUALAN & MODAL ================= */
+/* ================= LAPORAN TRANSAKSI PENJUALAN ================= */
 function setTanggalHariIniIfEmpty() {
     let todayISO = new Date().toISOString().split('T')[0];
     
@@ -775,9 +746,6 @@ function setTanggalHariIniIfEmpty() {
 
     let pengeluaranTglInput = document.getElementById('pengeluaranTanggal');
     if (pengeluaranTglInput && !pengeluaranTglInput.value) pengeluaranTglInput.value = todayISO;
-
-    let modalTglInput = document.getElementById('modalTanggal');
-    if (modalTglInput && !modalTglInput.value) modalTglInput.value = todayISO;
 }
 
 function terapkanFilterLaporan() {
@@ -796,55 +764,11 @@ function updateLaporan() {
     let tglMulai = document.getElementById('filterTanggalMulai')?.value || '';
     let tglSelesai = document.getElementById('filterTanggalSelesai')?.value || '';
 
-    let sumberDataTx = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
-    let sumberDataModal = (db && dataModalFirebase.length > 0) ? dataModalFirebase : riwayatModal;
-
-    prosesRenderLaporan(sumberDataTx, sumberDataModal, tglMulai, tglSelesai);
+    let sumberData = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
+    prosesRenderLaporan(sumberData, tglMulai, tglSelesai);
 }
 
-function prosesRenderLaporan(semuaTransaksi, semuaModal, tglMulai, tglSelesai) {
-    // Filter Modal Kas
-    let filteredModal = (semuaModal || []).filter(m => {
-        if (!m) return false;
-        let dateStr = parseTanggalISO(m);
-        let matchDate = true;
-        if (tglMulai && tglSelesai) matchDate = dateStr ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
-        
-        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (m.cabang === cabangAktif);
-        return matchDate && matchCabang;
-    });
-
-    let totalNominalModal = filteredModal.reduce((acc, curr) => acc + parseNominalDinamis(curr), 0);
-    let elTotalModal = document.getElementById('statTotalModal');
-    if (elTotalModal) elTotalModal.innerText = 'Rp ' + totalNominalModal.toLocaleString('id-ID');
-
-    // Render Tabel Riwayat Modal Kas
-    let containerModal = document.getElementById('tabelRiwayatModal');
-    if (containerModal) {
-        if (filteredModal.length === 0) {
-            containerModal.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-400">Tidak ada riwayat tambah modal pada periode ini</td></tr>`;
-        } else {
-            let htmlModal = '';
-            filteredModal.forEach(m => {
-                htmlModal += `
-                    <tr class="hover:bg-emerald-50 border-b">
-                        <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${m.id || '-'}</td>
-                        <td class="p-2 text-[11px] whitespace-nowrap">${m.waktu || m.tanggalISO || '-'}</td>
-                        <td class="p-2 text-[11px] font-bold text-gray-600">${m.cabang || 'Utama'}</td>
-                        <td class="p-2 font-semibold text-emerald-800">${m.keterangan || 'Modal Kas'}</td>
-                        <td class="p-2 text-center font-bold"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800">${m.sumber || 'TUNAI'}</span></td>
-                        <td class="p-2 text-right font-black text-emerald-700">Rp ${parseNominalDinamis(m).toLocaleString('id-ID')}</td>
-                        <td class="p-2 text-center">
-                            <button onclick="hapusModalFirebase('${m.id}')" class="text-red-500 font-bold hover:underline">Hapus</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            containerModal.innerHTML = htmlModal;
-        }
-    }
-
-    // Filter Penjualan
+function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let filtered = (semuaTransaksi || []).filter(t => {
         if (!t) return false;
         let dateStr = parseTanggalISO(t);
@@ -986,7 +910,7 @@ function prosesRenderLaporan(semuaTransaksi, semuaModal, tglMulai, tglSelesai) {
     }
 }
 
-/* ================= LAPORAN PENGELUARAN REALTIME ================= */
+/* ================= LAPORAN PENGELUARAN REALTIME (DENGAN RINCIAN ITEM) ================= */
 function terapkanFilterPengeluaran() {
     updateLaporanPengeluaran();
 }
@@ -997,13 +921,11 @@ function updateLaporanPengeluaran() {
     let tglSelesai = document.getElementById('filterTglPengeluaranSelesai')?.value || '';
     let katFilter = document.getElementById('filterKategoriPengeluaran')?.value || 'SEMUA';
 
-    let sumberDataExp = (db && dataPengeluaranFirebase.length > 0) ? dataPengeluaranFirebase : riwayatPengeluaran;
-    let sumberDataModal = (db && dataModalFirebase.length > 0) ? dataModalFirebase : riwayatModal;
-
-    prosesRenderLaporanPengeluaran(sumberDataExp, sumberDataModal, tglMulai, tglSelesai, katFilter);
+    let sumberData = (db && dataPengeluaranFirebase.length > 0) ? dataPengeluaranFirebase : riwayatPengeluaran;
+    prosesRenderLaporanPengeluaran(sumberData, tglMulai, tglSelesai, katFilter);
 }
 
-function prosesRenderLaporanPengeluaran(semuaPengeluaran, semuaModal, tglMulai, tglSelesai, katFilter) {
+function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, katFilter) {
     let filtered = (semuaPengeluaran || []).filter(exp => {
         if (!exp) return false;
         
@@ -1049,16 +971,6 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, semuaModal, tglMulai, 
         mapKategori[kat] += nominal;
     });
 
-    // Hitung Total Modal
-    let totalModalKas = (semuaModal || []).filter(m => {
-        if (!m) return false;
-        let dateStr = parseTanggalISO(m);
-        let matchDate = true;
-        if (tglMulai && tglSelesai) matchDate = dateStr ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
-        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (m.cabang === cabangAktif);
-        return matchDate && matchCabang;
-    }).reduce((acc, curr) => acc + parseNominalDinamis(curr), 0);
-
     let totalOmsetSaatIni = 0;
     let sumberTx = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
     sumberTx.filter(t => {
@@ -1079,8 +991,7 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, semuaModal, tglMulai, 
         return matchDate && matchCabang;
     }).forEach(t => totalOmsetSaatIni += parseNominalDinamis(t));
 
-    // Kalkulasi Arus Kas Bersih (Modal + Omset Penjualan - Pengeluaran)
-    let arusKasBersih = (totalModalKas + totalOmsetSaatIni) - totalPengeluaran;
+    let arusKasBersih = totalOmsetSaatIni - totalPengeluaran;
 
     let elTotalExp = document.getElementById('statTotalPengeluaran');
     let elTunaiExp = document.getElementById('statPengeluaranTunai');
@@ -1102,24 +1013,24 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, semuaModal, tglMulai, 
         } else {
             let html = '';
             filtered.forEach(exp => {
-                let itemsList = [];
-                if (Array.isArray(exp.items)) itemsList = exp.items;
-                else if (exp.items && typeof exp.items === 'object') itemsList = Object.values(exp.items);
-
-                let detailItemsStr = itemsList.map(i => `<span class="inline-block bg-red-50 border border-red-200 px-1.5 py-0.5 rounded mr-1 mb-1 font-semibold text-[11px]">${i.nama || '-'} <b>(${i.qty||1} ${i.satuan||'pcs'} @Rp${(i.harga||0).toLocaleString('id-ID')})</b></span>`).join('');
-                let ket = exp.keterangan || exp.deskripsi || exp.nama || exp.catatan || '-';
-                if (detailItemsStr) ket += `<div class="mt-1">${detailItemsStr}</div>`;
-
                 let nominal = parseNominalDinamis(exp);
                 let tglDisplay = exp.waktu || exp.tanggalISO || exp.tanggal || '-';
+                
+                // Format Tampilan Rincian Item jika tersimpan sebagai keranjang
+                let detailItemsStr = '';
+                if (Array.isArray(exp.items) && exp.items.length > 0) {
+                    detailItemsStr = exp.items.map(i => `<span class="inline-block bg-red-50 border border-red-200 px-1.5 py-0.5 rounded mr-1 mb-1 text-[11px] font-semibold">${i.nama} <b>(${i.qty} ${i.satuan})</b> @Rp${(i.harga||0).toLocaleString('id-ID')}</span>`).join('');
+                } else {
+                    detailItemsStr = exp.keterangan || exp.deskripsi || '-';
+                }
                 
                 html += `
                     <tr class="hover:bg-red-50 border-b">
                         <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${exp.id || '-'}</td>
                         <td class="p-2 text-[11px] whitespace-nowrap">${tglDisplay}</td>
                         <td class="p-2 text-[11px] font-bold text-gray-600">${exp.cabang || 'Utama'}</td>
-                        <td class="p-2 font-semibold text-red-700">${exp.kategori || 'Lain-lain'}</td>
-                        <td class="p-2 font-medium">${ket}</td>
+                        <td class="p-2 font-semibold text-red-700 text-[11px]">${exp.kategori || 'Lain-lain'}</td>
+                        <td class="p-2">${detailItemsStr}</td>
                         <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${exp.metode === 'TRANSFER' ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800'}">${exp.metode || 'TUNAI'}</span></td>
                         <td class="p-2 text-right font-black text-red-600">Rp ${nominal.toLocaleString('id-ID')}</td>
                         <td class="p-2 text-center">
@@ -1238,7 +1149,7 @@ function simpanSettingNota() {}
 document.addEventListener('DOMContentLoaded', () => {
     renderMenu();
     renderMasterData();
-    setTanggalHari IniIfEmpty();
+    setTanggalHariIniIfEmpty();
     
     if(db) {
         db.ref('menu_tambahan').on('value', (s) => {
@@ -1274,18 +1185,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 dataPengeluaranFirebase = [];
             }
-            updateLaporanPengeluaran();
-        });
-
-        db.ref('modal').on('value', (snapshot) => {
-            let data = snapshot.val();
-            if (data) {
-                dataModalFirebase = Array.isArray(data) ? data : Object.values(data);
-                dataModalFirebase.sort((a, b) => ((b.id || '') > (a.id || '') ? 1 : -1));
-            } else {
-                dataModalFirebase = [];
-            }
-            updateLaporan();
             updateLaporanPengeluaran();
         });
     } else {
