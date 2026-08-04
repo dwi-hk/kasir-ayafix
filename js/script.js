@@ -1,6 +1,32 @@
+// Konfigurasi Database Firebase Kasir AYA Group
+const firebaseConfig = {
+    apiKey: "AIzaSyCx0u4ka3lhjiPm84hI8U7v37GNusCvPaE",
+    authDomain: "kasir-aya-group-e6fb4.firebaseapp.com",
+    databaseURL: "https://kasir-aya-group-e6fb4-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "kasir-aya-group-e6fb4",
+    storageBucket: "kasir-aya-group-e6fb4.firebasestorage.app",
+    messagingSenderId: "654765768336",
+    appId: "1:654765768336:web:7fb865aaf00e371de36215"
+};
+
+let db = null;
+try {
+    if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.database();
+        console.log("Firebase Realtime Database Terhubung Berhasil!");
+    }
+} catch(e) { 
+    console.error("Inisialisasi Firebase Gagal:", e); 
+}
+
+// Variable Global Storage Internal & Temporary
 let keranjang = [];
 let transaksiDitahan = [];
 let cabangAktif = 'AYA SEBLAK DAN ANGKRINGAN';
+let dataTransaksiFirebase = []; // Menampung cache transaksi realtime dari Firebase
 
 let pelangganList = JSON.parse(localStorage.getItem('aya_pelanggan')) || [];
 let supplierList = JSON.parse(localStorage.getItem('aya_supplier')) || [];
@@ -318,11 +344,11 @@ function simpanTransaksi() {
     };
 
     if(db) {
-        // Simpan ke Realtime Database Firebase
+        // Direct Push Realtime ke Firebase RTDB
         db.ref('transaksi/' + nota.id).set(nota);
     }
     
-    // Tetap simpan cadangan lokal
+    // Cadangan Lokal
     riwayatTransaksi.unshift(nota);
     localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
 
@@ -374,7 +400,7 @@ function cetakNota() {
     }, 300);
 }
 
-/* ================= MODUL LAPORAN TRANSAKSI PENJUALAN ================= */
+/* ================= LAPORAN TRANSAKSI REALTIME ================= */
 function setTanggalHariIniIfEmpty() {
     let todayISO = new Date().toISOString().split('T')[0];
     let tglMulai = document.getElementById('filterTanggalMulai');
@@ -399,29 +425,26 @@ function updateLaporan() {
     let tglMulai = document.getElementById('filterTanggalMulai').value;
     let tglSelesai = document.getElementById('filterTanggalSelesai').value;
 
-    if(db) {
-        // Ambil snapshot data transaksi
-        db.ref('transaksi').once('value', (snapshot) => {
-            let data = snapshot.val();
-            let listTransaksi = data ? Object.values(data) : [];
-            
-            // Urutkan transaksi dari yang paling baru
-            listTransaksi.sort((a, b) => (b.id > a.id ? 1 : -1));
-            
-            prosesRenderLaporan(listTransaksi, tglMulai, tglSelesai);
-        });
-    } else {
-        prosesRenderLaporan(riwayatTransaksi, tglMulai, tglSelesai);
-    }
+    let sumberData = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
+    prosesRenderLaporan(sumberData, tglMulai, tglSelesai);
 }
 
 function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let filtered = semuaTransaksi.filter(t => {
-        let dateStr = t.tanggalISO || (t.waktu ? t.waktu.split(',')[0].split('/').reverse().join('-') : '');
+        // Konversi format tanggal bawaan untuk pencocokan rentang tanggal
+        let dateStr = t.tanggalISO;
+        if (!dateStr && t.waktu) {
+            let parts = t.waktu.split(',')[0].split('/');
+            if (parts.length === 3) {
+                dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+        }
+        
         let matchDate = true;
-        if(tglMulai && tglSelesai) {
+        if(tglMulai && tglSelesai && dateStr) {
             matchDate = dateStr >= tglMulai && dateStr <= tglSelesai;
         }
+        
         let matchCabang = (cabangAktif === 'SEMUA CABANG') || (t.cabang === cabangAktif);
         return matchDate && matchCabang;
     });
@@ -459,7 +482,7 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         }
     });
 
-    // Update Summary Stats Cards
+    // Render Stats
     let elOmset = document.getElementById('statOmset');
     let elQris = document.getElementById('statOmsetQris');
     let elCash = document.getElementById('statUangCash');
@@ -472,7 +495,7 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     if (elQty) elQty.innerText = totalQty.toLocaleString('id-ID') + ' Pcs';
     if (elTrx) elTrx.innerText = filtered.length + ' Trx';
 
-    // Render Tabel 1: Rekap Item Terjual
+    // Tabel Rekap Item
     let containerRekap = document.getElementById('tabelRekapItemTerjual');
     if (containerRekap) {
         let itemArray = Object.values(itemMap).sort((a, b) => b.qty - a.qty);
@@ -497,7 +520,7 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         renderChartLaporan(itemArray.slice(0, 7));
     }
 
-    // Render Tabel 2: Detail Riwayat Transaksi Nota
+    // Tabel Riwayat Transaksi Nota
     let containerRiwayat = document.getElementById('tabelRiwayatTransaksi');
     if (containerRiwayat) {
         if (filtered.length === 0) {
@@ -564,6 +587,7 @@ function hapusTransaksiFirebase(id) {
     } else {
         riwayatTransaksi = riwayatTransaksi.filter(t => t.id !== id);
         localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
+        updateLaporan();
     }
 }
 
@@ -589,15 +613,14 @@ function simpanAbsensi() {}
 function cetakSPK() {}
 function simpanSettingNota() {}
 
-/* ================= INISIALISASI REALTIME APLIKASI ================= */
+/* ================= INISIALISASI LISTENER REALTIME ================= */
 document.addEventListener('DOMContentLoaded', () => {
     renderMenu();
     renderMasterData();
     setTanggalHariIniIfEmpty();
     
-    // Listener Realtime Database Firebase
     if(db) {
-        // 1. Sync Realtime Master Menu Tambahan
+        // Listener Realtime Database untuk Menu Tambahan
         db.ref('menu_tambahan').on('value', (s) => {
             let val = s.val();
             if(val) {
@@ -611,9 +634,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 2. Sync Realtime Transaksi Penjualan (Otomatis memperbarui Laporan & History)
+        // Listener Realtime Database untuk Transaksi Penjualan (Memuat Riwayat Lama & Transaksi Baru)
         db.ref('transaksi').on('value', (snapshot) => {
-            console.log("Data transaksi realtime terbarui dari Firebase!");
+            let data = snapshot.val();
+            if (data) {
+                dataTransaksiFirebase = Object.values(data);
+                // Urutkan transaksi dari yang paling baru
+                dataTransaksiFirebase.sort((a, b) => (b.id > a.id ? 1 : -1));
+            } else {
+                dataTransaksiFirebase = [];
+            }
             updateLaporan();
         });
     } else {
