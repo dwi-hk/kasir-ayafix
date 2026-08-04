@@ -24,7 +24,6 @@ try {
 
 // Variable Global Storage Internal & Temporary
 let keranjang = [];
-let keranjangPengeluaran = []; // Storage Keranjang Pengeluaran
 let transaksiDitahan = [];
 let cabangAktif = 'SEMUA CABANG';
 let dataTransaksiFirebase = [];
@@ -59,7 +58,7 @@ function gantiCabang(namaCabang) {
 
 // BUKA DAN TUTUP TAB
 function switchTab(tab) {
-    ['master', 'cabang', 'kasir', 'pembelian', 'pengeluaran', 'laporan', 'laporan_pengeluaran', 'backoffice', 'user', 'setting'].forEach(t => {
+    ['master', 'cabang', 'kasir', 'pengeluaran', 'laporan', 'laporan_pengeluaran', 'backoffice', 'user', 'setting'].forEach(t => {
         let el = document.getElementById('tab-' + t);
         let btn = document.getElementById('btn-tab-' + t);
         if (el) el.classList.add('hidden');
@@ -174,7 +173,7 @@ function hapusMasterData(id) {
     renderMenu();
 }
 
-/* ================= KASIR PENJUALAN ================= */
+/* ================= KASIR & TRANSAKSI ================= */
 function filterKategori(kat) {
     kategoriAktif = kat;
     ['topping', 'makanan', 'dingin', 'panas', 'jajanan'].forEach(k => {
@@ -292,43 +291,21 @@ function setMetodePembayaran(m) {
 function hitungKembalian() {
     let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
     let total = parseInt(totalText) || 0;
-    let bayarInput = document.getElementById('inputBayar')?.value;
-    
-    if (bayarInput === '' || bayarInput === null || bayarInput === undefined) {
-        if(document.getElementById('textKembalian')) {
-            document.getElementById('textKembalian').innerText = 'Rp 0';
-        }
-        return;
-    }
-
-    let bayar = parseInt(bayarInput) || 0;
+    let bayar = parseInt(document.getElementById('inputBayar')?.value) || 0;
     let kembalian = bayar - total;
     if(document.getElementById('textKembalian')) {
         document.getElementById('textKembalian').innerText = kembalian >= 0 ? 'Rp ' + kembalian.toLocaleString('id-ID') : 'Uang Kurang';
     }
 }
 
-/* ================= ALGORITMA TAHAN TRANSAKSI ================= */
 function tahanTransaksi() {
     if(keranjang.length === 0) return alert('Keranjang kosong!');
-    
-    let styro = parseInt(document.getElementById('inputStyrofoam')?.value) || 0;
-    let subtotalItems = keranjang.reduce((acc, item) => acc + ((item.harga || 0) * item.qty), 0);
-    let totalNominal = subtotalItems + (styro * 1000);
-
     transaksiDitahan.push({
         id: 'HOLD-' + Date.now(),
         items: [...keranjang],
-        styrofoam: styro,
-        metode: metodePembayaran,
-        totalNominal: totalNominal,
         waktu: new Date().toLocaleTimeString('id-ID')
     });
-    
     keranjang = [];
-    if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
-    if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
-    
     updateKeranjang();
     renderHeldOrders();
     alert('Transaksi berhasil ditahan!');
@@ -338,108 +315,34 @@ function renderHeldOrders() {
     let box = document.getElementById('boxHeldOrders');
     let container = document.getElementById('listHeldOrders');
     if(!box || !container) return;
-    
     if(transaksiDitahan.length === 0) {
         box.classList.add('hidden');
         return;
     }
-    
     box.classList.remove('hidden');
     container.innerHTML = '';
-    
     transaksiDitahan.forEach((t, i) => {
-        let itemsDetailHtml = t.items.map(item => {
-            let itemSub = (item.harga || 0) * item.qty;
-            return `
-                <div class="flex justify-between items-center text-[11px] py-0.5 border-b border-amber-100">
-                    <span>${item.nama} <b class="text-amber-800">x${item.qty}</b></span>
-                    <span class="font-mono">@Rp${(item.harga||0).toLocaleString('id-ID')} = <b>Rp${itemSub.toLocaleString('id-ID')}</b></span>
-                </div>
-            `;
-        }).join('');
-
-        if (t.styrofoam > 0) {
-            itemsDetailHtml += `
-                <div class="flex justify-between items-center text-[11px] py-0.5 border-b border-amber-100 italic">
-                    <span>Styrofoam x${t.styrofoam}</span>
-                    <span class="font-mono">Rp${(t.styrofoam * 1000).toLocaleString('id-ID')}</span>
-                </div>
-            `;
-        }
-
         container.innerHTML += `
-            <div class="p-2.5 bg-amber-50 border border-amber-300 rounded-lg shadow-sm mb-2">
-                <div class="flex justify-between items-center pb-1 border-b border-amber-200 mb-1">
-                    <span class="font-bold text-amber-900 text-xs">📋 Jam: ${t.waktu}</span>
-                    <span class="font-bold text-xs text-orange-700 font-mono">Total: Rp ${(t.totalNominal || 0).toLocaleString('id-ID')}</span>
-                </div>
-                
-                <div class="my-1 max-h-24 overflow-y-auto pr-1">
-                    ${itemsDetailHtml}
-                </div>
-
-                <div class="flex gap-2 mt-2 pt-1">
-                    <button onclick="resumeTransaksi(${i})" class="flex-1 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shadow transition">
-                        🔄 Panggil Transaksi
-                    </button>
-                    <button onclick="hapusTransaksiDitahan(${i})" class="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded shadow transition" title="Batal & Hapus">
-                        🗑️
-                    </button>
-                </div>
-            </div>
+            <button onclick="resumeTransaksi(${i})" class="px-2 py-1 bg-amber-600 text-white text-[10px] rounded font-bold whitespace-nowrap">
+                📋 ${t.waktu} (${t.items.length} Item)
+            </button>
         `;
     });
 }
 
-function hapusTransaksiDitahan(index) {
-    if (confirm('Hapus transaksi ditahan ini?')) {
-        transaksiDitahan.splice(index, 1);
-        renderHeldOrders();
-    }
-}
-
 function resumeTransaksi(index) {
-    if (keranjang.length > 0) {
-        if (!confirm('Keranjang saat ini tidak kosong. Ingin menimpa/melanjutkan transaksi yang ditahan?')) {
-            return;
-        }
-    }
-    
-    let target = transaksiDitahan[index];
-    keranjang = [...target.items];
-    if(document.getElementById('inputStyrofoam')) {
-        document.getElementById('inputStyrofoam').value = target.styrofoam || 0;
-    }
-    if(target.metode) {
-        setMetodePembayaran(target.metode);
-    }
-    
+    keranjang = [...transaksiDitahan[index].items];
     transaksiDitahan.splice(index, 1);
     updateKeranjang();
     renderHeldOrders();
 }
 
-/* ================= SIMPAN TRANSAKSI & VALIDASI PENJUALAN ================= */
+/* ================= SIMPAN TRANSAKSI & CETAK NOTA ================= */
 function simpanTransaksi() {
-    if(keranjang.length === 0) { 
-        alert('Keranjang Kosong!'); 
-        return false; 
-    }
-
-    let bayarVal = document.getElementById('inputBayar')?.value;
-    if (bayarVal === '' || bayarVal === null || bayarVal === undefined) {
-        alert('Nominal uang belum diisi!');
-        return false;
-    }
-
+    if(keranjang.length === 0) { alert('Keranjang Kosong!'); return false; }
     let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
     let total = parseInt(totalText) || 0;
-    let bayar = parseInt(bayarVal) || 0;
-
-    if (bayar < total && metodePembayaran === 'TUNAI') {
-        alert('Jumlah bayar kurang dari total tagihan!');
-        return false;
-    }
+    let bayar = parseInt(document.getElementById('inputBayar')?.value) || total;
 
     let nota = {
         id: 'NOTA-' + Date.now(),
@@ -447,7 +350,6 @@ function simpanTransaksi() {
         waktu: new Date().toLocaleString('id-ID'),
         tanggalISO: new Date().toISOString().split('T')[0],
         items: [...keranjang],
-        styrofoam: parseInt(document.getElementById('inputStyrofoam')?.value) || 0,
         total: total,
         bayar: bayar,
         metodePembayaran: metodePembayaran
@@ -467,8 +369,6 @@ function tombolSimpanSaja() {
     if(simpanTransaksi()) {
         alert('Transaksi Berhasil Disimpan!');
         keranjang = [];
-        if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
-        if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
         updateKeranjang();
     }
 }
@@ -476,25 +376,12 @@ function tombolSimpanSaja() {
 function cetakNota() {
     if(keranjang.length === 0) return alert('Keranjang belanja kosong!');
     
-    let bayarVal = document.getElementById('inputBayar')?.value;
-    if (bayarVal === '' || bayarVal === null || bayarVal === undefined) {
-        alert('Nominal uang belum diisi!');
-        return;
-    }
-
-    let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
-    let total = parseInt(totalText) || 0;
-    let bayar = parseInt(bayarVal) || 0;
-
-    if (bayar < total && metodePembayaran === 'TUNAI') {
-        alert('Jumlah bayar kurang dari total tagihan!');
-        return;
-    }
-
     let htmlItems = '';
+    let total = 0;
     keranjang.forEach(i => {
         let harga = i.harga || 0;
         let sub = harga * i.qty;
+        total += sub;
         htmlItems += `
             <div class="nota-item-row font-bold">
                 <span>${i.nama || '-'}</span>
@@ -506,28 +393,12 @@ function cetakNota() {
         `;
     });
 
-    let styroQty = parseInt(document.getElementById('inputStyrofoam')?.value) || 0;
-    if (styroQty > 0) {
-        let subStyro = styroQty * 1000;
-        htmlItems += `
-            <div class="nota-item-row font-bold">
-                <span>Styrofoam</span>
-                <div class="nota-item-detail">
-                    <span>${styroQty} x 1.000</span>
-                    <span>Rp${subStyro.toLocaleString('id-ID')}</span>
-                </div>
-            </div>
-        `;
-    }
-
     if(document.getElementById('notaItems')) document.getElementById('notaItems').innerHTML = htmlItems;
     if(document.getElementById('notaWaktu')) document.getElementById('notaWaktu').innerText = "Waktu: " + new Date().toLocaleString('id-ID');
     if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + metodePembayaran;
     if(document.getElementById('notaTotal')) {
         document.getElementById('notaTotal').innerHTML = `
             <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
-            <div class="flex justify-between font-bold text-[9px]"><span>BAYAR :</span><span>Rp ${bayar.toLocaleString('id-ID')}</span></div>
-            <div class="flex justify-between font-bold text-[9px]"><span>KEMBALI :</span><span>Rp ${(bayar - total).toLocaleString('id-ID')}</span></div>
         `;
     }
 
@@ -536,140 +407,81 @@ function cetakNota() {
     setTimeout(() => {
         window.print();
         if(area) area.style.display = 'none';
-        if (simpanTransaksi()) {
-            keranjang = [];
-            if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
-            if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
-            updateKeranjang();
-        }
+        simpanTransaksi();
+        keranjang = [];
+        updateKeranjang();
     }, 300);
 }
 
-/* ================= MANAJEMEN TRANSAKSI PENGELUARAN (TERPERBAIKI DENGAN KERANJANG) ================= */
+// CETAK NOTA DARI LAPORAN PENJUALAN
+function cetakNotaDariRiwayat(idNota) {
+    let sumberData = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
+    let nota = sumberData.find(t => String(t.id) === String(idNota));
 
-// Hitung otomatis subtotal item pengeluaran yang sedang diketik
-function hitungSubtotalItemPengeluaran() {
-    let qty = parseInt(document.getElementById('itemPengeluaranQty')?.value) || 0;
-    let harga = parseInt(document.getElementById('itemPengeluaranHarga')?.value) || 0;
-    let subtotal = qty * harga;
+    if (!nota) return alert("Data transaksi tidak ditemukan!");
+
+    let htmlItems = '';
+    let itemList = Array.isArray(nota.items) ? nota.items : Object.values(nota.items || {});
     
-    let elSub = document.getElementById('lblSubtotalItemPengeluaran');
-    if (elSub) elSub.innerText = 'Rp ' + subtotal.toLocaleString('id-ID');
-}
-
-// Tambah item ke dalam keranjang pengeluaran sementara
-function tambahItemKeranjangPengeluaran() {
-    let nama = document.getElementById('itemPengeluaranNama')?.value.trim() || '';
-    let kategori = document.getElementById('itemPengeluaranKategori')?.value || 'Lain-lain / Tak Terduga';
-    let satuan = document.getElementById('itemPengeluaranSatuan')?.value.trim() || 'pcs';
-    let qty = parseInt(document.getElementById('itemPengeluaranQty')?.value) || 0;
-    let harga = parseInt(document.getElementById('itemPengeluaranHarga')?.value) || 0;
-
-    if (!nama) return alert('Mohon isi nama barang / pengeluaran!');
-    if (qty <= 0 || harga <= 0) return alert('Jumlah (qty) dan harga satuan harus lebih dari 0!');
-
-    let subtotal = qty * harga;
-
-    keranjangPengeluaran.push({
-        id: 'ITEM-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-        nama: nama,
-        kategori: kategori,
-        satuan: satuan,
-        qty: qty,
-        harga: harga,
-        subtotal: subtotal
-    });
-
-    // Reset Form Input Item
-    if (document.getElementById('itemPengeluaranNama')) document.getElementById('itemPengeluaranNama').value = '';
-    if (document.getElementById('itemPengeluaranQty')) document.getElementById('itemPengeluaranQty').value = '1';
-    if (document.getElementById('itemPengeluaranHarga')) document.getElementById('itemPengeluaranHarga').value = '';
-    hitungSubtotalItemPengeluaran();
-
-    renderKeranjangPengeluaran();
-}
-
-// Render tampilan keranjang pengeluaran
-function renderKeranjangPengeluaran() {
-    let tbody = document.getElementById('tabelKeranjangPengeluaran');
-    let textTotal = document.getElementById('textTotalPengeluaranNota');
-    if (!tbody) return;
-
-    if (keranjangPengeluaran.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-400">Belum ada item ditambahkan ke keranjang pengeluaran</td></tr>`;
-        if (textTotal) textTotal.innerText = 'Rp 0';
-        return;
-    }
-
-    let html = '';
-    let totalNota = 0;
-
-    keranjangPengeluaran.forEach((item, index) => {
-        totalNota += item.subtotal;
-        html += `
-            <tr class="hover:bg-red-50 border-b">
-                <td class="p-2 text-center font-bold text-gray-500">${index + 1}</td>
-                <td class="p-2 font-bold uppercase text-gray-800">${item.nama}</td>
-                <td class="p-2 text-gray-600"><span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-semibold">${item.kategori}</span></td>
-                <td class="p-2 text-center font-bold">${item.qty} ${item.satuan}</td>
-                <td class="p-2 text-right">Rp ${item.harga.toLocaleString('id-ID')}</td>
-                <td class="p-2 text-right font-black text-red-600">Rp ${item.subtotal.toLocaleString('id-ID')}</td>
-                <td class="p-2 text-center">
-                    <button onclick="hapusItemKeranjangPengeluaran(${index})" class="text-red-500 font-bold hover:underline">Hapus</button>
-                </td>
-            </tr>
+    itemList.forEach(i => {
+        let harga = i.harga || 0;
+        let sub = harga * (i.qty || 1);
+        htmlItems += `
+            <div class="nota-item-row font-bold">
+                <span>${i.nama || '-'}</span>
+                <div class="nota-item-detail">
+                    <span>${i.qty || 1} x ${harga.toLocaleString('id-ID')}</span>
+                    <span>Rp${sub.toLocaleString('id-ID')}</span>
+                </div>
+            </div>
         `;
     });
 
-    tbody.innerHTML = html;
-    if (textTotal) textTotal.innerText = 'Rp ' + totalNota.toLocaleString('id-ID');
+    if(document.getElementById('notaItems')) document.getElementById('notaItems').innerHTML = htmlItems;
+    if(document.getElementById('notaWaktu')) document.getElementById('notaWaktu').innerText = "Waktu: " + (nota.waktu || nota.tanggalISO || '-');
+    if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + (nota.metodePembayaran || nota.metode || 'TUNAI');
+    if(document.getElementById('notaTotal')) {
+        document.getElementById('notaTotal').innerHTML = `
+            <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${(nota.total || parseNominalDinamis(nota)).toLocaleString('id-ID')}</span></div>
+        `;
+    }
+
+    const area = document.getElementById('areaNota');
+    if(area) area.style.display = 'block';
+    setTimeout(() => {
+        window.print();
+        if(area) area.style.display = 'none';
+    }, 300);
 }
 
-// Hapus item dari keranjang pengeluaran
-function hapusItemKeranjangPengeluaran(index) {
-    keranjangPengeluaran.splice(index, 1);
-    renderKeranjangPengeluaran();
-}
-
-// Reset Form Pengeluaran Keseluruhan
+/* ================= MANAJEMEN PENGELUARAN (EXPENSES) ================= */
 function resetFormPengeluaran() {
     let todayISO = new Date().toISOString().split('T')[0];
     if(document.getElementById('pengeluaranTanggal')) document.getElementById('pengeluaranTanggal').value = todayISO;
-    if(document.getElementById('pengeluaranKeteranganNota')) document.getElementById('pengeluaranKeteranganNota').value = '';
-    if(document.getElementById('itemPengeluaranNama')) document.getElementById('itemPengeluaranNama').value = '';
-    if(document.getElementById('itemPengeluaranQty')) document.getElementById('itemPengeluaranQty').value = '1';
-    if(document.getElementById('itemPengeluaranHarga')) document.getElementById('itemPengeluaranHarga').value = '';
-    
-    keranjangPengeluaran = [];
-    hitungSubtotalItemPengeluaran();
-    renderKeranjangPengeluaran();
+    if(document.getElementById('pengeluaranNominal')) document.getElementById('pengeluaranNominal').value = '';
+    if(document.getElementById('pengeluaranKeterangan')) document.getElementById('pengeluaranKeterangan').value = '';
 }
 
-// Simpan Nota Pengeluaran beserta seluruh item keranjang ke Firebase / LocalStorage
 function simpanPengeluaran() {
-    if (keranjangPengeluaran.length === 0) {
-        return alert('Keranjang pengeluaran masih kosong! Silakan tambah item pengeluaran terlebih dahulu.');
-    }
-
     let tanggal = document.getElementById('pengeluaranTanggal')?.value || new Date().toISOString().split('T')[0];
+    let kategori = document.getElementById('pengeluaranKategori')?.value || 'Lain-lain / Tak Terduga';
     let metode = document.getElementById('pengeluaranMetode')?.value || 'TUNAI';
-    let keteranganNota = document.getElementById('pengeluaranKeteranganNota')?.value.trim() || 'Pengeluaran Kas';
+    let nominal = parseInt(document.getElementById('pengeluaranNominal')?.value) || 0;
+    let keterangan = document.getElementById('pengeluaranKeterangan')?.value.trim() || '';
 
-    let totalNominal = keranjangPengeluaran.reduce((sum, i) => sum + i.subtotal, 0);
-
-    // Kategori utama nota diambil dari kategori item terbanyak atau item pertama
-    let kategoriUtama = keranjangPengeluaran[0]?.kategori || 'Lain-lain / Tak Terduga';
+    if (!tanggal || nominal <= 0 || !keterangan) {
+        return alert('Mohon lengkapi tanggal, nominal, dan keterangan pengeluaran!');
+    }
 
     let expenseItem = {
         id: 'EXP-' + Date.now(),
         cabang: cabangAktif === 'SEMUA CABANG' ? 'AYA SEBLAK DAN ANGKRINGAN' : cabangAktif,
         tanggalISO: tanggal,
         waktu: new Date().toLocaleString('id-ID'),
-        kategori: kategoriUtama,
+        kategori: kategori,
         metode: metode,
-        nominal: totalNominal,
-        keterangan: keteranganNota,
-        items: [...keranjangPengeluaran] // Menyimpan rincian item lengkap
+        nominal: nominal,
+        keterangan: keterangan
     };
 
     if (db) {
@@ -680,7 +492,7 @@ function simpanPengeluaran() {
     localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(riwayatPengeluaran));
 
     resetFormPengeluaran();
-    alert('Nota & Rincian Pengeluaran Kas Berhasil Disimpan!');
+    alert('Transaksi Pengeluaran Kas Berhasil Disimpan!');
     updateLaporanPengeluaran();
 }
 
@@ -731,6 +543,7 @@ function parseTanggalISO(exp) {
 }
 
 /* ================= LAPORAN TRANSAKSI PENJUALAN ================= */
+
 function setTanggalHariIniIfEmpty() {
     let todayISO = new Date().toISOString().split('T')[0];
     
@@ -797,6 +610,8 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let totalOmset = 0;
     let totalQris = 0;
     let totalCash = 0;
+    let totalHutang = 0;
+    let totalHPP = 0;
     let totalQty = 0;
     let itemMap = {};
 
@@ -804,8 +619,9 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         let sumTotal = parseNominalDinamis(t);
         totalOmset += sumTotal;
         
-        let me = t.metodePembayaran || t.metode || 'TUNAI';
+        let me = (t.metodePembayaran || t.metode || 'TUNAI').toUpperCase();
         if (me === 'QRIS') totalQris += sumTotal;
+        else if (me === 'HUTANG') totalHutang += sumTotal;
         else if (me === 'TUNAI') totalCash += sumTotal;
 
         let itemList = [];
@@ -819,8 +635,11 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
             if(!item) return;
             let qty = parseInt(item.qty) || 0;
             let harga = parseInt(item.harga) || 0;
+            let hpp = parseInt(item.hargaBeli) || 0;
             let namaItem = item.nama || 'Tidak Diketahui';
+            
             totalQty += qty;
+            totalHPP += (hpp * qty);
 
             if (!itemMap[namaItem]) {
                 itemMap[namaItem] = {
@@ -835,17 +654,42 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         });
     });
 
+    // HITUNG TOTAL PENGELUARAN TUNAI HARI INI
+    let totalPengeluaranTunai = 0;
+    let sumberPengeluaran = (db && dataPengeluaranFirebase.length > 0) ? dataPengeluaranFirebase : riwayatPengeluaran;
+    sumberPengeluaran.filter(exp => {
+        let dateStr = parseTanggalISO(exp);
+        let matchDate = (tglMulai && tglSelesai) ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
+        let metode = (exp.metode || 'TUNAI').toUpperCase();
+        return matchDate && metode === 'TUNAI';
+    }).forEach(exp => {
+        totalPengeluaranTunai += parseNominalDinamis(exp);
+    });
+
+    // PROSESS KALKULASI CASH RIIL LACI
+    // Modal Awal (Rp 70.000) + Total Penjualan Tunai - Pengeluaran Tunai
+    let modalAwal = 70000;
+    let cashRiilLaci = modalAwal + totalCash - totalPengeluaranTunai;
+    let totalRugiLaba = totalOmset - totalHPP;
+
+    // UPDATE TAMPILAN DASHBOARD STATISTIK
     let elOmset = document.getElementById('statOmset');
     let elQris = document.getElementById('statOmsetQris');
     let elCash = document.getElementById('statUangCash');
     let elQty = document.getElementById('statTotalQty');
     let elTrx = document.getElementById('statTotalTransaksi');
+    
+    let elProfit = document.getElementById('statRugiLaba');
+    let elLaci = document.getElementById('statCashLaci');
 
     if (elOmset) elOmset.innerText = 'Rp ' + totalOmset.toLocaleString('id-ID');
     if (elQris) elQris.innerText = 'Rp ' + totalQris.toLocaleString('id-ID');
     if (elCash) elCash.innerText = 'Rp ' + totalCash.toLocaleString('id-ID');
     if (elQty) elQty.innerText = totalQty.toLocaleString('id-ID') + ' Pcs';
     if (elTrx) elTrx.innerText = filtered.length + ' Trx';
+    
+    if (elProfit) elProfit.innerText = 'Rp ' + totalRugiLaba.toLocaleString('id-ID');
+    if (elLaci) elLaci.innerText = 'Rp ' + cashRiilLaci.toLocaleString('id-ID');
 
     let containerRekap = document.getElementById('tabelRekapItemTerjual');
     if (containerRekap) {
@@ -874,31 +718,41 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let containerRiwayat = document.getElementById('tabelRiwayatTransaksi');
     if (containerRiwayat) {
         if (filtered.length === 0) {
-            containerRiwayat.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-400">Tidak ada riwayat transaksi pada periode ini</td></tr>`;
+            containerRiwayat.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-400">Tidak ada riwayat transaksi pada periode ini</td></tr>`;
         } else {
             let htmlRiwayat = '';
             filtered.forEach(t => {
                 let itemList = [];
+                let hppTrx = 0;
                 if (Array.isArray(t.items)) {
                     itemList = t.items;
                 } else if (t.items && typeof t.items === 'object') {
                     itemList = Object.values(t.items);
                 }
 
+                itemList.forEach(i => {
+                    hppTrx += ((parseInt(i.hargaBeli) || 0) * (parseInt(i.qty) || 0));
+                });
+
                 let detailItemsStr = itemList.map(i => `<span class="inline-block bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded mr-1 mb-1 font-semibold">${i.nama || '-'} <b>(x${i.qty || 0})</b></span>`).join('');
                 if(!detailItemsStr) detailItemsStr = '<span class="text-gray-400 italic">Detail item kosong</span>';
 
                 let nominalTrx = parseNominalDinamis(t);
+                let labaTrx = nominalTrx - hppTrx;
                 let metodeTrx = t.metodePembayaran || t.metode || 'TUNAI';
 
                 htmlRiwayat += `
                     <tr class="hover:bg-orange-50 border-b">
-                        <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${t.id || '-'}</td>
+                        <td class="p-2 font-mono text-[10px] font-bold text-gray-700">
+                            <span class="block">${t.id || '-'}</span>
+                            <button onclick="cetakNotaDariRiwayat('${t.id}')" class="mt-1 px-2 py-0.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded text-[9px] shadow">🖨️ Cetak Nota</button>
+                        </td>
                         <td class="p-2 text-[11px] whitespace-nowrap">${t.waktu || t.tanggalISO || '-'}</td>
                         <td class="p-2 text-[11px] font-bold text-gray-600">${t.cabang || 'Utama'}</td>
                         <td class="p-2">${detailItemsStr}</td>
-                        <td class="p-2 text-center font-bold"><span class="px-2 py-0.5 rounded text-[10px] ${metodeTrx === 'QRIS' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}">${metodeTrx}</span></td>
+                        <td class="p-2 text-center font-bold"><span class="px-2 py-0.5 rounded text-[10px] ${metodeTrx === 'QRIS' ? 'bg-blue-100 text-blue-800' : (metodeTrx === 'HUTANG' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800')}">${metodeTrx}</span></td>
                         <td class="p-2 text-right font-black text-orange-700">Rp ${nominalTrx.toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-right font-bold text-emerald-600">Rp ${labaTrx.toLocaleString('id-ID')}</td>
                         <td class="p-2 text-center">
                             <button onclick="hapusTransaksiFirebase('${t.id}')" class="text-red-500 font-bold hover:underline">Hapus</button>
                         </td>
@@ -910,7 +764,7 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     }
 }
 
-/* ================= LAPORAN PENGELUARAN REALTIME (DENGAN RINCIAN ITEM) ================= */
+/* ================= LAPORAN PENGELUARAN REALTIME ================= */
 function terapkanFilterPengeluaran() {
     updateLaporanPengeluaran();
 }
@@ -1013,24 +867,17 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
         } else {
             let html = '';
             filtered.forEach(exp => {
+                let ket = exp.keterangan || exp.deskripsi || exp.nama || exp.catatan || '-';
                 let nominal = parseNominalDinamis(exp);
                 let tglDisplay = exp.waktu || exp.tanggalISO || exp.tanggal || '-';
-                
-                // Format Tampilan Rincian Item jika tersimpan sebagai keranjang
-                let detailItemsStr = '';
-                if (Array.isArray(exp.items) && exp.items.length > 0) {
-                    detailItemsStr = exp.items.map(i => `<span class="inline-block bg-red-50 border border-red-200 px-1.5 py-0.5 rounded mr-1 mb-1 text-[11px] font-semibold">${i.nama} <b>(${i.qty} ${i.satuan})</b> @Rp${(i.harga||0).toLocaleString('id-ID')}</span>`).join('');
-                } else {
-                    detailItemsStr = exp.keterangan || exp.deskripsi || '-';
-                }
                 
                 html += `
                     <tr class="hover:bg-red-50 border-b">
                         <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${exp.id || '-'}</td>
                         <td class="p-2 text-[11px] whitespace-nowrap">${tglDisplay}</td>
                         <td class="p-2 text-[11px] font-bold text-gray-600">${exp.cabang || 'Utama'}</td>
-                        <td class="p-2 font-semibold text-red-700 text-[11px]">${exp.kategori || 'Lain-lain'}</td>
-                        <td class="p-2">${detailItemsStr}</td>
+                        <td class="p-2 font-semibold text-red-700">${exp.kategori || 'Lain-lain'}</td>
+                        <td class="p-2 font-medium">${ket}</td>
                         <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${exp.metode === 'TRANSFER' ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800'}">${exp.metode || 'TUNAI'}</span></td>
                         <td class="p-2 text-right font-black text-red-600">Rp ${nominal.toLocaleString('id-ID')}</td>
                         <td class="p-2 text-center">
