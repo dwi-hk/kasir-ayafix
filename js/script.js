@@ -25,10 +25,9 @@ try {
 // Variable Global Storage Internal & Temporary
 let keranjang = [];
 let transaksiDitahan = [];
-let cabangAktif = 'SEMUA CABANG'; // Default menampilkan semua agar data lama langsung terlihat
-let dataTransaksiFirebase = []; // Cache transaksi realtime dari Firebase
-let dataPengeluaranFirebase = []; // Cache pengeluaran realtime dari Firebase
-let dataPembelianFirebase = []; // Cache pembelian realtime dari Firebase
+let cabangAktif = 'SEMUA CABANG';
+let dataTransaksiFirebase = [];
+let dataPengeluaranFirebase = [];
 
 let pelangganList = JSON.parse(localStorage.getItem('aya_pelanggan')) || [];
 let supplierList = JSON.parse(localStorage.getItem('aya_supplier')) || [];
@@ -38,7 +37,6 @@ let inventarisList = JSON.parse(localStorage.getItem('aya_inventaris')) || [];
 let barangTitipan = JSON.parse(localStorage.getItem('aya_titipan_v3')) || [];
 let riwayatTransaksi = JSON.parse(localStorage.getItem('aya_transaksi_v3')) || [];
 let riwayatPengeluaran = JSON.parse(localStorage.getItem('aya_pengeluaran_v3')) || [];
-let riwayatPembelian = JSON.parse(localStorage.getItem('aya_pembelian_v3')) || [];
 
 let kategoriAktif = 'topping';
 let metodePembayaran = 'TUNAI';
@@ -73,7 +71,6 @@ function switchTab(tab) {
     if (targetBtn) targetBtn.classList.add('bg-orange-700');
 
     if(tab === 'master') renderMasterData();
-    if(tab === 'pembelian') { renderPembelianData(); muatOpsiSupplier(); }
     if(tab === 'laporan') updateLaporan();
     if(tab === 'laporan_pengeluaran') updateLaporanPengeluaran();
     if(tab === 'cabang') renderInventaris();
@@ -176,142 +173,7 @@ function hapusMasterData(id) {
     renderMenu();
 }
 
-/* ================= TAB PEMBELIAN (KULAKAN BARANG) ================= */
-function hitungEstimasiProfitPembelian() {
-    let isi = parseInt(document.getElementById('pembelianIsiBeli')?.value) || 1;
-    let hBeliTotal = parseInt(document.getElementById('pembelianHargaBeli')?.value) || 0;
-    let hJual = parseInt(document.getElementById('pembelianHargaJual')?.value) || 0;
-
-    let hppSatuan = Math.round(hBeliTotal / (isi > 0 ? isi : 1));
-    let profit = hJual - hppSatuan;
-
-    let el = document.getElementById('pembelianEstimasiProfit');
-    if(el) el.innerText = `Rp ${profit.toLocaleString('id-ID')} (HPP: Rp ${hppSatuan.toLocaleString('id-ID')})`;
-}
-
-function resetFormPembelian() {
-    if(document.getElementById('pembelianNamaBarang')) document.getElementById('pembelianNamaBarang').value = '';
-    if(document.getElementById('pembelianBarcode')) document.getElementById('pembelianBarcode').value = '';
-    if(document.getElementById('pembelianIsiBeli')) document.getElementById('pembelianIsiBeli').value = '1';
-    if(document.getElementById('pembelianHargaBeli')) document.getElementById('pembelianHargaBeli').value = '';
-    if(document.getElementById('pembelianHargaJual')) document.getElementById('pembelianHargaJual').value = '';
-}
-
-function muatOpsiSupplier() {
-    let select = document.getElementById('pembelianSupplier');
-    if(!select) return;
-    select.innerHTML = '<option value="Umum / Pasar">Umum / Pasar</option>';
-    supplierList.forEach(s => {
-        select.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
-    });
-}
-
-function simpanTransaksiPembelian() {
-    let nama = document.getElementById('pembelianNamaBarang')?.value.trim();
-    let barcode = document.getElementById('pembelianBarcode')?.value.trim() || 'BRG-' + Date.now();
-    let satuanBeli = document.getElementById('pembelianSatuanBeli')?.value || 'Karton';
-    let isi = parseInt(document.getElementById('pembelianIsiBeli')?.value) || 1;
-    let hBeliTotal = parseInt(document.getElementById('pembelianHargaBeli')?.value) || 0;
-    let supplier = document.getElementById('pembelianSupplier')?.value || 'Umum / Pasar';
-    let hJual = parseInt(document.getElementById('pembelianHargaJual')?.value) || 0;
-
-    if (!nama || hBeliTotal <= 0 || hJual <= 0) {
-        return alert('Mohon lengkapi Nama Barang, Harga Beli, dan Harga Jual!');
-    }
-
-    let hppSatuan = Math.round(hBeliTotal / (isi > 0 ? isi : 1));
-
-    let buyItem = {
-        id: 'BUY-' + Date.now(),
-        tanggalISO: new Date().toISOString().split('T')[0],
-        waktu: new Date().toLocaleString('id-ID'),
-        barcode: barcode,
-        nama: nama,
-        satuanBeli: satuanBeli,
-        isiBeli: isi,
-        hargaBeliTotal: hBeliTotal,
-        hargaBeli: hppSatuan,
-        hargaJual: hJual,
-        supplier: supplier,
-        cabang: cabangAktif === 'SEMUA CABANG' ? 'AYA SEBLAK DAN ANGKRINGAN' : cabangAktif
-    };
-
-    // Update/Sync Ke Database Produk Realtime
-    let itemMaster = {
-        id: barcode,
-        nama: nama,
-        kategori: 'topping',
-        satuan: 'pcs',
-        isi: isi,
-        hargaBeliTotal: hBeliTotal,
-        hargaBeli: hppSatuan,
-        harga: hJual
-    };
-
-    if (db) {
-        db.ref('pembelian/' + buyItem.id).set(buyItem);
-        db.ref('menu_tambahan/' + barcode).set(itemMaster);
-    } else {
-        riwayatPembelian.unshift(buyItem);
-        localStorage.setItem('aya_pembelian_v3', JSON.stringify(riwayatPembelian));
-        
-        if(typeof databaseMenu !== 'undefined') {
-            let idx = databaseMenu.findIndex(dm => String(dm.id) === String(barcode));
-            if(idx !== -1) databaseMenu[idx] = itemMaster;
-            else databaseMenu.push(itemMaster);
-        }
-    }
-
-    resetFormPembelian();
-    renderPembelianData();
-    renderMasterData();
-    renderMenu();
-    alert('Transaksi Pembelian Berhasil Disimpan & Stok Produk Diperbarui!');
-}
-
-function renderPembelianData() {
-    let tbody = document.getElementById('tabelPembelianData');
-    if (!tbody) return;
-
-    let sumberData = (db && dataPembelianFirebase.length > 0) ? dataPembelianFirebase : riwayatPembelian;
-    if (sumberData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-400">Belum ada transaksi pembelian barang</td></tr>`;
-        return;
-    }
-
-    let html = '';
-    sumberData.forEach(p => {
-        let hpp = p.hargaBeli || Math.round((p.hargaBeliTotal || 0) / (p.isiBeli || 1));
-        html += `
-            <tr class="hover:bg-orange-50 border-b">
-                <td class="p-2 font-mono text-[10px]">${p.waktu || p.tanggalISO || '-'}</td>
-                <td class="p-2 font-mono text-[10px] font-bold">${p.barcode || '-'}</td>
-                <td class="p-2 font-bold uppercase">${p.nama || '-'}</td>
-                <td class="p-2 text-center"><span class="px-1.5 py-0.5 bg-gray-100 rounded">${p.satuanBeli || 'Pack'} (${p.isiBeli || 1} Pcs)</span></td>
-                <td class="p-2 text-right">Rp ${(p.hargaBeliTotal || 0).toLocaleString('id-ID')} <br><span class="text-[9px] text-gray-500">(HPP: Rp ${hpp.toLocaleString('id-ID')})</span></td>
-                <td class="p-2 text-right font-bold text-orange-600">Rp ${(p.hargaJual || 0).toLocaleString('id-ID')}</td>
-                <td class="p-2 text-center font-semibold text-gray-600">${p.supplier || '-'}</td>
-                <td class="p-2 text-center">
-                    <button onclick="hapusPembelianFirebase('${p.id}')" class="text-red-500 font-bold hover:underline">Hapus</button>
-                </td>
-            </tr>
-        `;
-    });
-    tbody.innerHTML = html;
-}
-
-function hapusPembelianFirebase(id) {
-    if (!confirm(`Hapus data pembelian ${id}?`)) return;
-    if (db) {
-        db.ref('pembelian/' + id).remove();
-    } else {
-        riwayatPembelian = riwayatPembelian.filter(p => p.id !== id);
-        localStorage.setItem('aya_pembelian_v3', JSON.stringify(riwayatPembelian));
-        renderPembelianData();
-    }
-}
-
-/* ================= KASIR & TRANSAKSI ================= */
+/* ================= KASIR PENJUALAN ================= */
 function filterKategori(kat) {
     kategoriAktif = kat;
     ['topping', 'makanan', 'dingin', 'panas', 'jajanan'].forEach(k => {
@@ -429,21 +291,40 @@ function setMetodePembayaran(m) {
 function hitungKembalian() {
     let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
     let total = parseInt(totalText) || 0;
-    let bayar = parseInt(document.getElementById('inputBayar')?.value) || 0;
+    let bayarInput = document.getElementById('inputBayar')?.value;
+    
+    if (bayarInput === '' || bayarInput === null || bayarInput === undefined) {
+        if(document.getElementById('textKembalian')) {
+            document.getElementById('textKembalian').innerText = 'Rp 0';
+        }
+        return;
+    }
+
+    let bayar = parseInt(bayarInput) || 0;
     let kembalian = bayar - total;
     if(document.getElementById('textKembalian')) {
         document.getElementById('textKembalian').innerText = kembalian >= 0 ? 'Rp ' + kembalian.toLocaleString('id-ID') : 'Uang Kurang';
     }
 }
 
+/* ================= ALGORITMA TAHAN TRANSAKSI ================= */
 function tahanTransaksi() {
     if(keranjang.length === 0) return alert('Keranjang kosong!');
+    
+    let styro = parseInt(document.getElementById('inputStyrofoam')?.value) || 0;
+    
     transaksiDitahan.push({
         id: 'HOLD-' + Date.now(),
         items: [...keranjang],
+        styrofoam: styro,
+        metode: metodePembayaran,
         waktu: new Date().toLocaleTimeString('id-ID')
     });
+    
     keranjang = [];
+    if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
+    if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
+    
     updateKeranjang();
     renderHeldOrders();
     alert('Transaksi berhasil ditahan!');
@@ -453,15 +334,18 @@ function renderHeldOrders() {
     let box = document.getElementById('boxHeldOrders');
     let container = document.getElementById('listHeldOrders');
     if(!box || !container) return;
+    
     if(transaksiDitahan.length === 0) {
         box.classList.add('hidden');
         return;
     }
+    
     box.classList.remove('hidden');
     container.innerHTML = '';
+    
     transaksiDitahan.forEach((t, i) => {
         container.innerHTML += `
-            <button onclick="resumeTransaksi(${i})" class="px-2 py-1 bg-amber-600 text-white text-[10px] rounded font-bold whitespace-nowrap">
+            <button onclick="resumeTransaksi(${i})" class="px-2.5 py-1 bg-amber-500 text-white text-[10px] rounded font-bold whitespace-nowrap hover:bg-amber-600 flex items-center gap-1 shadow">
                 📋 ${t.waktu} (${t.items.length} Item)
             </button>
         `;
@@ -469,18 +353,47 @@ function renderHeldOrders() {
 }
 
 function resumeTransaksi(index) {
-    keranjang = [...transaksiDitahan[index].items];
+    if (keranjang.length > 0) {
+        if (!confirm('Keranjang saat ini tidak kosong. Ingin menimpa/melanjutkan transaksi yang ditahan?')) {
+            return;
+        }
+    }
+    
+    let target = transaksiDitahan[index];
+    keranjang = [...target.items];
+    if(document.getElementById('inputStyrofoam')) {
+        document.getElementById('inputStyrofoam').value = target.styrofoam || 0;
+    }
+    if(target.metode) {
+        setMetodePembayaran(target.metode);
+    }
+    
     transaksiDitahan.splice(index, 1);
     updateKeranjang();
     renderHeldOrders();
 }
 
-/* ================= SIMPAN TRANSAKSI & CETAK NOTA ================= */
+/* ================= SIMPAN TRANSAKSI & VALIDASI PENJUALAN ================= */
 function simpanTransaksi() {
-    if(keranjang.length === 0) { alert('Keranjang Kosong!'); return false; }
+    if(keranjang.length === 0) { 
+        alert('Keranjang Kosong!'); 
+        return false; 
+    }
+
+    let bayarVal = document.getElementById('inputBayar')?.value;
+    if (bayarVal === '' || bayarVal === null || bayarVal === undefined) {
+        alert('Nominal uang belum diisi!');
+        return false;
+    }
+
     let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
     let total = parseInt(totalText) || 0;
-    let bayar = parseInt(document.getElementById('inputBayar')?.value) || total;
+    let bayar = parseInt(bayarVal) || 0;
+
+    if (bayar < total && metodePembayaran === 'TUNAI') {
+        alert('Jumlah bayar kurang dari total tagihan!');
+        return false;
+    }
 
     let nota = {
         id: 'NOTA-' + Date.now(),
@@ -488,6 +401,7 @@ function simpanTransaksi() {
         waktu: new Date().toLocaleString('id-ID'),
         tanggalISO: new Date().toISOString().split('T')[0],
         items: [...keranjang],
+        styrofoam: parseInt(document.getElementById('inputStyrofoam')?.value) || 0,
         total: total,
         bayar: bayar,
         metodePembayaran: metodePembayaran
@@ -507,6 +421,8 @@ function tombolSimpanSaja() {
     if(simpanTransaksi()) {
         alert('Transaksi Berhasil Disimpan!');
         keranjang = [];
+        if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
+        if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
         updateKeranjang();
     }
 }
@@ -514,12 +430,25 @@ function tombolSimpanSaja() {
 function cetakNota() {
     if(keranjang.length === 0) return alert('Keranjang belanja kosong!');
     
+    let bayarVal = document.getElementById('inputBayar')?.value;
+    if (bayarVal === '' || bayarVal === null || bayarVal === undefined) {
+        alert('Nominal uang belum diisi!');
+        return;
+    }
+
+    let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
+    let total = parseInt(totalText) || 0;
+    let bayar = parseInt(bayarVal) || 0;
+
+    if (bayar < total && metodePembayaran === 'TUNAI') {
+        alert('Jumlah bayar kurang dari total tagihan!');
+        return;
+    }
+
     let htmlItems = '';
-    let total = 0;
     keranjang.forEach(i => {
         let harga = i.harga || 0;
         let sub = harga * i.qty;
-        total += sub;
         htmlItems += `
             <div class="nota-item-row font-bold">
                 <span>${i.nama || '-'}</span>
@@ -531,12 +460,28 @@ function cetakNota() {
         `;
     });
 
+    let styroQty = parseInt(document.getElementById('inputStyrofoam')?.value) || 0;
+    if (styroQty > 0) {
+        let subStyro = styroQty * 1000;
+        htmlItems += `
+            <div class="nota-item-row font-bold">
+                <span>Styrofoam</span>
+                <div class="nota-item-detail">
+                    <span>${styroQty} x 1.000</span>
+                    <span>Rp${subStyro.toLocaleString('id-ID')}</span>
+                </div>
+            </div>
+        `;
+    }
+
     if(document.getElementById('notaItems')) document.getElementById('notaItems').innerHTML = htmlItems;
     if(document.getElementById('notaWaktu')) document.getElementById('notaWaktu').innerText = "Waktu: " + new Date().toLocaleString('id-ID');
     if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + metodePembayaran;
     if(document.getElementById('notaTotal')) {
         document.getElementById('notaTotal').innerHTML = `
             <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between font-bold text-[9px]"><span>BAYAR :</span><span>Rp ${bayar.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between font-bold text-[9px]"><span>KEMBALI :</span><span>Rp ${(bayar - total).toLocaleString('id-ID')}</span></div>
         `;
     }
 
@@ -545,9 +490,12 @@ function cetakNota() {
     setTimeout(() => {
         window.print();
         if(area) area.style.display = 'none';
-        simpanTransaksi();
-        keranjang = [];
-        updateKeranjang();
+        if (simpanTransaksi()) {
+            keranjang = [];
+            if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
+            if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
+            updateKeranjang();
+        }
     }, 300);
 }
 
@@ -1089,20 +1037,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             updateLaporanPengeluaran();
         });
-
-        db.ref('pembelian').on('value', (snapshot) => {
-            let data = snapshot.val();
-            if (data) {
-                dataPembelianFirebase = Array.isArray(data) ? data : Object.values(data);
-                dataPembelianFirebase.sort((a, b) => ((b.id || '') > (a.id || '') ? 1 : -1));
-            } else {
-                dataPembelianFirebase = [];
-            }
-            renderPembelianData();
-        });
     } else {
         updateLaporan();
         updateLaporanPengeluaran();
-        renderPembelianData();
     }
 });

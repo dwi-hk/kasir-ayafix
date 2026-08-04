@@ -62,7 +62,7 @@
                     🏢 2. Data Cabang & Inventaris
                 </button>
                 <button onclick="switchTab('kasir')" id="btn-tab-kasir" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2 bg-orange-700">
-                    🛒 3. Transaksi & Kasir
+                    🛒 3. Kasir Penjualan
                 </button>
                 <button onclick="switchTab('pembelian')" id="btn-tab-pembelian" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     🛍️ 4. Transaksi Pembelian
@@ -290,7 +290,7 @@
             </div>
         </div>
 
-        <!-- ================= TAB 3: KASIR & TRANSAKSI ================= -->
+        <!-- ================= TAB 3: KASIR PENJUALAN ================= -->
         <div id="tab-kasir" class="space-y-4">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <!-- Area Katalog Menu -->
@@ -364,7 +364,7 @@
 
                     <!-- Tombol Eksekusi -->
                     <div class="grid grid-cols-3 gap-2 text-xs font-bold pt-2 border-t">
-                        <button onclick="tahanTransaksi()" class="p-2 bg-amber-500 text-white rounded hover:bg-amber-600">⏸️ Tahan</button>
+                        <button onclick="tahanTransaksi()" class="p-2 bg-amber-500 text-white rounded hover:bg-amber-600">⏸️ Tahan Transaksi</button>
                         <button onclick="tombolSimpanSaja()" class="p-2 bg-blue-600 text-white rounded hover:bg-blue-700">💾 Simpan</button>
                         <button onclick="cetakNota()" class="p-2 bg-emerald-600 text-white rounded hover:bg-emerald-700">🖨️ Cetak</button>
                     </div>
