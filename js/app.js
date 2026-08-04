@@ -503,7 +503,6 @@ function parseTanggalISO(exp) {
 
 /* ================= LAPORAN TRANSAKSI PENJUALAN ================= */
 
-// DIPERBARUI: Mengatur default filter tanggal menjadi HARI INI jika belum diisi
 function setTanggalHariIniIfEmpty() {
     let todayISO = new Date().toISOString().split('T')[0];
     
@@ -555,7 +554,16 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
             matchDate = dateStr <= tglSelesai;
         }
         
-        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (!t.cabang || t.cabang === cabangAktif);
+        // Kompatibilitas untuk cabang lama (DAPUR AYA / AYA TOKO Sembako)
+        let matchCabang = false;
+        if (cabangAktif === 'SEMUA CABANG') {
+            matchCabang = true;
+        } else if (cabangAktif === 'DAPUR AYA SEMBAKO') {
+            matchCabang = (!t.cabang || t.cabang === 'DAPUR AYA SEMBAKO' || t.cabang === 'DAPUR AYA' || t.cabang === 'AYA TOKO Sembako');
+        } else {
+            matchCabang = (t.cabang === cabangAktif);
+        }
+
         return matchDate && matchCabang;
     });
 
@@ -705,7 +713,16 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
             matchDate = dateStr <= tglSelesai;
         }
 
-        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (!exp.cabang || exp.cabang === cabangAktif);
+        // Kompatibilitas filter cabang pengeluaran lama
+        let matchCabang = false;
+        if (cabangAktif === 'SEMUA CABANG') {
+            matchCabang = true;
+        } else if (cabangAktif === 'DAPUR AYA SEMBAKO') {
+            matchCabang = (!exp.cabang || exp.cabang === 'DAPUR AYA SEMBAKO' || exp.cabang === 'DAPUR AYA' || exp.cabang === 'AYA TOKO Sembako');
+        } else {
+            matchCabang = (exp.cabang === cabangAktif);
+        }
+
         let matchKategori = (katFilter === 'SEMUA') || (exp.kategori === katFilter);
         return matchDate && matchCabang && matchKategori;
     });
@@ -737,7 +754,14 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
         if (tglMulai && tglSelesai) {
             matchDate = dateStr ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
         }
-        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (!t.cabang || t.cabang === cabangAktif);
+        let matchCabang = false;
+        if (cabangAktif === 'SEMUA CABANG') {
+            matchCabang = true;
+        } else if (cabangAktif === 'DAPUR AYA SEMBAKO') {
+            matchCabang = (!t.cabang || t.cabang === 'DAPUR AYA SEMBAKO' || t.cabang === 'DAPUR AYA' || t.cabang === 'AYA TOKO Sembako');
+        } else {
+            matchCabang = (t.cabang === cabangAktif);
+        }
         return matchDate && matchCabang;
     }).forEach(t => totalOmsetSaatIni += parseNominalDinamis(t));
 
