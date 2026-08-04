@@ -82,7 +82,14 @@ function switchTab(tab) {
     if(tab === 'laporan') updateLaporan();
     if(tab === 'laporan_pengeluaran') updateLaporanPengeluaran();
     if(tab === 'cabang') renderInventaris();
-    if(tab === 'pembelian') renderPembelian();
+    if(tab === 'pembelian') {
+        renderOpsiMasterPembelian();
+        renderPembelian();
+    }
+    if(tab === 'pengeluaran') {
+        let inputModal = document.getElementById('inputTambahModalLaci');
+        if(inputModal) inputModal.value = modalTambahanManual;
+    }
 }
 
 function switchSubMaster(sub) {
@@ -125,7 +132,7 @@ function simpanMasterDatabase() {
 
     if (!nama || hJual <= 0) return alert('Mohon lengkapi nama dan harga jual!');
 
-    let hppSatuan = Math.round(hBeliTotal / isi);
+    let hppSatuan = Math.round(hBeliTotal / (isi > 0 ? isi : 1));
     let item = {
         id: barcode,
         nama: nama,
@@ -140,20 +147,30 @@ function simpanMasterDatabase() {
     if(db) {
         db.ref('menu_tambahan/' + barcode).set(item);
     } else {
-        if(typeof databaseMenu !== 'undefined') databaseMenu.push(item);
+        if(typeof databaseMenu !== 'undefined') {
+            let idx = databaseMenu.findIndex(m => String(m.id) === String(barcode));
+            if(idx !== -1) databaseMenu[idx] = item;
+            else databaseMenu.push(item);
+        }
     }
     resetFormMaster();
     renderMasterData();
     renderOpsiMasterTitipan();
+    renderOpsiMasterPembelian();
     renderMenu();
     alert('Master Produk Berhasil Disimpan!');
 }
 
 function resetFormMaster() {
     if(document.getElementById('masterNama')) document.getElementById('masterNama').value = '';
-    if(document.getElementById('masterBarcode')) document.getElementById('masterBarcode').value = '';
+    if(document.getElementById('masterBarcode')) {
+        document.getElementById('masterBarcode').value = '';
+        document.getElementById('masterBarcode').removeAttribute('readonly');
+    }
     if(document.getElementById('masterHargaBeli')) document.getElementById('masterHargaBeli').value = '';
     if(document.getElementById('masterHargaJual')) document.getElementById('masterHargaJual').value = '';
+    if(document.getElementById('masterIsi')) document.getElementById('masterIsi').value = '1';
+    if(document.getElementById('masterEstimasiProfit')) document.getElementById('masterEstimasiProfit').innerText = 'Rp 0';
 }
 
 function renderMasterData() {
@@ -172,13 +189,33 @@ function renderMasterData() {
                 <td class="p-2 text-right">Rp ${hpp.toLocaleString('id-ID')}</td>
                 <td class="p-2 text-right font-bold">Rp ${(item.harga || 0).toLocaleString('id-ID')}</td>
                 <td class="p-2 text-right text-emerald-600 font-bold">Rp ${laba.toLocaleString('id-ID')}</td>
-                <td class="p-2 text-center">
-                    <button onclick="hapusMasterData('${item.id}')" class="text-red-600 font-bold">❌ Hapus</button>
+                <td class="p-2 text-center space-x-1">
+                    <button onclick="editMasterData('${item.id}')" class="px-2 py-1 bg-amber-500 text-white rounded font-bold text-xs hover:bg-amber-600">✏️ Edit</button>
+                    <button onclick="hapusMasterData('${item.id}')" class="px-2 py-1 bg-red-600 text-white rounded font-bold text-xs hover:bg-red-700">❌ Hapus</button>
                 </td>
             </tr>
         `;
     });
     tbody.innerHTML = html;
+}
+
+function editMasterData(id) {
+    let item = databaseMenu.find(m => String(m.id) === String(id));
+    if(!item) return alert('Data barang tidak ditemukan!');
+
+    if(document.getElementById('masterNama')) document.getElementById('masterNama').value = item.nama || '';
+    if(document.getElementById('masterBarcode')) {
+        document.getElementById('masterBarcode').value = item.id || '';
+        document.getElementById('masterBarcode').setAttribute('readonly', 'true');
+    }
+    if(document.getElementById('masterKategori')) document.getElementById('masterKategori').value = item.kategori || 'topping';
+    if(document.getElementById('masterSatuan')) document.getElementById('masterSatuan').value = item.satuan || 'pcs';
+    if(document.getElementById('masterIsi')) document.getElementById('masterIsi').value = item.isi || 1;
+    if(document.getElementById('masterHargaBeli')) document.getElementById('masterHargaBeli').value = item.hargaBeliTotal || (item.hargaBeli * (item.isi || 1)) || 0;
+    if(document.getElementById('masterHargaJual')) document.getElementById('masterHargaJual').value = item.harga || 0;
+
+    hitungEstimasiProfitMaster();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function hapusMasterData(id) {
@@ -190,6 +227,7 @@ function hapusMasterData(id) {
     }
     renderMasterData();
     renderOpsiMasterTitipan();
+    renderOpsiMasterPembelian();
     renderMenu();
 }
 
@@ -659,7 +697,6 @@ function cetakNotaDariRiwayat(idNota) {
 
 /* ================= MANAJEMEN PENGELUARAN (EXPENSES) + MODAL LACI ================= */
 
-// FITUR TAMBAH MODAL MANUAL (BERPENGARUH KE UANG CASH LACI)
 function setModalLaci(nominalBaru) {
     let val = parseInt(nominalBaru) || 0;
     modalTambahanManual = val;
@@ -749,27 +786,62 @@ function hapusPengeluaranFirebase(id) {
     }
 }
 
-/* ================= MANAJEMEN PEMBELIAN / KULAKAN ================= */
+/* ================= MANAJEMEN PEMBELIAN / KULAKAN (PERBAIKAN FITUR) ================= */
 let pembelianList = JSON.parse(localStorage.getItem('aya_pembelian_v1')) || [];
+
+function renderOpsiMasterPembelian() {
+    let select = document.getElementById('pembelianSelectMaster');
+    if (!select || typeof databaseMenu === 'undefined') return;
+
+    let html = '<option value="">-- Pilih Barang dari Master Data --</option>';
+    databaseMenu.forEach(item => {
+        html += `<option value="${item.id}">${item.nama} (Satuan: ${item.satuan || 'pcs'} | Jual: Rp ${(item.harga || 0).toLocaleString('id-ID')})</option>`;
+    });
+    select.innerHTML = html;
+}
+
+function pilihMasterUntukPembelian() {
+    let id = document.getElementById('pembelianSelectMaster')?.value;
+    if (!id || typeof databaseMenu === 'undefined') return;
+
+    let item = databaseMenu.find(m => String(m.id) === String(id));
+    if (item) {
+        if(document.getElementById('pembelianNama')) document.getElementById('pembelianNama').value = item.nama || '';
+        if(document.getElementById('pembelianHargaBeli')) document.getElementById('pembelianHargaBeli').value = item.hargaBeliTotal || item.hargaBeli || 0;
+        if(document.getElementById('pembelianHargaJual')) document.getElementById('pembelianHargaJual').value = item.harga || 0;
+        if(document.getElementById('pembelianSatuan')) document.getElementById('pembelianSatuan').value = item.satuan || 'pcs';
+    }
+}
 
 function renderPembelian() {
     let tbody = document.getElementById('tabelPembelianData');
     if (!tbody) return;
     if (pembelianList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-400">Belum ada data pembelian / kulakan</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-400">Belum ada data pembelian / kulakan</td></tr>`;
         return;
     }
     let html = '';
     pembelianList.forEach((item) => {
         let total = (item.hargaBeli || 0) * (item.qty || 1);
+        let hJual = item.hargaJual || 0;
+        let profitPcs = hJual - (item.hargaBeli || 0);
+        let totalProfit = profitPcs * (item.qty || 1);
+
         html += `
             <tr class="hover:bg-orange-50 border-b text-xs">
                 <td class="p-2 font-mono text-[10px]">${item.id || '-'}</td>
                 <td class="p-2 font-bold uppercase">${item.nama || '-'}</td>
                 <td class="p-2 text-center">${item.supplier || '-'}</td>
                 <td class="p-2 text-center font-bold">${item.qty || 1} ${item.satuan || 'pcs'}</td>
-                <td class="p-2 text-right">Rp ${(item.hargaBeli || 0).toLocaleString('id-ID')}</td>
+                <td class="p-2 text-right">
+                    <span class="block text-gray-500 text-[10px]">Beli: Rp ${(item.hargaBeli || 0).toLocaleString('id-ID')}</span>
+                    <span class="font-bold text-gray-800">Jual: Rp ${hJual.toLocaleString('id-ID')}</span>
+                </td>
                 <td class="p-2 text-right font-bold text-orange-700">Rp ${total.toLocaleString('id-ID')}</td>
+                <td class="p-2 text-right font-bold text-emerald-600">
+                    Rp ${totalProfit.toLocaleString('id-ID')}
+                    <span class="block text-[9px] text-gray-500">(@ Rp ${profitPcs.toLocaleString('id-ID')})</span>
+                </td>
                 <td class="p-2 text-center">
                     <button onclick="hapusPembelian('${item.id}')" class="text-red-600 font-bold">❌ Hapus</button>
                 </td>
@@ -785,6 +857,7 @@ function simpanPembelian() {
     let qty = parseInt(document.getElementById('pembelianQty')?.value) || 1;
     let satuan = document.getElementById('pembelianSatuan')?.value || 'pcs';
     let hBeli = parseInt(document.getElementById('pembelianHargaBeli')?.value) || 0;
+    let hJual = parseInt(document.getElementById('pembelianHargaJual')?.value) || 0;
 
     if (!nama || hBeli <= 0) return alert('Mohon lengkapi nama barang dan harga beli kulakan!');
 
@@ -795,6 +868,7 @@ function simpanPembelian() {
         qty: qty,
         satuan: satuan,
         hargaBeli: hBeli,
+        hargaJual: hJual,
         tanggalISO: new Date().toISOString().split('T')[0],
         cabang: cabangAktif
     };
@@ -811,10 +885,12 @@ function simpanPembelian() {
 }
 
 function resetFormPembelian() {
+    if(document.getElementById('pembelianSelectMaster')) document.getElementById('pembelianSelectMaster').value = '';
     if(document.getElementById('pembelianNama')) document.getElementById('pembelianNama').value = '';
     if(document.getElementById('pembelianSupplier')) document.getElementById('pembelianSupplier').value = '';
     if(document.getElementById('pembelianQty')) document.getElementById('pembelianQty').value = '';
     if(document.getElementById('pembelianHargaBeli')) document.getElementById('pembelianHargaBeli').value = '';
+    if(document.getElementById('pembelianHargaJual')) document.getElementById('pembelianHargaJual').value = '';
 }
 
 function hapusPembelian(id) {
@@ -975,7 +1051,6 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         });
     });
 
-    // HITUNG TOTAL PENGELUARAN TUNAI
     let totalPengeluaranTunai = 0;
     let sumberPengeluaran = (db && dataPengeluaranFirebase.length > 0) ? dataPengeluaranFirebase : riwayatPengeluaran;
     sumberPengeluaran.filter(exp => {
@@ -987,7 +1062,6 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         totalPengeluaranTunai += parseNominalDinamis(exp);
     });
 
-    // PROSES KALKULASI CASH RIIL LACI BERSAMA MODAL MANUAL
     let inputModalLaci = parseInt(document.getElementById('inputTambahModalLaci')?.value);
     if (!isNaN(inputModalLaci)) {
         modalTambahanManual = inputModalLaci;
@@ -996,7 +1070,6 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let cashRiilLaci = modalTambahanManual + totalCash - totalPengeluaranTunai;
     let totalRugiLaba = totalOmset - totalHPP;
 
-    // UPDATE TAMPILAN DASHBOARD STATISTIK
     let elOmset = document.getElementById('statOmset');
     let elQris = document.getElementById('statOmsetQris');
     let elCash = document.getElementById('statUangCash');
@@ -1361,11 +1434,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMenu();
     renderMasterData();
     renderPembelian();
+    renderOpsiMasterPembelian();
     renderBarangTitipan();
     renderOpsiMasterTitipan();
     setTanggalHariIniIfEmpty();
 
-    // Event Input Tambah Modal Laci Secara Manual
     let inputModalLaci = document.getElementById('inputTambahModalLaci');
     if (inputModalLaci) {
         inputModalLaci.addEventListener('input', (e) => {
@@ -1373,7 +1446,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Dynamic Calculation Form Pengeluaran
     let inpHargaExp = document.getElementById('pengeluaranHarga');
     let inpQtyExp = document.getElementById('pengeluaranQty');
     if (inpHargaExp) inpHargaExp.addEventListener('input', hitungSubtotalPengeluaran);
@@ -1402,6 +1474,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderMenu();
                 renderMasterData();
                 renderOpsiMasterTitipan();
+                renderOpsiMasterPembelian();
             }
         });
 
