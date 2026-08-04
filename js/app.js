@@ -26,7 +26,8 @@ try {
 let keranjang = [];
 let transaksiDitahan = [];
 let cabangAktif = 'AYA SEBLAK DAN ANGKRINGAN';
-let dataTransaksiFirebase = []; // Menampung cache transaksi realtime dari Firebase
+let dataTransaksiFirebase = []; // Cache transaksi realtime dari Firebase
+let dataPengeluaranFirebase = []; // Cache pengeluaran realtime dari Firebase
 
 let pelangganList = JSON.parse(localStorage.getItem('aya_pelanggan')) || [];
 let supplierList = JSON.parse(localStorage.getItem('aya_supplier')) || [];
@@ -35,10 +36,12 @@ let absensiList = JSON.parse(localStorage.getItem('aya_absensi')) || [];
 let inventarisList = JSON.parse(localStorage.getItem('aya_inventaris')) || [];
 let barangTitipan = JSON.parse(localStorage.getItem('aya_titipan_v3')) || [];
 let riwayatTransaksi = JSON.parse(localStorage.getItem('aya_transaksi_v3')) || [];
+let riwayatPengeluaran = JSON.parse(localStorage.getItem('aya_pengeluaran_v3')) || [];
 
 let kategoriAktif = 'topping';
 let metodePembayaran = 'TUNAI';
 let myChart = null;
+let myExpenseChart = null;
 
 // GANTI CABANG MANUAL
 function gantiCabang(namaCabang) {
@@ -50,11 +53,12 @@ function gantiCabang(namaCabang) {
     
     renderInventaris();
     updateLaporan();
+    updateLaporanPengeluaran();
 }
 
 // BUKA DAN TUTUP TAB
 function switchTab(tab) {
-    ['master', 'cabang', 'kasir', 'backoffice', 'laporan', 'user', 'setting'].forEach(t => {
+    ['master', 'cabang', 'kasir', 'pengeluaran', 'laporan', 'laporan_pengeluaran', 'backoffice', 'user', 'setting'].forEach(t => {
         let el = document.getElementById('tab-' + t);
         let btn = document.getElementById('btn-tab-' + t);
         if (el) el.classList.add('hidden');
@@ -68,6 +72,7 @@ function switchTab(tab) {
 
     if(tab === 'master') renderMasterData();
     if(tab === 'laporan') updateLaporan();
+    if(tab === 'laporan_pengeluaran') updateLaporanPengeluaran();
     if(tab === 'cabang') renderInventaris();
 }
 
@@ -344,11 +349,9 @@ function simpanTransaksi() {
     };
 
     if(db) {
-        // Direct Push Realtime ke Firebase RTDB
         db.ref('transaksi/' + nota.id).set(nota);
     }
     
-    // Cadangan Lokal
     riwayatTransaksi.unshift(nota);
     localStorage.setItem('aya_transaksi_v3', JSON.stringify(riwayatTransaksi));
 
@@ -400,13 +403,74 @@ function cetakNota() {
     }, 300);
 }
 
-/* ================= LAPORAN TRANSAKSI REALTIME ================= */
+/* ================= MANAJEMEN PENGELUARAN (EXPENSES) ================= */
+function resetFormPengeluaran() {
+    let todayISO = new Date().toISOString().split('T')[0];
+    document.getElementById('pengeluaranTanggal').value = todayISO;
+    document.getElementById('pengeluaranNominal').value = '';
+    document.getElementById('pengeluaranKeterangan').value = '';
+}
+
+function simpanPengeluaran() {
+    let tanggal = document.getElementById('pengeluaranTanggal').value;
+    let kategori = document.getElementById('pengeluaranKategori').value;
+    let metode = document.getElementById('pengeluaranMetode').value;
+    let nominal = parseInt(document.getElementById('pengeluaranNominal').value) || 0;
+    let keterangan = document.getElementById('pengeluaranKeterangan').value.trim();
+
+    if (!tanggal || nominal <= 0 || !keterangan) {
+        return alert('Mohon lengkapi tanggal, nominal, dan keterangan pengeluaran!');
+    }
+
+    let expenseItem = {
+        id: 'EXP-' + Date.now(),
+        cabang: cabangAktif,
+        tanggalISO: tanggal,
+        waktu: new Date().toLocaleString('id-ID'),
+        kategori: kategori,
+        metode: metode,
+        nominal: nominal,
+        keterangan: keterangan
+    };
+
+    if (db) {
+        db.ref('pengeluaran/' + expenseItem.id).set(expenseItem);
+    }
+
+    riwayatPengeluaran.unshift(expenseItem);
+    localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(riwayatPengeluaran));
+
+    resetFormPengeluaran();
+    alert('Transaksi Pengeluaran Kas Berhasil Disimpan!');
+    updateLaporanPengeluaran();
+}
+
+function hapusPengeluaranFirebase(id) {
+    if (!confirm(`Hapus pengeluaran ${id}?`)) return;
+    if (db) {
+        db.ref('pengeluaran/' + id).remove();
+    } else {
+        riwayatPengeluaran = riwayatPengeluaran.filter(e => e.id !== id);
+        localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(riwayatPengeluaran));
+        updateLaporanPengeluaran();
+    }
+}
+
+/* ================= LAPORAN TRANSAKSI PENJUALAN ================= */
 function setTanggalHariIniIfEmpty() {
     let todayISO = new Date().toISOString().split('T')[0];
     let tglMulai = document.getElementById('filterTanggalMulai');
     let tglSelesai = document.getElementById('filterTanggalSelesai');
     if(tglMulai && !tglMulai.value) tglMulai.value = todayISO;
     if(tglSelesai && !tglSelesai.value) tglSelesai.value = todayISO;
+
+    let tglExpMulai = document.getElementById('filterTglPengeluaranMulai');
+    let tglExpSelesai = document.getElementById('filterTglPengeluaranSelesai');
+    if(tglExpMulai && !tglExpMulai.value) tglExpMulai.value = todayISO;
+    if(tglExpSelesai && !tglExpSelesai.value) tglExpSelesai.value = todayISO;
+
+    let pengeluaranTglInput = document.getElementById('pengeluaranTanggal');
+    if(pengeluaranTglInput && !pengeluaranTglInput.value) pengeluaranTglInput.value = todayISO;
 }
 
 function terapkanFilterLaporan() {
@@ -431,7 +495,6 @@ function updateLaporan() {
 
 function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let filtered = semuaTransaksi.filter(t => {
-        // Konversi format tanggal bawaan untuk pencocokan rentang tanggal
         let dateStr = t.tanggalISO;
         if (!dateStr && t.waktu) {
             let parts = t.waktu.split(',')[0].split('/');
@@ -482,7 +545,6 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         }
     });
 
-    // Render Stats
     let elOmset = document.getElementById('statOmset');
     let elQris = document.getElementById('statOmsetQris');
     let elCash = document.getElementById('statUangCash');
@@ -495,7 +557,6 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     if (elQty) elQty.innerText = totalQty.toLocaleString('id-ID') + ' Pcs';
     if (elTrx) elTrx.innerText = filtered.length + ' Trx';
 
-    // Tabel Rekap Item
     let containerRekap = document.getElementById('tabelRekapItemTerjual');
     if (containerRekap) {
         let itemArray = Object.values(itemMap).sort((a, b) => b.qty - a.qty);
@@ -520,7 +581,6 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         renderChartLaporan(itemArray.slice(0, 7));
     }
 
-    // Tabel Riwayat Transaksi Nota
     let containerRiwayat = document.getElementById('tabelRiwayatTransaksi');
     if (containerRiwayat) {
         if (filtered.length === 0) {
@@ -548,6 +608,105 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     }
 }
 
+/* ================= LAPORAN PENGELUARAN REALTIME ================= */
+function terapkanFilterPengeluaran() {
+    updateLaporanPengeluaran();
+}
+
+function updateLaporanPengeluaran() {
+    setTanggalHariIniIfEmpty();
+    let tglMulai = document.getElementById('filterTglPengeluaranMulai').value;
+    let tglSelesai = document.getElementById('filterTglPengeluaranSelesai').value;
+    let katFilter = document.getElementById('filterKategoriPengeluaran').value;
+
+    let sumberData = (db && dataPengeluaranFirebase.length > 0) ? dataPengeluaranFirebase : riwayatPengeluaran;
+    prosesRenderLaporanPengeluaran(sumberData, tglMulai, tglSelesai, katFilter);
+}
+
+function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, katFilter) {
+    let filtered = semuaPengeluaran.filter(exp => {
+        let dateStr = exp.tanggalISO;
+        let matchDate = true;
+        if (tglMulai && tglSelesai && dateStr) {
+            matchDate = dateStr >= tglMulai && dateStr <= tglSelesai;
+        }
+        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (exp.cabang === cabangAktif);
+        let matchKategori = (katFilter === 'SEMUA') || (exp.kategori === katFilter);
+        return matchDate && matchCabang && matchKategori;
+    });
+
+    let totalPengeluaran = 0;
+    let totalTunai = 0;
+    let totalTransfer = 0;
+    let mapKategori = {};
+
+    filtered.forEach(exp => {
+        let nominal = parseInt(exp.nominal) || 0;
+        totalPengeluaran += nominal;
+
+        if (exp.metode === 'TRANSFER') totalTransfer += nominal;
+        else totalTunai += nominal;
+
+        if (!mapKategori[exp.kategori]) mapKategori[exp.kategori] = 0;
+        mapKategori[exp.kategori] += nominal;
+    });
+
+    // Hitung Arus Kas Bersih (Net Cash Flow) dari Total Omset - Total Beban
+    let totalOmsetSaatIni = 0;
+    let sumberTx = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
+    sumberTx.filter(t => {
+        let dateStr = t.tanggalISO;
+        let matchDate = (tglMulai && tglSelesai && dateStr) ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
+        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (t.cabang === cabangAktif);
+        return matchDate && matchCabang;
+    }).forEach(t => totalOmsetSaatIni += (t.total || 0));
+
+    let arusKasBersih = totalOmsetSaatIni - totalPengeluaran;
+
+    // Render Stats Pengeluaran
+    let elTotalExp = document.getElementById('statTotalPengeluaran');
+    let elTunaiExp = document.getElementById('statPengeluaranTunai');
+    let elTrfExp = document.getElementById('statPengeluaranTransfer');
+    let elKasBersih = document.getElementById('statArusKasBersih');
+
+    if (elTotalExp) elTotalExp.innerText = 'Rp ' + totalPengeluaran.toLocaleString('id-ID');
+    if (elTunaiExp) elTunaiExp.innerText = 'Rp ' + totalTunai.toLocaleString('id-ID');
+    if (elTrfExp) elTrfExp.innerText = 'Rp ' + totalTransfer.toLocaleString('id-ID');
+    if (elKasBersih) {
+        elKasBersih.innerText = 'Rp ' + arusKasBersih.toLocaleString('id-ID');
+        elKasBersih.className = arusKasBersih >= 0 ? "text-lg font-black text-emerald-700" : "text-lg font-black text-red-600";
+    }
+
+    // Render Tabel Riwayat Pengeluaran
+    let containerTabel = document.getElementById('tabelRiwayatPengeluaran');
+    if (containerTabel) {
+        if (filtered.length === 0) {
+            containerTabel.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-400">Tidak ada catatan pengeluaran pada periode ini</td></tr>`;
+        } else {
+            let html = '';
+            filtered.forEach(exp => {
+                html += `
+                    <tr class="hover:bg-red-50 border-b">
+                        <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${exp.id}</td>
+                        <td class="p-2 text-[11px] whitespace-nowrap">${exp.waktu || exp.tanggalISO}</td>
+                        <td class="p-2 text-[11px] font-bold text-gray-600">${exp.cabang || '-'}</td>
+                        <td class="p-2 font-semibold text-red-700">${exp.kategori}</td>
+                        <td class="p-2 font-medium">${exp.keterangan}</td>
+                        <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${exp.metode === 'TRANSFER' ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800'}">${exp.metode}</span></td>
+                        <td class="p-2 text-right font-black text-red-600">Rp ${(exp.nominal || 0).toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-center">
+                            <button onclick="hapusPengeluaranFirebase('${exp.id}')" class="text-red-500 font-bold hover:underline">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            containerTabel.innerHTML = html;
+        }
+    }
+
+    renderChartPengeluaran(mapKategori);
+}
+
 function renderChartLaporan(topItems) {
     let canvas = document.getElementById('chartProdukLaku');
     if(!canvas) return;
@@ -573,8 +732,37 @@ function renderChartLaporan(topItems) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true }
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
+function renderChartPengeluaran(mapKategori) {
+    let canvas = document.getElementById('chartPengeluaran');
+    if (!canvas) return;
+    let ctx = canvas.getContext('2d');
+    if (myExpenseChart) myExpenseChart.destroy();
+
+    let labels = Object.keys(mapKategori);
+    let values = Object.values(mapKategori);
+
+    myExpenseChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: [
+                    '#ef4444', '#f97316', '#f59e0b', '#84cc16', 
+                    '#06b6d4', '#6366f1', '#a855f7', '#ec4899'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right' }
             }
         }
     });
@@ -634,19 +822,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Listener Realtime Database untuk Transaksi Penjualan (Memuat Riwayat Lama & Transaksi Baru)
+        // Listener Realtime Database untuk Transaksi Penjualan
         db.ref('transaksi').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
                 dataTransaksiFirebase = Object.values(data);
-                // Urutkan transaksi dari yang paling baru
                 dataTransaksiFirebase.sort((a, b) => (b.id > a.id ? 1 : -1));
             } else {
                 dataTransaksiFirebase = [];
             }
             updateLaporan();
+            updateLaporanPengeluaran();
+        });
+
+        // Listener Realtime Database untuk Pengeluaran Kas
+        db.ref('pengeluaran').on('value', (snapshot) => {
+            let data = snapshot.val();
+            if (data) {
+                dataPengeluaranFirebase = Object.values(data);
+                dataPengeluaranFirebase.sort((a, b) => (b.id > a.id ? 1 : -1));
+            } else {
+                dataPengeluaranFirebase = [];
+            }
+            updateLaporanPengeluaran();
         });
     } else {
         updateLaporan();
+        updateLaporanPengeluaran();
     }
 });
