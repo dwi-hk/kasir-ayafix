@@ -18,7 +18,7 @@
 </head>
 <body class="bg-orange-500 font-sans text-gray-800 min-h-screen flex">
 
-    <!-- AREA CETAK NOTA THERMAL 58MM (Hidden by default) -->
+    <!-- AREA CETAK NOTA THERMAL 58MM -->
     <div id="areaNota" style="display: none;">
         <div class="text-center font-bold text-sm uppercase" id="notaHeaderStore">AYA GROUP POS</div>
         <div class="text-center text-[10px]" id="notaAddress">Cabang Utama</div>
@@ -46,6 +46,7 @@
                 <div class="mt-3 w-full">
                     <label class="text-[10px] text-orange-300 font-semibold block mb-1">🏢 Cabang Aktif:</label>
                     <select id="selectCabangAktif" onchange="gantiCabang(this.value)" class="w-full bg-orange-800 text-white text-xs p-2 rounded font-bold border border-orange-600 focus:outline-none">
+                        <option value="SEMUA CABANG">🌐 Semua Cabang</option>
                         <option value="AYA TOKO Sembako">🛒 AYA TOKO Sembako</option>
                         <option value="DAPUR AYA">☕ DAPUR AYA (Warkop)</option>
                         <option value="AYA SEBLAK DAN ANGKRINGAN" selected>🍲 AYA SEBLAK & ANGKRINGAN</option>
@@ -64,11 +65,11 @@
                 <button onclick="switchTab('kasir')" id="btn-tab-kasir" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2 bg-orange-700">
                     🛒 3. Transaksi & Kasir
                 </button>
-                <button onclick="switchTab('backoffice')" id="btn-tab-backoffice" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    💼 4. Back Office & Gaji
-                </button>
                 <button onclick="switchTab('laporan')" id="btn-tab-laporan" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    📊 5. Laporan & Grafik
+                    🧾 4. Laporan Transaksi
+                </button>
+                <button onclick="switchTab('backoffice')" id="btn-tab-backoffice" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                    💼 5. Back Office & Gaji
                 </button>
                 <button onclick="switchTab('user')" id="btn-tab-user" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     👥 6. Management User & SOP
@@ -94,7 +95,6 @@
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
                 <h2 class="text-lg font-bold text-orange-700 mb-3">📂 Master Data Barang, Pelanggan, Supplier & Karyawan</h2>
                 
-                <!-- Sub Tab Master -->
                 <div class="flex gap-2 border-b pb-2 mb-4 overflow-x-auto text-xs font-bold">
                     <button onclick="switchSubMaster('barang')" id="sub-m-barang" class="px-3 py-1.5 bg-orange-600 text-white rounded">📦 Stok & Produk</button>
                     <button onclick="switchSubMaster('titipan')" id="sub-m-titipan" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded">🤝 Barang Titipan</button>
@@ -103,7 +103,6 @@
                     <button onclick="switchSubMaster('karyawan')" id="sub-m-karyawan" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded">👷 Data Karyawan</button>
                 </div>
 
-                <!-- SUB MASTER 1: BARANG & KOMPOSISI -->
                 <div id="sec-master-barang" class="space-y-4">
                     <div class="bg-orange-50 p-4 rounded-xl border border-orange-200">
                         <h3 id="masterFormTitle" class="text-xs font-bold text-gray-700 mb-2">➕ Input / Edit Barang & Formulasi Harga Jual</h3>
@@ -159,7 +158,6 @@
                         </div>
                     </div>
 
-                    <!-- Tabel Master Barang -->
                     <div class="overflow-x-auto border rounded-lg max-h-96">
                         <table class="w-full text-left text-xs">
                             <thead class="bg-orange-100 text-orange-900 font-bold uppercase sticky top-0">
@@ -179,7 +177,6 @@
                     </div>
                 </div>
 
-                <!-- SUB MASTER 2: BARANG TITIPAN -->
                 <div id="sec-master-titipan" class="hidden space-y-4">
                     <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
                         <input type="text" id="titipanNama" placeholder="Nama Barang Titipan" class="p-2 border rounded">
@@ -211,7 +208,6 @@
                     </div>
                 </div>
 
-                <!-- SUB MASTER 3: PELANGGAN -->
                 <div id="sec-master-pelanggan" class="hidden space-y-4">
                     <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                         <input type="text" id="pelangganNama" placeholder="Nama Pelanggan" class="p-2 border rounded">
@@ -235,7 +231,6 @@
                     </div>
                 </div>
 
-                <!-- SUB MASTER 4: SUPPLIER -->
                 <div id="sec-master-supplier" class="hidden space-y-4">
                     <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                         <input type="text" id="supplierNama" placeholder="Nama Supplier / Toko Kulakan" class="p-2 border rounded">
@@ -259,7 +254,6 @@
                     </div>
                 </div>
 
-                <!-- SUB MASTER 5: KARYAWAN -->
                 <div id="sec-master-karyawan" class="hidden space-y-4">
                     <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                         <input type="text" id="karyawanNama" placeholder="Nama Karyawan" class="p-2 border rounded">
@@ -291,7 +285,6 @@
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
                 <h2 class="text-lg font-bold text-orange-700 mb-3">🏢 Management Cabang & Inventaris Operasional</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Form Inventaris -->
                     <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 space-y-2 text-xs">
                         <h3 class="font-bold text-gray-800">➕ Input Inventaris Cabang (<span id="txtCabangInv"></span>)</h3>
                         <input type="text" id="invNama" placeholder="Nama Alat / Barang Operasional" class="w-full p-2 border rounded">
@@ -304,7 +297,6 @@
                             <button onclick="simpanInventaris()" class="bg-emerald-600 text-white font-bold rounded py-2">💾 Simpan Inventaris</button>
                         </div>
                     </div>
-                    <!-- Daftar Inventaris -->
                     <div class="overflow-x-auto border rounded-lg max-h-64">
                         <table class="w-full text-left text-xs">
                             <thead class="bg-orange-100 text-orange-900 font-bold uppercase sticky top-0">
@@ -324,7 +316,6 @@
 
         <!-- ================= TAB 3: TRANSAKSI & KASIR ================= -->
         <div id="tab-kasir" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Left Side: Catalog Menu -->
             <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow border border-orange-200 flex flex-col">
                 <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
                     <div>
@@ -336,7 +327,6 @@
                     </div>
                 </div>
 
-                <!-- Sub Categories -->
                 <div class="flex gap-2 mb-3 border-b pb-2 overflow-x-auto text-xs">
                     <button id="btn-kat-topping" onclick="filterKategori('topping')" class="px-3 py-1.5 bg-orange-600 text-white font-bold rounded shadow">🍢 Topping Seblak</button>
                     <button id="btn-kat-makanan" onclick="filterKategori('makanan')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold rounded">🍲 Makanan/Angkringan</button>
@@ -345,13 +335,11 @@
                     <button id="btn-kat-jajanan" onclick="filterKategori('jajanan')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold rounded">🚬 Jajanan / Sembako</button>
                 </div>
 
-                <!-- Grid Menu Item -->
                 <div class="max-h-[58vh] overflow-y-auto pr-1 flex-1">
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="container-menu"></div>
                 </div>
             </div>
 
-            <!-- Right Side: Order Cart -->
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200 flex flex-col justify-between">
                 <div>
                     <div class="flex justify-between items-center mb-2">
@@ -359,7 +347,6 @@
                         <button onclick="tahanTransaksi()" class="text-[10px] bg-amber-500 text-white font-bold px-2 py-1 rounded">⏸️ Tahan Transaksi</button>
                     </div>
 
-                    <!-- Hold Transaction Selector -->
                     <div id="boxHeldOrders" class="hidden mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
                         <span class="font-bold text-amber-800 block mb-1">Daftar Transaksi Ditahan:</span>
                         <div id="listHeldOrders" class="flex gap-1 overflow-x-auto"></div>
@@ -370,7 +357,6 @@
                     </div>
                 </div>
 
-                <!-- Payment Form -->
                 <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 text-xs">
                     <div class="grid grid-cols-2 gap-2 mb-2">
                         <div>
@@ -416,13 +402,129 @@
             </div>
         </div>
 
-        <!-- ================= TAB 4: BACK OFFICE & GAJI ================= -->
+        <!-- ================= TAB 4: LAPORAN TRANSAKSI PENJUALAN ================= -->
+        <div id="tab-laporan" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <h2 class="text-lg font-bold text-orange-700">📊 Laporan Transaksi Penjualan</h2>
+                        <p class="text-xs text-gray-500">Rekapitulasi omset, barang terjual, detail transaksi, dan grafik sincron Realtime Database.</p>
+                    </div>
+
+                    <!-- Filter Tanggal & Periode -->
+                    <div class="flex items-center gap-2 text-xs flex-wrap">
+                        <div class="flex items-center gap-1">
+                            <label class="font-bold">Dari:</label>
+                            <input type="date" id="filterTanggalMulai" class="p-1.5 border border-orange-300 rounded bg-orange-50/50">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <label class="font-bold">Sampai:</label>
+                            <input type="date" id="filterTanggalSelesai" class="p-1.5 border border-orange-300 rounded bg-orange-50/50">
+                        </div>
+                        <button onclick="terapkanFilterLaporan()" class="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded shadow transition">
+                            🔍 Filter Periode
+                        </button>
+                        <button onclick="resetFilterLaporan()" class="px-2.5 py-1.5 bg-gray-200 text-gray-700 font-bold rounded hover:bg-gray-300">
+                            🔄 Reset Hari Ini
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs mb-4">
+                    <div class="bg-orange-100 p-3 rounded-lg border border-orange-200 shadow-sm">
+                        <span class="text-gray-600 font-bold block">Total Omset Penjualan</span>
+                        <span class="text-lg font-black text-orange-700" id="statOmset">Rp 0</span>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-lg border border-blue-200 shadow-sm">
+                        <span class="text-gray-600 font-bold block">Metode QRIS</span>
+                        <span class="text-lg font-black text-blue-700" id="statOmsetQris">Rp 0</span>
+                    </div>
+                    <div class="bg-emerald-100 p-3 rounded-lg border border-emerald-200 shadow-sm">
+                        <span class="text-gray-600 font-bold block">Kas Tunai Fisik</span>
+                        <span class="text-lg font-black text-emerald-700" id="statUangCash">Rp 0</span>
+                    </div>
+                    <div class="bg-amber-100 p-3 rounded-lg border border-amber-200 shadow-sm">
+                        <span class="text-gray-600 font-bold block">Total Barang Terjual</span>
+                        <span class="text-lg font-black text-amber-700" id="statTotalQty">0 Pcs</span>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-lg border border-purple-200 shadow-sm">
+                        <span class="text-gray-600 font-bold block">Total Transaksi</span>
+                        <span class="text-lg font-black text-purple-700" id="statTotalTransaksi">0 Trx</span>
+                    </div>
+                </div>
+
+                <!-- Grafik Penjualan -->
+                <div class="mb-4 p-3 border rounded-xl bg-orange-50/50 shadow-sm">
+                    <h3 class="text-xs font-bold text-gray-700 mb-2">📈 Grafik Produk Paling Laris (Top Selling)</h3>
+                    <canvas id="chartProdukLaku" class="max-h-52 w-full"></canvas>
+                </div>
+
+                <!-- SECTION 1: Detail Barang Terjual Per Periode -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-black text-gray-800 flex items-center gap-1">
+                            📦 1. Rekapitulasi Barang Terjual (Per Item & Qty)
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg max-h-64 shadow-inner bg-white">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-orange-100 text-orange-950 font-bold uppercase sticky top-0 shadow-sm">
+                                <tr>
+                                    <th class="p-2 border-b">No</th>
+                                    <th class="p-2 border-b">Nama Barang</th>
+                                    <th class="p-2 border-b text-center">Kategori</th>
+                                    <th class="p-2 border-b text-center">Jumlah Qty Terjual</th>
+                                    <th class="p-2 border-b text-right">Subtotal Omset</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelRekapItemTerjual" class="divide-y divide-gray-100">
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-gray-400">Memuat data transaksi...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: Item Detail Riwayat Transaksi Nota -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-black text-gray-800 flex items-center gap-1">
+                            📋 2. Item Detail Riwayat Nota Transaksi
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg max-h-80 shadow-inner bg-white">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-orange-100 text-orange-950 font-bold uppercase sticky top-0 shadow-sm">
+                                <tr>
+                                    <th class="p-2 border-b">ID Nota</th>
+                                    <th class="p-2 border-b">Tanggal & Waktu</th>
+                                    <th class="p-2 border-b">Cabang</th>
+                                    <th class="p-2 border-b">Detail Item Terjual (Nama & Qty)</th>
+                                    <th class="p-2 border-b text-center">Metode</th>
+                                    <th class="p-2 border-b text-right">Total Bayar</th>
+                                    <th class="p-2 border-b text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelRiwayatTransaksi" class="divide-y divide-gray-100">
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-gray-400">Belum ada transaksi pada periode ini</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= TAB 5: BACK OFFICE & GAJI ================= -->
         <div id="tab-backoffice" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
                 <h2 class="text-lg font-bold text-orange-700 mb-3">💼 Back Office - Management Karyawan & Absensi</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Kalkulator Sederhana -->
                     <div class="bg-orange-50 p-3 rounded-lg border border-orange-200">
                         <h3 class="font-bold text-xs mb-2">🧮 Kalkulator Sederhana</h3>
                         <input type="text" id="calcDisplay" readonly class="w-full p-2 mb-2 bg-white border rounded text-right font-bold text-sm">
@@ -446,7 +548,6 @@
                         </div>
                     </div>
 
-                    <!-- Input Absensi Karyawan -->
                     <div class="md:col-span-2 bg-orange-50 p-3 rounded-lg border border-orange-200 text-xs space-y-2">
                         <h3 class="font-bold text-gray-800">📅 Input Absensi & Estimasi Gaji Karyawan</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -461,7 +562,6 @@
                             <button onclick="simpanAbsensi()" class="bg-emerald-600 text-white font-bold rounded py-2">💾 Simpan Absensi Hari Ini</button>
                         </div>
 
-                        <!-- Rekap Absensi -->
                         <div class="overflow-x-auto border rounded-lg max-h-48 mt-3 bg-white">
                             <table class="w-full text-left text-[11px]">
                                 <thead class="bg-orange-100 font-bold">
@@ -481,71 +581,12 @@
             </div>
         </div>
 
-        <!-- ================= TAB 5: LAPORAN & GRAFIK ================= -->
-        <div id="tab-laporan" class="hidden space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
-                <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
-                    <h2 class="text-lg font-bold text-orange-700">📊 Laporan Keuangan, Omset & Grafik</h2>
-                    <!-- Filter Tanggal -->
-                    <div class="flex gap-2 text-xs">
-                        <input type="date" id="filterTanggalMulai" class="p-1.5 border rounded">
-                        <input type="date" id="filterTanggalSelesai" class="p-1.5 border rounded">
-                        <button onclick="terapkanFilterTanggal()" class="px-3 py-1.5 bg-orange-600 text-white font-bold rounded">Filter</button>
-                    </div>
-                </div>
-
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-4">
-                    <div class="bg-orange-100 p-3 rounded-lg border border-orange-200">
-                        <span class="text-gray-600 block">Total Omset Penjualan</span>
-                        <span class="text-base font-extrabold text-orange-700" id="statOmset">Rp 0</span>
-                    </div>
-                    <div class="bg-blue-100 p-3 rounded-lg border border-blue-200">
-                        <span class="text-gray-600 block">Metode QRIS</span>
-                        <span class="text-base font-extrabold text-blue-700" id="statOmsetQris">Rp 0</span>
-                    </div>
-                    <div class="bg-emerald-100 p-3 rounded-lg border border-emerald-200">
-                        <span class="text-gray-600 block">Kas Tunai Fisik</span>
-                        <span class="text-base font-extrabold text-emerald-700" id="statUangCash">Rp 0</span>
-                    </div>
-                    <div id="boxLabaRugi" class="bg-purple-100 p-3 rounded-lg border border-purple-200">
-                        <span class="text-gray-600 block" id="labelLabaRugi">Laba/Rugi Bersih</span>
-                        <span class="text-base font-extrabold text-purple-700" id="statLabaRugi">Rp 0</span>
-                    </div>
-                </div>
-
-                <!-- Top Sales Chart -->
-                <div class="mb-4 p-3 border rounded-xl bg-orange-50/50">
-                    <h3 class="text-xs font-bold text-gray-700 mb-2">📈 Grafik Produk Paling Laris (Top Selling)</h3>
-                    <canvas id="chartProdukLaku" class="max-h-48"></canvas>
-                </div>
-
-                <!-- Item Sales Summary Table -->
-                <h3 class="text-xs font-bold text-gray-800 mb-2">📋 Detail Barang Terjual Periode Ini</h3>
-                <div class="overflow-x-auto border rounded-lg max-h-48">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-orange-100 font-bold sticky top-0">
-                            <tr>
-                                <th class="p-2">Nama Barang</th>
-                                <th class="p-2 text-center">Kategori</th>
-                                <th class="p-2 text-center">Terjual</th>
-                                <th class="p-2 text-right">Subtotal Omset</th>
-                                <th class="p-2 text-right">Total Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelRekapItemTerjual" class="divide-y bg-white"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
         <!-- ================= TAB 6: USER & SOP ================= -->
         <div id="tab-user" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200 space-y-4">
                 <h2 class="text-lg font-bold text-orange-700">👥 User Management & Standar Operasional Prosedur (SOP)</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <!-- Cetak Surat Perjanjian Kerja -->
                     <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 space-y-2">
                         <h3 class="font-bold text-gray-800">📄 Cetak Surat Perjanjian Kerja (SPK) Karyawan</h3>
                         <input type="text" id="spkNama" placeholder="Nama Lengkap Karyawan" class="w-full p-2 border rounded">
@@ -554,7 +595,6 @@
                         <button onclick="cetakSPK()" class="w-full bg-blue-600 text-white font-bold py-2 rounded">🖨️ Cetak Perjanjian Kerja</button>
                     </div>
 
-                    <!-- SOP Proposional -->
                     <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 space-y-2">
                         <h3 class="font-bold text-gray-800">📑 Standard Operating Procedure (SOP)</h3>
                         <div class="p-2 bg-white border rounded max-h-36 overflow-y-auto text-[10px] space-y-1">
