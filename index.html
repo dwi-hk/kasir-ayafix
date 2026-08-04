@@ -68,7 +68,7 @@
                     🛍️ 4. Transaksi Pembelian
                 </button>
                 <button onclick="switchTab('pengeluaran')" id="btn-tab-pengeluaran" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    💸 5. Transaksi Pengeluaran
+                    💸 5. Transaksi Pengeluaran & Modal
                 </button>
                 <button onclick="switchTab('laporan')" id="btn-tab-laporan" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     🧾 6. Laporan Penjualan
@@ -453,14 +453,48 @@
             </div>
         </div>
 
-        <!-- ================= TAB 5: TRANSAKSI PENGELUARAN (TERPERBAIKI & DETAIL) ================= -->
+        <!-- ================= TAB 5: TRANSAKSI PENGELUARAN & TAMBAH MODAL ================= -->
         <div id="tab-pengeluaran" class="hidden space-y-4">
+            <!-- SECTION TAMBAH MODAL -->
+            <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow mb-4">
+                <h2 class="text-base font-bold text-emerald-800 mb-3 flex items-center gap-2">
+                    💵 Form Tambah Modal Awal / Suntikan Kas
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs mb-3">
+                    <div>
+                        <label class="block font-semibold mb-1">Tanggal Tambah Modal:</label>
+                        <input type="date" id="modalTanggal" class="w-full p-2 border rounded bg-white">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Nominal Modal (Rp):</label>
+                        <input type="number" id="modalNominal" placeholder="Contoh: 500000" class="w-full p-2 border rounded bg-white font-bold text-emerald-700">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Sumber Kas Modal:</label>
+                        <select id="modalSumber" class="w-full p-2 border rounded bg-white">
+                            <option value="TUNAI">KAS TUNAI (Laci Kasir)</option>
+                            <option value="BANK / REKENING">BANK / REKENING</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Keterangan / Catatan:</label>
+                        <input type="text" id="modalKeterangan" placeholder="Contoh: Modal Kasir Pagi" class="w-full p-2 border rounded bg-white">
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button onclick="simpanSuntikanModal()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow transition flex items-center gap-1 text-xs">
+                        💰 Simpan Tambah Modal
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION PENCATATAN PENGELUARAN -->
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
                 <h2 class="text-lg font-bold text-orange-700 mb-3">💸 Pencatatan Pengeluaran Kas (Expenses)</h2>
                 
                 <!-- HEADER NOTA PENGELUARAN -->
                 <div class="bg-orange-50 p-4 rounded-xl border border-orange-200 mb-4">
-                    <h3 class="text-xs font-bold text-gray-700 mb-2">📋 Informas Nota Pengeluaran</h3>
+                    <h3 class="text-xs font-bold text-gray-700 mb-2">📋 Informasi Nota Pengeluaran</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                         <div>
                             <label class="block font-semibold mb-1">Tanggal Pengeluaran:</label>
@@ -559,10 +593,10 @@
             </div>
         </div>
 
-        <!-- ================= TAB 6: LAPORAN PENJUALAN ================= -->
+        <!-- ================= TAB 6: LAPORAN PENJUALAN & MODAL ================= -->
         <div id="tab-laporan" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
-                <h2 class="text-lg font-bold text-orange-700 mb-3">🧾 Laporan Penjualan & Omset</h2>
+                <h2 class="text-lg font-bold text-orange-700 mb-3">🧾 Laporan Penjualan & Modal</h2>
                 
                 <!-- Filter Tanggal -->
                 <div class="flex flex-wrap items-center gap-2 bg-orange-50 p-3 rounded-lg border border-orange-200 text-xs mb-4">
@@ -575,7 +609,11 @@
                 </div>
 
                 <!-- Stats Summary -->
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs mb-4">
+                <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs mb-4">
+                    <div class="bg-emerald-100 p-3 rounded-lg border border-emerald-300">
+                        <p class="text-[10px] text-emerald-800 font-bold">TOTAL MODAL</p>
+                        <p id="statTotalModal" class="text-base font-black text-emerald-700">Rp 0</p>
+                    </div>
                     <div class="bg-orange-100 p-3 rounded-lg border border-orange-300">
                         <p class="text-[10px] text-orange-800 font-bold">TOTAL OMSET</p>
                         <p id="statOmset" class="text-base font-black text-orange-700">Rp 0</p>
@@ -584,15 +622,15 @@
                         <p class="text-[10px] text-blue-800 font-bold">OMSET QRIS</p>
                         <p id="statOmsetQris" class="text-base font-black text-blue-700">Rp 0</p>
                     </div>
-                    <div class="bg-emerald-100 p-3 rounded-lg border border-emerald-300">
-                        <p class="text-[10px] text-emerald-800 font-bold">UANG CASH</p>
-                        <p id="statUangCash" class="text-base font-black text-emerald-700">Rp 0</p>
+                    <div class="bg-teal-100 p-3 rounded-lg border border-teal-300">
+                        <p class="text-[10px] text-teal-800 font-bold">UANG CASH</p>
+                        <p id="statUangCash" class="text-base font-black text-teal-700">Rp 0</p>
                     </div>
                     <div class="bg-purple-100 p-3 rounded-lg border border-purple-300">
                         <p class="text-[10px] text-purple-800 font-bold">TOTAL TERJUAL</p>
                         <p id="statTotalQty" class="text-base font-black text-purple-700">0 Pcs</p>
                     </div>
-                    <div class="bg-amber-100 p-3 rounded-lg border border-amber-300 col-span-2 sm:col-span-1">
+                    <div class="bg-amber-100 p-3 rounded-lg border border-amber-300">
                         <p class="text-[10px] text-amber-800 font-bold">TRANSAKSI</p>
                         <p id="statTotalTransaksi" class="text-base font-black text-amber-700">0 Trx</p>
                     </div>
@@ -617,6 +655,25 @@
                             </tr>
                         </thead>
                         <tbody id="tabelRekapItemTerjual" class="divide-y bg-white"></tbody>
+                    </table>
+                </div>
+
+                <!-- Tabel Riwayat Modal Kas -->
+                <h3 class="font-bold text-xs text-emerald-800 mb-2">💰 Riwayat Tambah Modal Kas</h3>
+                <div class="overflow-x-auto border rounded-lg max-h-40 mb-4">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-emerald-100 text-emerald-900 font-bold uppercase sticky top-0">
+                            <tr>
+                                <th class="p-2">ID Modal</th>
+                                <th class="p-2">Waktu</th>
+                                <th class="p-2">Cabang</th>
+                                <th class="p-2">Keterangan</th>
+                                <th class="p-2 text-center">Sumber Kas</th>
+                                <th class="p-2 text-right">Nominal Modal</th>
+                                <th class="p-2 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelRiwayatModal" class="divide-y bg-white"></tbody>
                     </table>
                 </div>
 
