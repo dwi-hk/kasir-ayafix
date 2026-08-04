@@ -25,7 +25,7 @@ try {
 // Variable Global Storage Internal & Temporary
 let keranjang = [];
 let transaksiDitahan = [];
-let cabangAktif = 'AYA SEBLAK DAN ANGKRINGAN';
+let cabangAktif = 'SEMUA CABANG'; // Default menampilkan semua agar data lama langsung terlihat
 let dataTransaksiFirebase = []; // Cache transaksi realtime dari Firebase
 let dataPengeluaranFirebase = []; // Cache pengeluaran realtime dari Firebase
 
@@ -346,7 +346,7 @@ function simpanTransaksi() {
 
     let nota = {
         id: 'NOTA-' + Date.now(),
-        cabang: cabangAktif,
+        cabang: cabangAktif === 'SEMUA CABANG' ? 'AYA SEBLAK DAN ANGKRINGAN' : cabangAktif,
         waktu: new Date().toLocaleString('id-ID'),
         tanggalISO: new Date().toISOString().split('T')[0],
         items: [...keranjang],
@@ -434,7 +434,7 @@ function simpanPengeluaran() {
 
     let expenseItem = {
         id: 'EXP-' + Date.now(),
-        cabang: cabangAktif,
+        cabang: cabangAktif === 'SEMUA CABANG' ? 'AYA SEBLAK DAN ANGKRINGAN' : cabangAktif,
         tanggalISO: tanggal,
         waktu: new Date().toLocaleString('id-ID'),
         kategori: kategori,
@@ -466,18 +466,51 @@ function hapusPengeluaranFirebase(id) {
     }
 }
 
+/* ================= HELPER PARSING TANGGAL & NOMINAL (DATABASE LAMA) ================= */
+function parseNominalDinamis(exp) {
+    if (!exp) return 0;
+    let raw = exp.nominal ?? exp.jumlah ?? exp.total ?? exp.harga ?? exp.biaya ?? 0;
+    if (typeof raw === 'number') return raw;
+    if (typeof raw === 'string') {
+        let clean = raw.replace(/[^0-9]/g, '');
+        return parseInt(clean) || 0;
+    }
+    return 0;
+}
+
+function parseTanggalISO(exp) {
+    if (!exp) return '';
+    if (exp.tanggalISO) return exp.tanggalISO;
+    if (exp.tanggal) return exp.tanggal;
+    
+    let timeStr = exp.waktu || exp.timestamp || exp.date || '';
+    if (timeStr) {
+        // Jika format YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}/.test(timeStr)) {
+            return timeStr.substring(0, 10);
+        }
+        // Jika format DD/MM/YYYY atau D/M/YYYY
+        let parts = timeStr.split(',')[0].split('/');
+        if (parts.length === 3) {
+            let day = parts[0].trim().padStart(2, '0');
+            let month = parts[1].trim().padStart(2, '0');
+            let year = parts[2].trim();
+            if (year.length === 4) {
+                return `${year}-${month}-${day}`;
+            }
+        }
+    }
+    return '';
+}
+
 /* ================= LAPORAN TRANSAKSI PENJUALAN ================= */
 function setTanggalHariIniIfEmpty() {
     let todayISO = new Date().toISOString().split('T')[0];
     let tglMulai = document.getElementById('filterTanggalMulai');
     let tglSelesai = document.getElementById('filterTanggalSelesai');
-    if(tglMulai && !tglMulai.value) tglMulai.value = todayISO;
-    if(tglSelesai && !tglSelesai.value) tglSelesai.value = todayISO;
-
+    
     let tglExpMulai = document.getElementById('filterTglPengeluaranMulai');
     let tglExpSelesai = document.getElementById('filterTglPengeluaranSelesai');
-    if(tglExpMulai && !tglExpMulai.value) tglExpMulai.value = todayISO;
-    if(tglExpSelesai && !tglExpSelesai.value) tglExpSelesai.value = todayISO;
 
     let pengeluaranTglInput = document.getElementById('pengeluaranTanggal');
     if(pengeluaranTglInput && !pengeluaranTglInput.value) pengeluaranTglInput.value = todayISO;
@@ -488,9 +521,8 @@ function terapkanFilterLaporan() {
 }
 
 function resetFilterLaporan() {
-    let todayISO = new Date().toISOString().split('T')[0];
-    if(document.getElementById('filterTanggalMulai')) document.getElementById('filterTanggalMulai').value = todayISO;
-    if(document.getElementById('filterTanggalSelesai')) document.getElementById('filterTanggalSelesai').value = todayISO;
+    if(document.getElementById('filterTanggalMulai')) document.getElementById('filterTanggalMulai').value = '';
+    if(document.getElementById('filterTanggalSelesai')) document.getElementById('filterTanggalSelesai').value = '';
     updateLaporan();
 }
 
@@ -506,20 +538,18 @@ function updateLaporan() {
 function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let filtered = (semuaTransaksi || []).filter(t => {
         if (!t) return false;
-        let dateStr = t.tanggalISO || '';
-        if (!dateStr && t.waktu) {
-            let parts = t.waktu.split(',')[0].split('/');
-            if (parts.length === 3) {
-                dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
-        }
+        let dateStr = parseTanggalISO(t);
         
         let matchDate = true;
-        if(tglMulai && tglSelesai && dateStr) {
-            matchDate = dateStr >= tglMulai && dateStr <= tglSelesai;
+        if (tglMulai && tglSelesai) {
+            matchDate = dateStr ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
+        } else if (tglMulai) {
+            matchDate = dateStr >= tglMulai;
+        } else if (tglSelesai) {
+            matchDate = dateStr <= tglSelesai;
         }
         
-        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (t.cabang === cabangAktif);
+        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (!t.cabang || t.cabang === cabangAktif);
         return matchDate && matchCabang;
     });
 
@@ -530,11 +560,12 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let itemMap = {};
 
     filtered.forEach(t => {
-        let sumTotal = parseInt(t.total) || 0;
+        let sumTotal = parseNominalDinamis(t);
         totalOmset += sumTotal;
         
-        if (t.metodePembayaran === 'QRIS') totalQris += sumTotal;
-        else if (t.metodePembayaran === 'TUNAI') totalCash += sumTotal;
+        let me = t.metodePembayaran || t.metode || 'TUNAI';
+        if (me === 'QRIS') totalQris += sumTotal;
+        else if (me === 'TUNAI') totalCash += sumTotal;
 
         let itemList = [];
         if (Array.isArray(t.items)) {
@@ -616,14 +647,17 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
                 let detailItemsStr = itemList.map(i => `<span class="inline-block bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded mr-1 mb-1 font-semibold">${i.nama || '-'} <b>(x${i.qty || 0})</b></span>`).join('');
                 if(!detailItemsStr) detailItemsStr = '<span class="text-gray-400 italic">Detail item kosong</span>';
 
+                let nominalTrx = parseNominalDinamis(t);
+                let metodeTrx = t.metodePembayaran || t.metode || 'TUNAI';
+
                 htmlRiwayat += `
                     <tr class="hover:bg-orange-50 border-b">
                         <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${t.id || '-'}</td>
                         <td class="p-2 text-[11px] whitespace-nowrap">${t.waktu || t.tanggalISO || '-'}</td>
-                        <td class="p-2 text-[11px] font-bold text-gray-600">${t.cabang || '-'}</td>
+                        <td class="p-2 text-[11px] font-bold text-gray-600">${t.cabang || 'Utama'}</td>
                         <td class="p-2">${detailItemsStr}</td>
-                        <td class="p-2 text-center font-bold"><span class="px-2 py-0.5 rounded text-[10px] ${t.metodePembayaran === 'QRIS' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}">${t.metodePembayaran || 'TUNAI'}</span></td>
-                        <td class="p-2 text-right font-black text-orange-700">Rp ${(t.total || 0).toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-center font-bold"><span class="px-2 py-0.5 rounded text-[10px] ${metodeTrx === 'QRIS' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}">${metodeTrx}</span></td>
+                        <td class="p-2 text-right font-black text-orange-700">Rp ${nominalTrx.toLocaleString('id-ID')}</td>
                         <td class="p-2 text-center">
                             <button onclick="hapusTransaksiFirebase('${t.id}')" class="text-red-500 font-bold hover:underline">Hapus</button>
                         </td>
@@ -654,20 +688,18 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
     let filtered = (semuaPengeluaran || []).filter(exp => {
         if (!exp) return false;
         
-        // Memastikan pembacaan tanggalISO, waktu, atau timestamp dari Firebase
-        let dateStr = exp.tanggalISO || '';
-        if (!dateStr && exp.waktu) {
-            let parts = exp.waktu.split(',')[0].split('/');
-            if (parts.length === 3) {
-                dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
-        }
+        let dateStr = parseTanggalISO(exp);
         
         let matchDate = true;
-        if (tglMulai && tglSelesai && dateStr) {
-            matchDate = dateStr >= tglMulai && dateStr <= tglSelesai;
+        if (tglMulai && tglSelesai) {
+            matchDate = dateStr ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
+        } else if (tglMulai) {
+            matchDate = dateStr >= tglMulai;
+        } else if (tglSelesai) {
+            matchDate = dateStr <= tglSelesai;
         }
-        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (exp.cabang === cabangAktif);
+
+        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (!exp.cabang || exp.cabang === cabangAktif);
         let matchKategori = (katFilter === 'SEMUA') || (exp.kategori === katFilter);
         return matchDate && matchCabang && matchKategori;
     });
@@ -678,8 +710,7 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
     let mapKategori = {};
 
     filtered.forEach(exp => {
-        // Parsing nominal secara fleksibel (mendukung integer maupun string)
-        let nominal = parseInt(exp.nominal || exp.jumlah || exp.total || 0) || 0;
+        let nominal = parseNominalDinamis(exp);
         totalPengeluaran += nominal;
 
         let metode = exp.metode || exp.sumber || 'TUNAI';
@@ -695,17 +726,14 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
     let sumberTx = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
     sumberTx.filter(t => {
         if(!t) return false;
-        let dateStr = t.tanggalISO || '';
-        if (!dateStr && t.waktu) {
-            let parts = t.waktu.split(',')[0].split('/');
-            if (parts.length === 3) {
-                dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
+        let dateStr = parseTanggalISO(t);
+        let matchDate = true;
+        if (tglMulai && tglSelesai) {
+            matchDate = dateStr ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
         }
-        let matchDate = (tglMulai && tglSelesai && dateStr) ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
-        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (t.cabang === cabangAktif);
+        let matchCabang = (cabangAktif === 'SEMUA CABANG') || (!t.cabang || t.cabang === cabangAktif);
         return matchDate && matchCabang;
-    }).forEach(t => totalOmsetSaatIni += parseInt(t.total) || 0);
+    }).forEach(t => totalOmsetSaatIni += parseNominalDinamis(t));
 
     let arusKasBersih = totalOmsetSaatIni - totalPengeluaran;
 
@@ -729,15 +757,15 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
         } else {
             let html = '';
             filtered.forEach(exp => {
-                // Ekstraksi keterangan & nominal dari berbagai properti yang mungkin tersimpan di Realtime DB
-                let ket = exp.keterangan || exp.deskripsi || exp.nama || '-';
-                let nominal = parseInt(exp.nominal || exp.jumlah || exp.total || 0) || 0;
+                let ket = exp.keterangan || exp.deskripsi || exp.nama || exp.catatan || '-';
+                let nominal = parseNominalDinamis(exp);
+                let tglDisplay = exp.waktu || exp.tanggalISO || exp.tanggal || '-';
                 
                 html += `
                     <tr class="hover:bg-red-50 border-b">
                         <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${exp.id || '-'}</td>
-                        <td class="p-2 text-[11px] whitespace-nowrap">${exp.waktu || exp.tanggalISO || '-'}</td>
-                        <td class="p-2 text-[11px] font-bold text-gray-600">${exp.cabang || '-'}</td>
+                        <td class="p-2 text-[11px] whitespace-nowrap">${tglDisplay}</td>
+                        <td class="p-2 text-[11px] font-bold text-gray-600">${exp.cabang || 'Utama'}</td>
                         <td class="p-2 font-semibold text-red-700">${exp.kategori || 'Lain-lain'}</td>
                         <td class="p-2 font-medium">${ket}</td>
                         <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${exp.metode === 'TRANSFER' ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800'}">${exp.metode || 'TUNAI'}</span></td>
@@ -877,8 +905,9 @@ document.addEventListener('DOMContentLoaded', () => {
         db.ref('transaksi').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
-                dataTransaksiFirebase = Object.values(data);
-                dataTransaksiFirebase.sort((a, b) => (b.id > a.id ? 1 : -1));
+                // Mendukung jika data tersimpan dalam bentuk array maupun object
+                dataTransaksiFirebase = Array.isArray(data) ? data : Object.values(data);
+                dataTransaksiFirebase.sort((a, b) => ((b.id || '') > (a.id || '') ? 1 : -1));
             } else {
                 dataTransaksiFirebase = [];
             }
@@ -889,8 +918,9 @@ document.addEventListener('DOMContentLoaded', () => {
         db.ref('pengeluaran').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
-                dataPengeluaranFirebase = Object.values(data);
-                dataPengeluaranFirebase.sort((a, b) => (b.id > a.id ? 1 : -1));
+                // Mendukung jika data tersimpan dalam bentuk array maupun object
+                dataPengeluaranFirebase = Array.isArray(data) ? data : Object.values(data);
+                dataPengeluaranFirebase.sort((a, b) => ((b.id || '') > (a.id || '') ? 1 : -1));
             } else {
                 dataPengeluaranFirebase = [];
             }
