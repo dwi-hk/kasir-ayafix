@@ -1,34 +1,45 @@
-@media print {
-    body * {
-        visibility: hidden;
-    }
-    #areaNota, #areaNota * {
-        visibility: visible;
-    }
-    #areaNota {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 58mm;
-        font-family: 'Courier New', Courier, monospace;
-        color: #000;
-        background: #fff;
-        padding: 2mm;
-    }
-}
+/* css/style.css */
 
-/* Scrollbar Smooth Styling */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-::-webkit-scrollbar-track {
-    background: #fff7ed;
-}
-::-webkit-scrollbar-thumb {
-    background: #fdba74;
-    border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #f97316;
+/* PERBAIKAN CSS CETAK: Menjamin area nota terlihat & elemen lain tersembunyi total saat print */
+@media print {
+    body * { 
+        visibility: hidden !important; 
+        height: 0 !important; 
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    #areaNota, #areaNota * { 
+        visibility: visible !important; 
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+    #areaNota { 
+        position: absolute !important; 
+        left: 0 !important; 
+        top: 0 !important; 
+        width: 100% !important; 
+        max-width: 100% !important;
+        font-family: monospace !important; 
+        color: #000 !important;
+        background: #fff !important;
+        padding: 5px !important;
+    }
+    #notaItems {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 4px 8px !important;
+    }
+    .nota-item-row {
+        display: flex !important;
+        flex-direction: column !important;
+        border-bottom: 1px dashed #ccc !important;
+        padding-bottom: 2px !important;
+    }
+    .nota-item-detail {
+        display: flex !important;
+        justify-content: space-between !important;
+        font-size: 10px !important;
+    }
 }

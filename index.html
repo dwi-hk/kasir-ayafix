@@ -5,340 +5,552 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AYA GROUP – MULTI PAYMENT</title>
     
-    <!-- Tailwind CSS & Chart.js -->
+    <!-- Framework & Library Eksternal -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Firebase SDK Compat -->
+    <!-- Firebase SDK (Compatible Version) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-orange-50 font-sans text-gray-800 min-h-screen flex">
+<body class="bg-orange-500 font-sans text-gray-800 min-h-screen flex flex-col md:flex-row">
 
-    <!-- SIDEBAR LEFT TAB NAVIGATION -->
-    <aside class="w-64 bg-orange-600 text-white min-h-screen p-4 flex flex-col justify-between shadow-xl sticky top-0 h-screen z-50">
+    <!-- SIDEBAR TAB SEBELAH KIRI -->
+    <aside class="w-full md:w-64 bg-orange-700 text-white flex-shrink-0 shadow-lg flex flex-col justify-between">
         <div>
-            <div class="mb-6 pb-4 border-b border-orange-500">
-                <h1 class="text-xl font-extrabold tracking-wide text-white flex items-center gap-2">
-                    🍊 AYA GROUP
-                </h1>
-                <p class="text-[10px] text-orange-200 font-medium">MULTI PAYMENT POS SYSTEM</p>
+            <div class="p-4 bg-orange-800 text-center border-b border-orange-600">
+                <h1 class="text-xl font-black tracking-wider uppercase">AYA GROUP</h1>
+                <p class="text-[10px] tracking-widest text-orange-200">MULTI PAYMENT SYSTEM</p>
+                <div class="mt-2 text-xs bg-orange-900/60 p-1.5 rounded text-orange-100 font-semibold" id="labelActiveBranch">
+                    🏢 AYA TOKO Sembako
+                </div>
             </div>
 
-            <!-- Cabang Selector -->
-            <div class="mb-6 bg-orange-700/60 p-2.5 rounded-xl border border-orange-500">
-                <label class="block text-[10px] font-bold uppercase text-orange-200 mb-1">📍 Cabang Aktif:</label>
-                <select id="selectCabangAktif" onchange="gantiCabangManual(this.value)" class="w-full bg-white text-orange-900 font-bold text-xs p-2 rounded shadow focus:outline-none cursor-pointer">
-                    <option value="AYA TOKO Sembako">AYA TOKO Sembako</option>
-                    <option value="DAPUR AYA">DAPUR AYA (Warkop)</option>
-                    <option value="AYA SEBLAK DAN ANGKRINGAN">AYA SEBLAK & ANGKRINGAN</option>
-                </select>
-            </div>
-
-            <nav class="space-y-1 text-xs font-bold" id="menuSidebarNav">
-                <button onclick="switchTab('master')" id="tab-btn-master" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">📂 1. Master Data</button>
-                <button onclick="switchTab('cabang')" id="tab-btn-cabang" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">🏢 2. Data Cabang & Inventaris</button>
-                <button onclick="switchTab('kasir')" id="tab-btn-kasir" class="w-full text-left px-3 py-2.5 rounded-lg bg-orange-800 text-white transition flex items-center gap-2 shadow">🛒 3. Transaksi & Kasir</button>
-                <button onclick="switchTab('backoffice')" id="tab-btn-backoffice" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">⚙️ 4. Back Office & Absensi</button>
-                <button onclick="switchTab('laporan')" id="tab-btn-laporan" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">📊 5. Laporan Detail</button>
-                <button onclick="switchTab('user')" id="tab-btn-user" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">👥 6. Management User & SOP</button>
-                <button onclick="switchTab('setting')" id="tab-btn-setting" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">⚙️ 7. Setting Printer Thermal</button>
+            <nav class="mt-4 px-2 space-y-1">
+                <button onclick="switchTab('master')" id="btn-tab-master" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-orange-600 transition bg-orange-800 shadow">
+                    📂 1. MASTER DATA
+                </button>
+                <button onclick="switchTab('transaksi')" id="btn-tab-transaksi" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-orange-600 transition">
+                    🛒 2. TRANSAKSI & POS
+                </button>
+                <button onclick="switchTab('backoffice')" id="btn-tab-backoffice" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-orange-600 transition">
+                    🏢 3. BACK OFFICE
+                </button>
+                <button onclick="switchTab('laporan')" id="btn-tab-laporan" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-orange-600 transition">
+                    📊 4. LAPORAN & GRAFIK
+                </button>
+                <button onclick="switchTab('user')" id="btn-tab-user" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-orange-600 transition">
+                    👥 5. MANAGEMENT USER & SOP
+                </button>
+                <button onclick="switchTab('setting')" id="btn-tab-setting" class="w-full text-left px-4 py-3 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-orange-600 transition">
+                    ⚙️ 6. SETTING & PRINTER
+                </button>
             </nav>
         </div>
 
-        <div class="border-t border-orange-500 pt-3 text-[10px] text-orange-200">
-            <p>User Logged: <b id="userRoleBadge" class="text-white uppercase">Owner</b></p>
-            <p class="mt-0.5">Online Sync: <span class="text-emerald-300 font-bold">● Connected</span></p>
+        <div class="p-4 border-t border-orange-600 text-[11px] text-orange-200 text-center">
+            Logged as: <span id="activeUserRole" class="font-bold text-white uppercase">Owner</span>
         </div>
     </aside>
 
-    <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 p-6 overflow-y-auto">
+    <!-- AREA KONTEN UTAMA -->
+    <main class="flex-1 p-4 md:p-6 overflow-y-auto min-h-screen bg-orange-50">
 
         <!-- TAB 1: MASTER DATA -->
-        <section id="tab-master" class="tab-content hidden space-y-6">
-            <h2 class="text-2xl font-bold text-orange-700">📂 Master Data Management</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Sub Menu Master -->
-                <button onclick="showMasterSub('stok')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">📦 Stock Barang, Harga & Komposisi</button>
-                <button onclick="showMasterSub('pelanggan')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">👤 Data Pelanggan & Hutang</button>
-                <button onclick="showMasterSub('supplier')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">🚚 Data Supplier & Piutang</button>
-                <button onclick="showMasterSub('karyawan')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">👔 Data Karyawan & Kasbon</button>
-                <button onclick="showMasterSub('titipan')" class="p-4 bg-white rounded-xl shadow border border-orange-200 hover:border-orange-500 font-bold text-orange-600 text-left">🤝 Barang Titipan / Konsinyasi</button>
-            </div>
-
-            <!-- Dynamic Sub Content Area -->
-            <div id="masterSubContainer" class="bg-white p-6 rounded-xl shadow border border-orange-100 mt-4">
-                <p class="text-gray-500 italic">Pilih sub-menu master data di atas untuk mengelola data.</p>
-            </div>
-        </section>
-
-        <!-- TAB 2: DATA CABANG & INVENTARIS -->
-        <section id="tab-cabang" class="tab-content hidden space-y-6">
-            <h2 class="text-2xl font-bold text-orange-700">🏢 Management Cabang & Inventaris Operasional</h2>
-            <div class="bg-white p-6 rounded-xl shadow border border-orange-100">
-                <h3 class="font-bold text-lg text-gray-800 mb-3">🛠️ Inventaris Alat Operasional Cabang</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-                    <input type="text" id="invNama" placeholder="Nama Alat / Barang" class="p-2 border rounded text-xs">
-                    <input type="date" id="invTgl" class="p-2 border rounded text-xs">
-                    <input type="number" id="invHarga" placeholder="Harga Satuan (Rp)" class="p-2 border rounded text-xs">
-                    <button onclick="tambahInventaris()" class="bg-orange-600 text-white font-bold text-xs p-2 rounded hover:bg-orange-700">➕ Tambah Inventaris</button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs text-left">
-                        <thead class="bg-orange-100 text-orange-800 font-bold">
-                            <tr><th class="p-2">Nama Barang</th><th class="p-2">Tanggal Pembelian</th><th class="p-2 text-right">Harga Satuan</th></tr>
-                        </thead>
-                        <tbody id="tabelInventaris"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 3: TRANSAKSI & KASIR (MAIN POS) -->
-        <section id="tab-kasir" class="tab-content grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-orange-600">🛒 POS Kasir Penjualan</h2>
-                    <input type="text" id="cariMenuKasir" oninput="cariMenuKasir()" class="p-2 border border-orange-200 rounded text-xs w-64 bg-orange-50/50" placeholder="🔍 Cari nama barang / barcode...">
-                </div>
-
-                <div class="flex gap-2 mb-4 border-b pb-3 overflow-x-auto" id="kategoriKasirContainer">
-                    <button onclick="filterKategori('all')" class="px-3 py-1.5 bg-orange-500 text-white font-bold text-xs rounded-lg">Semua</button>
-                    <button onclick="filterKategori('topping')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg">Topping Seblak</button>
-                    <button onclick="filterKategori('makanan')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg">Makanan / Bakaran</button>
-                    <button onclick="filterKategori('dingin')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg">Minuman</button>
-                    <button onclick="filterKategori('sembako')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg">Sembako Retail</button>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[60vh]" id="container-menu"></div>
-            </div>
-
-            <!-- Keranjang & Checkout -->
-            <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-lg text-orange-600">📝 Detail Pesanan</h3>
-                        <button onclick="tahanTransaksi()" class="text-xs bg-amber-500 text-white font-bold px-2 py-1 rounded">⏸️ Tahan Pesanan</button>
-                    </div>
-                    <div id="tabelKeranjang" class="border-b pb-2 mb-2 max-h-[35vh] overflow-y-auto"></div>
-                </div>
-
-                <div class="bg-orange-50 p-4 rounded-xl border border-orange-200 space-y-3">
-                    <div class="flex justify-between text-lg font-bold">
-                        <span>Total:</span>
-                        <span class="text-orange-600 text-xl" id="textTotal">Rp 0</span>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Metode Pembayaran:</label>
-                        <div class="grid grid-cols-4 gap-1 text-[10px] font-bold">
-                            <button onclick="setMetodePembayaran('TUNAI')" id="btn-bayar-TUNAI" class="p-2 bg-orange-600 text-white rounded">TUNAI</button>
-                            <button onclick="setMetodePembayaran('QRIS')" id="btn-bayar-QRIS" class="p-2 bg-gray-200 text-gray-700 rounded">QRIS</button>
-                            <button onclick="setMetodePembayaran('HUTANG')" id="btn-bayar-HUTANG" class="p-2 bg-gray-200 text-gray-700 rounded">HUTANG</button>
-                            <button onclick="setMetodePembayaran('PERSONAL')" id="btn-bayar-PERSONAL" class="p-2 bg-gray-200 text-gray-700 rounded">PERSONAL</button>
+        <section id="tab-master" class="space-y-6">
+            <h2 class="text-2xl font-black text-orange-800 border-b-2 border-orange-300 pb-2">📂 MASTER DATA MANAGEMENT</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- FORM INPUT STOCK / BARANG -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-3" id="masterFormTitle">➕ Form Master Barang & Komposisi</h3>
+                    <input type="hidden" id="masterId">
+                    <div class="space-y-2 text-xs">
+                        <div>
+                            <label class="font-bold">Kode / Barcode:</label>
+                            <input type="text" id="masterBarcode" class="w-full p-2 border rounded bg-orange-50/50" placeholder="Scan / ketik barcode">
+                        </div>
+                        <div>
+                            <label class="font-bold">Nama Barang:</label>
+                            <input type="text" id="masterNama" class="w-full p-2 border rounded bg-orange-50/50" placeholder="Contoh: Beras Ramos 5kg / Es Kopi">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold">Kategori:</label>
+                                <select id="masterKategori" class="w-full p-2 border rounded bg-orange-50/50">
+                                    <option value="sembako">Sembako</option>
+                                    <option value="topping">Topping Seblak</option>
+                                    <option value="makanan">Makanan / Bakaran</option>
+                                    <option value="dingin">Minuman Dingin</option>
+                                    <option value="panas">Minuman Hangat</option>
+                                    <option value="jajanan">Jajanan / Rokok</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="font-bold">Satuan Kecil:</label>
+                                <input type="text" id="masterSatuan" class="w-full p-2 border rounded bg-orange-50/50" placeholder="pcs / porsi / cup">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-bold">Harga Beli Karton / Besar:</label>
+                                <input type="number" id="masterHargaBeli" oninput="hitungEstimasiProfitMaster()" class="w-full p-2 border rounded bg-orange-50/50" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="font-bold">Isi per Karton / Besar:</label>
+                                <input type="number" id="masterIsi" oninput="hitungEstimasiProfitMaster()" value="1" class="w-full p-2 border rounded bg-orange-50/50">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="font-bold">Harga Jual Satuan Kecil:</label>
+                            <input type="number" id="masterHargaJual" oninput="hitungEstimasiProfitMaster()" class="w-full p-2 border rounded bg-orange-50/50" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="font-bold">Bahan Komposisi (Resep/HPP):</label>
+                            <textarea id="masterKomposisi" class="w-full p-2 border rounded bg-orange-50/50" placeholder="Detail bahan pembentuk harga jual..."></textarea>
+                        </div>
+                        <div id="masterEstimasiProfit" class="p-2 bg-orange-100 text-orange-800 rounded font-bold text-[11px]">
+                            Estimasi Laba: Rp 0
+                        </div>
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="simpanMasterDatabase()" class="flex-1 bg-orange-600 text-white py-2 rounded font-bold hover:bg-orange-700">💾 Simpan Barang</button>
+                            <button onclick="resetFormMaster()" class="bg-gray-300 py-2 px-3 rounded font-bold text-gray-700">Batal</button>
                         </div>
                     </div>
+                </div>
 
-                    <div id="wrapperUangBayar">
-                        <input type="number" id="inputBayar" oninput="hitungKembalian()" placeholder="Nominal Uang Bayar (Rp)" class="w-full p-2 border border-orange-300 rounded text-xs font-bold">
-                        <div class="flex justify-between text-xs font-bold mt-1">
-                            <span>Kembalian:</span>
+                <!-- TABEL STOCK & BARANG -->
+                <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-orange-700 text-sm">📦 Daftar Stock & Koreksi Stock</h3>
+                        <input type="text" id="cariMasterData" onkeyup="cariMasterData()" placeholder="🔍 Cari nama/barcode..." class="p-1.5 border rounded text-xs w-48">
+                    </div>
+                    <div class="overflow-x-auto max-h-[500px]">
+                        <table class="w-full text-xs text-left border-collapse">
+                            <thead>
+                                <tr class="bg-orange-100 text-orange-900 border-b">
+                                    <th class="p-2">Barang / Barcode</th>
+                                    <th class="p-2 text-center">Kategori</th>
+                                    <th class="p-2 text-right">Harga Beli</th>
+                                    <th class="p-2 text-right">Harga Jual</th>
+                                    <th class="p-2 text-center">Stock</th>
+                                    <th class="p-2 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelMasterData"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB MASTER: PELANGGAN, SUPPLIER, KARYAWAN, TITIPAN, CABANG, INVENTARIS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- DATA PELANGGAN -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-2">👤 Master Pelanggan & Hutang</h3>
+                    <div class="space-y-2 text-xs">
+                        <input type="text" id="pelangganNama" placeholder="Nama Pelanggan" class="w-full p-1.5 border rounded">
+                        <input type="text" id="pelangganWA" placeholder="No. WA / Telp" class="w-full p-1.5 border rounded">
+                        <input type="text" id="pelangganAlamat" placeholder="Alamat" class="w-full p-1.5 border rounded">
+                        <button onclick="tambahPelanggan()" class="w-full bg-orange-600 text-white p-1.5 rounded font-bold">➕ Tambah Pelanggan</button>
+                    </div>
+                    <div class="mt-3 max-h-40 overflow-y-auto text-xs" id="listPelanggan"></div>
+                </div>
+
+                <!-- DATA SUPPLIER -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-2">🏭 Master Supplier & Piutang</h3>
+                    <div class="space-y-2 text-xs">
+                        <input type="text" id="supplierNama" placeholder="Nama Supplier / Sales" class="w-full p-1.5 border rounded">
+                        <input type="text" id="supplierWA" placeholder="No. WA" class="w-full p-1.5 border rounded">
+                        <input type="text" id="supplierAlamat" placeholder="Alamat" class="w-full p-1.5 border rounded">
+                        <button onclick="tambahSupplier()" class="w-full bg-orange-600 text-white p-1.5 rounded font-bold">➕ Tambah Supplier</button>
+                    </div>
+                    <div class="mt-3 max-h-40 overflow-y-auto text-xs" id="listSupplier"></div>
+                </div>
+
+                <!-- MANAGEMENT BARANG TITIPAN -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-2">📦 Barang Titipan (Konsinyasi)</h3>
+                    <div class="space-y-1 text-xs">
+                        <input type="text" id="titipanNama" placeholder="Nama Barang Titipan" class="w-full p-1.5 border rounded">
+                        <input type="number" id="titipanJumlah" placeholder="Jumlah Titip" class="w-full p-1.5 border rounded">
+                        <input type="text" id="titipanKontak" placeholder="Kontak Penitip" class="w-full p-1.5 border rounded">
+                        <div class="grid grid-cols-2 gap-1">
+                            <input type="number" id="titipanHargaBeli" placeholder="Harga Beli" class="p-1.5 border rounded">
+                            <input type="number" id="titipanHargaJual" placeholder="Harga Jual" class="p-1.5 border rounded">
+                        </div>
+                        <button onclick="tambahBarangTitipan()" class="w-full bg-orange-600 text-white p-1.5 rounded font-bold">➕ Tambah Titipan</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CABANG & INVENTARIS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- DATA CABANG ONLINE -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-2">🌐 Data Cabang Online Terkoneksi</h3>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex gap-2">
+                            <input type="text" id="cabangNama" placeholder="Nama Cabang Baru" class="flex-1 p-2 border rounded">
+                            <button onclick="tambahCabang()" class="bg-orange-600 text-white px-3 rounded font-bold">Tambah</button>
+                        </div>
+                        <div id="listCabang" class="space-y-1 pt-2"></div>
+                    </div>
+                </div>
+
+                <!-- INVENTARIS OPERASIONAL -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-2">🛠️ Inventaris Alat Operasional</h3>
+                    <div class="space-y-2 text-xs">
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="text" id="invNama" placeholder="Nama Alat" class="p-1.5 border rounded">
+                            <input type="date" id="invTgl" class="p-1.5 border rounded">
+                            <input type="number" id="invHarga" placeholder="Harga Unit" class="p-1.5 border rounded">
+                        </div>
+                        <button onclick="tambahInventaris()" class="w-full bg-orange-600 text-white p-1.5 rounded font-bold">➕ Catat Inventaris</button>
+                        <div id="listInventaris" class="max-h-32 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: TRANSAKSI & POS -->
+        <section id="tab-transaksi" class="hidden space-y-6">
+            <h2 class="text-2xl font-black text-orange-800 border-b-2 border-orange-300 pb-2">🛒 TRANSAKSI POS & OPERASIONAL</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- KASIR MAIN MENU -->
+                <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow border border-orange-200 flex flex-col">
+                    <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+                        <div>
+                            <h3 class="text-lg font-bold text-orange-700">🛒 Kasir Penjualan POS</h3>
+                            <p class="text-xs text-gray-500">Pilih menu, tahan transaksi jika menyela, pilih metode pembayaran.</p>
+                        </div>
+                        <input type="text" id="cariMenuKasir" onkeyup="cariMenuKasir()" class="p-2 border border-orange-300 rounded text-xs w-48" placeholder="🔍 Cari menu...">
+                    </div>
+
+                    <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                        <button id="btn-kat-topping" onclick="filterKategori('topping')" class="px-3 py-1.5 bg-orange-500 text-white font-bold text-xs rounded">🍢 Topping</button>
+                        <button id="btn-kat-makanan" onclick="filterKategori('makanan')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded">🍲 Makanan</button>
+                        <button id="btn-kat-dingin" onclick="filterKategori('dingin')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded">❄️ Dingin</button>
+                        <button id="btn-kat-panas" onclick="filterKategori('panas')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded">☕ Panas</button>
+                        <button id="btn-kat-jajanan" onclick="filterKategori('jajanan')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded">🚬 Jajanan</button>
+                        <button id="btn-kat-sembako" onclick="filterKategori('sembako')" class="px-3 py-1.5 bg-gray-100 text-gray-700 font-bold text-xs rounded">🌾 Sembako</button>
+                    </div>
+
+                    <div class="max-h-[50vh] overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2" id="container-menu"></div>
+                </div>
+
+                <!-- KERANJANG TRANSAKSI -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-orange-700 text-sm">📝 Detail Pesanan</h3>
+                            <button onclick="tahanTransaksi()" class="px-2 py-1 bg-amber-500 text-white rounded font-bold text-[10px]">⏸️ Tahan Transaksi</button>
+                        </div>
+                        <div id="tabelKeranjang" class="max-h-48 overflow-y-auto mb-3 border-b pb-2"></div>
+                    </div>
+
+                    <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 space-y-2">
+                        <div class="flex justify-between text-xs font-bold text-gray-700">
+                            <span>Pelanggan:</span>
+                            <select id="kasirPelanggan" class="p-1 border rounded text-xs bg-white">
+                                <option value="Umum">Umum / Cash</option>
+                            </select>
+                        </div>
+
+                        <!-- METODE PEMBAYARAN: TUNAI, QRIS, HUTANG, PERSONAL -->
+                        <div class="grid grid-cols-4 gap-1 pt-1">
+                            <button id="btn-bayar-tunai" onclick="setMetodePembayaran('TUNAI')" class="py-1.5 text-center text-[10px] font-bold rounded bg-orange-600 text-white">TUNAI</button>
+                            <button id="btn-bayar-qris" onclick="setMetodePembayaran('QRIS')" class="py-1.5 text-center text-[10px] font-bold rounded bg-gray-200 text-gray-700">QRIS</button>
+                            <button id="btn-bayar-hutang" onclick="setMetodePembayaran('HUTANG')" class="py-1.5 text-center text-[10px] font-bold rounded bg-gray-200 text-gray-700">HUTANG</button>
+                            <button id="btn-bayar-personal" onclick="setMetodePembayaran('PERSONAL')" class="py-1.5 text-center text-[10px] font-bold rounded bg-gray-200 text-gray-700">PERSONAL</button>
+                        </div>
+
+                        <div id="wrapperUangBayar" class="pt-2">
+                            <label class="block text-[10px] font-bold text-gray-600">Uang Bayar (Rp):</label>
+                            <input type="number" id="inputBayar" oninput="hitungKembalian()" class="w-full p-2 border rounded font-bold text-sm bg-white" placeholder="0">
+                        </div>
+
+                        <div class="flex justify-between text-sm font-bold pt-1">
+                            <span>Total:</span>
+                            <span class="text-orange-600 text-lg" id="textTotal">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-xs font-bold text-gray-600" id="wrapperKembalian">
+                            <span>Kembali:</span>
                             <span id="textKembalian">Rp 0</span>
                         </div>
-                    </div>
 
-                    <div class="grid grid-cols-2 gap-2 pt-2">
-                        <button onclick="tombolSimpanSaja()" class="bg-emerald-600 text-white font-bold py-2 rounded text-xs hover:bg-emerald-700">💾 Simpan</button>
-                        <button onclick="cetakNota()" class="bg-blue-600 text-white font-bold py-2 rounded text-xs hover:bg-blue-700">🖨️ Cetak Nota</button>
+                        <div class="grid grid-cols-2 gap-2 pt-2">
+                            <button onclick="cetakNota()" class="bg-orange-600 text-white py-2 rounded font-bold text-xs hover:bg-orange-700">🖨️ Cetak & Simpan</button>
+                            <button onclick="tombolSimpanSaja()" class="bg-emerald-600 text-white py-2 rounded font-bold text-xs hover:bg-emerald-700">💾 Simpan Saja</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <!-- TAB 4: BACK OFFICE & ABSENSI -->
-        <section id="tab-backoffice" class="tab-content hidden space-y-6">
-            <h2 class="text-2xl font-bold text-orange-700">⚙️ Back Office & Management Gaji Karyawan</h2>
-            
+            <!-- TRANSFER STOCK & TRANSAKSI OPERASIONAL -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Absensi & Gaji -->
-                <div class="bg-white p-5 rounded-xl shadow border border-orange-100">
-                    <h3 class="font-bold text-md text-gray-800 mb-3">📅 Log Absensi & Estimasi Gaji Perhari</h3>
+                <!-- TRANSFER STOCK ANTAR CABANG -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-2">🔄 Transfer Stock Antar Cabang</h3>
                     <div class="space-y-2 text-xs">
-                        <input type="text" id="absenNama" placeholder="Nama Karyawan" class="w-full p-2 border rounded">
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="time" id="absenMasuk" class="p-2 border rounded">
-                            <input type="time" id="absenPulang" class="p-2 border rounded">
-                        </div>
-                        <input type="number" id="absenGajiPerHari" placeholder="Gaji Perhari (Input Manual Rp)" class="w-full p-2 border rounded font-bold">
-                        <button onclick="simpanAbsensi()" class="w-full bg-orange-600 text-white font-bold p-2 rounded hover:bg-orange-700">💾 Simpan Absensi & Hitung Gaji</button>
+                        <select id="transferTujuan" class="w-full p-2 border rounded">
+                            <option value="">-- Pilih Cabang Tujuan --</option>
+                            <option value="DAPUR AYA">DAPUR AYA</option>
+                            <option value="AYA SEBLAK DAN ANGKRINGAN">AYA SEBLAK DAN ANGKRINGAN</option>
+                        </select>
+                        <input type="text" id="transferBarang" placeholder="Nama Barang" class="w-full p-2 border rounded">
+                        <input type="number" id="transferQty" placeholder="Jumlah Qty" class="w-full p-2 border rounded">
+                        <p class="text-[10px] text-amber-600 italic">* Membutuhkan persetujuan Supervisor/Owner</p>
+                        <button onclick="mintaTransferStock()" class="w-full bg-amber-600 text-white p-2 rounded font-bold">Kirim Pengajuan Transfer</button>
                     </div>
                 </div>
 
-                <!-- Kalkulator Sederhana -->
-                <div class="bg-white p-5 rounded-xl shadow border border-orange-100">
-                    <h3 class="font-bold text-md text-gray-800 mb-3">🧮 Kalkulator Cepat Operasional</h3>
-                    <div class="space-y-2">
-                        <input type="text" id="calcDisplay" readonly class="w-full p-3 bg-gray-100 border text-right font-mono text-xl font-bold rounded">
-                        <div class="grid grid-cols-4 gap-2 text-xs font-bold">
-                            <button onclick="calcInput('7')" class="p-3 bg-gray-200 rounded">7</button>
-                            <button onclick="calcInput('8')" class="p-3 bg-gray-200 rounded">8</button>
-                            <button onclick="calcInput('9')" class="p-3 bg-gray-200 rounded">9</button>
-                            <button onclick="calcInput('/')" class="p-3 bg-orange-500 text-white rounded">÷</button>
-                            <button onclick="calcInput('4')" class="p-3 bg-gray-200 rounded">4</button>
-                            <button onclick="calcInput('5')" class="p-3 bg-gray-200 rounded">5</button>
-                            <button onclick="calcInput('6')" class="p-3 bg-gray-200 rounded">6</button>
-                            <button onclick="calcInput('*')" class="p-3 bg-orange-500 text-white rounded">×</button>
-                            <button onclick="calcInput('1')" class="p-3 bg-gray-200 rounded">1</button>
-                            <button onclick="calcInput('2')" class="p-3 bg-gray-200 rounded">2</button>
-                            <button onclick="calcInput('3')" class="p-3 bg-gray-200 rounded">3</button>
-                            <button onclick="calcInput('-')" class="p-3 bg-orange-500 text-white rounded">-</button>
-                            <button onclick="calcClear()" class="p-3 bg-red-500 text-white rounded">C</button>
-                            <button onclick="calcInput('0')" class="p-3 bg-gray-200 rounded">0</button>
-                            <button onclick="calcEqual()" class="p-3 bg-emerald-600 text-white rounded">=</button>
-                            <button onclick="calcInput('+')" class="p-3 bg-orange-500 text-white rounded">+</button>
+                <!-- TRANSAKSI OPERASIONAL DETAIL -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-2">💸 Biaya Operasional Toko / Warung</h3>
+                    <div class="space-y-2 text-xs">
+                        <input type="text" id="opsNama" placeholder="Nama Barang / Biaya" class="w-full p-2 border rounded">
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="text" id="opsSatuan" placeholder="Satuan" class="p-2 border rounded">
+                            <input type="number" id="opsHarga" placeholder="Harga Unit" class="p-2 border rounded">
+                            <input type="number" id="opsQty" placeholder="Qty" class="p-2 border rounded">
+                        </div>
+                        <button onclick="simpanOperasional()" class="w-full bg-red-600 text-white p-2 rounded font-bold">Catat Pengeluaran Ops</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: BACK OFFICE -->
+        <section id="tab-backoffice" class="hidden space-y-6">
+            <h2 class="text-2xl font-black text-orange-800 border-b-2 border-orange-300 pb-2">🏢 BACK OFFICE & KARYAWAN</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- MANAGEMENT KARYAWAN & ABSENSI -->
+                <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow border border-orange-200 space-y-4">
+                    <h3 class="font-bold text-orange-700 text-sm">📅 Kalender Absensi & Gaji Per Hari</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="space-y-2 bg-orange-50 p-3 rounded border border-orange-200">
+                            <h4 class="font-bold text-orange-800">Catat Absensi Hari Ini</h4>
+                            <select id="absenKaryawan" class="w-full p-2 border rounded bg-white"></select>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label>Jam Masuk:</label>
+                                    <input type="time" id="absenMasuk" class="w-full p-1.5 border rounded bg-white">
+                                </div>
+                                <div>
+                                    <label>Jam Pulang:</label>
+                                    <input type="time" id="absenPulang" class="w-full p-1.5 border rounded bg-white">
+                                </div>
+                            </div>
+                            <div>
+                                <label>Gaji Harian (Input Manual):</label>
+                                <input type="number" id="absenGajiHarian" placeholder="Rp 0" class="w-full p-1.5 border rounded bg-white">
+                            </div>
+                            <button onclick="simpanAbsensi()" class="w-full bg-orange-600 text-white p-2 rounded font-bold">Simpan Absensi</button>
+                        </div>
+
+                        <!-- REKAP GAJI & ESTIMASI PROFIT -->
+                        <div class="space-y-2 bg-orange-50 p-3 rounded border border-orange-200">
+                            <h4 class="font-bold text-orange-800">Estimasi Gaji Dipotong Kasbon</h4>
+                            <div id="rekapGajiKaryawan" class="text-xs space-y-1"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KALKULATOR SEDERHANA BACKOFFICE -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200 flex flex-col justify-between">
+                    <h3 class="font-bold text-orange-700 text-sm mb-2">🧮 Kalkulator Sederhana</h3>
+                    <div class="bg-gray-100 p-3 rounded-lg border">
+                        <input type="text" id="calcDisplay" readonly class="w-full text-right p-3 font-mono font-bold text-lg bg-white border rounded mb-3" value="0">
+                        <div class="grid grid-cols-4 gap-2 text-sm font-bold">
+                            <button onclick="calcInput('7')" class="p-3 bg-white rounded border">7</button>
+                            <button onclick="calcInput('8')" class="p-3 bg-white rounded border">8</button>
+                            <button onclick="calcInput('9')" class="p-3 bg-white rounded border">9</button>
+                            <button onclick="calcInput('/')" class="p-3 bg-orange-200 rounded border">÷</button>
+                            <button onclick="calcInput('4')" class="p-3 bg-white rounded border">4</button>
+                            <button onclick="calcInput('5')" class="p-3 bg-white rounded border">5</button>
+                            <button onclick="calcInput('6')" class="p-3 bg-white rounded border">6</button>
+                            <button onclick="calcInput('*')" class="p-3 bg-orange-200 rounded border">×</button>
+                            <button onclick="calcInput('1')" class="p-3 bg-white rounded border">1</button>
+                            <button onclick="calcInput('2')" class="p-3 bg-white rounded border">2</button>
+                            <button onclick="calcInput('3')" class="p-3 bg-white rounded border">3</button>
+                            <button onclick="calcInput('-')" class="p-3 bg-orange-200 rounded border">-</button>
+                            <button onclick="calcClear()" class="p-3 bg-red-200 rounded border text-red-700">C</button>
+                            <button onclick="calcInput('0')" class="p-3 bg-white rounded border">0</button>
+                            <button onclick="calcResult()" class="p-3 bg-emerald-500 text-white rounded border col-span-2">=</button>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 5: LAPORAN -->
-        <section id="tab-laporan" class="tab-content hidden space-y-6">
-            <h2 class="text-2xl font-bold text-orange-700">📊 Laporan Finance & Grafik Analisis</h2>
-            <div class="bg-white p-4 rounded-xl shadow border border-orange-100 flex gap-4 items-center flex-wrap">
-                <input type="date" id="filterTglMulai" class="p-2 border rounded text-xs">
-                <input type="date" id="filterTglSelesai" class="p-2 border rounded text-xs">
-                <button onclick="updateLaporan()" class="px-4 py-2 bg-orange-600 text-white font-bold text-xs rounded hover:bg-orange-700">Tampilkan Laporan</button>
-                <button onclick="window.print()" class="px-4 py-2 bg-gray-800 text-white font-bold text-xs rounded hover:bg-black">🖨️ Cetak Laporan</button>
+        <!-- TAB 4: LAPORAN & GRAFIK -->
+        <section id="tab-laporan" class="hidden space-y-6">
+            <h2 class="text-2xl font-black text-orange-800 border-b-2 border-orange-300 pb-2">📊 LAPORAN, RUGI LABA & GRAFIK</h2>
+
+            <!-- FILTER TANGGAL PERIODE -->
+            <div class="bg-white p-4 rounded-xl shadow border border-orange-200 flex flex-wrap gap-4 items-center">
+                <span class="font-bold text-xs text-orange-800">📅 Periode Laporan:</span>
+                <input type="date" id="filterMulai" class="p-1.5 border rounded text-xs">
+                <span class="text-xs">s/d</span>
+                <input type="date" id="filterSelesai" class="p-1.5 border rounded text-xs">
+                <button onclick="terapkanFilterLaporan()" class="bg-orange-600 text-white px-3 py-1.5 rounded font-bold text-xs">Terapkan Filter</button>
+                <button onclick="cetakLaporanHalaman()" class="bg-blue-600 text-white px-3 py-1.5 rounded font-bold text-xs">🖨️ Cetak Laporan Ini</button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow border text-center">
-                    <p class="text-xs text-gray-500 font-bold">TOTAL OMZET</p>
-                    <p class="text-2xl font-extrabold text-emerald-600" id="statOmset">Rp 0</p>
+            <!-- CARD REKAP -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-bold">
+                <div class="bg-white p-4 rounded-xl border border-orange-200 shadow">
+                    <p class="text-gray-500">Total Omset Penjualan</p>
+                    <p class="text-xl text-orange-600 font-extrabold" id="statOmset">Rp 0</p>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow border text-center">
-                    <p class="text-xs text-gray-500 font-bold">UANG CASH RIIL FISIK</p>
-                    <p class="text-2xl font-extrabold text-blue-600" id="statUangCash">Rp 0</p>
+                <div class="bg-white p-4 rounded-xl border border-orange-200 shadow">
+                    <p class="text-gray-500">Total Operational & Beban</p>
+                    <p class="text-xl text-red-600 font-extrabold" id="statBeban">Rp 0</p>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow border text-center">
-                    <p class="text-xs text-gray-500 font-bold">LABA / RUGI BERSIH</p>
-                    <p class="text-2xl font-extrabold text-orange-600" id="statLabaRugi">Rp 0</p>
+                <div id="boxLabaRugi" class="bg-white p-4 rounded-xl border border-orange-200 shadow">
+                    <p class="text-gray-500" id="labelLabaRugi">Laba Bersih</p>
+                    <p class="text-xl text-emerald-600 font-extrabold" id="statLabaRugi">Rp 0</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-orange-200 shadow">
+                    <p class="text-gray-500">Total Transaksi</p>
+                    <p class="text-xl text-blue-600 font-extrabold" id="statTotalTransaksi">0 Transaksi</p>
                 </div>
             </div>
 
-            <div class="bg-white p-5 rounded-xl shadow">
-                <h3 class="font-bold text-gray-700 mb-3">📈 Grafik Omzet Harian</h3>
-                <canvas id="chartOmsetHarian" class="max-h-64"></canvas>
-            </div>
-        </section>
-
-        <!-- TAB 6: MANAGEMENT USER & SOP -->
-        <section id="tab-user" class="tab-content hidden space-y-6">
-            <h2 class="text-2xl font-bold text-orange-700">👥 User Management, SPK & Standar Operasional (SOP)</h2>
+            <!-- GRAFIK PENJUALAN PER HARI & BARANG LARIS -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- User Control -->
-                <div class="bg-white p-5 rounded-xl shadow">
-                    <h3 class="font-bold text-md text-gray-800 mb-3">➕ Tambah User Hak Akses</h3>
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-3">📈 Grafik Penjualan Per Hari</h3>
+                    <canvas id="chartPenjualanHarian"></canvas>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
+                    <h3 class="font-bold text-orange-700 text-sm mb-3">🔥 Grafik Barang Laris Terjual</h3>
+                    <canvas id="chartBarangLaris"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: MANAGEMENT USER & SOP -->
+        <section id="tab-user" class="hidden space-y-6">
+            <h2 class="text-2xl font-black text-orange-800 border-b-2 border-orange-300 pb-2">👥 USER MANAGEMENT & SURAT / SOP</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- MANAGEMENT AKUN -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200 space-y-3">
+                    <h3 class="font-bold text-orange-700 text-sm">🔑 Tambah User & Hak Akses</h3>
                     <div class="space-y-2 text-xs">
                         <input type="text" id="userUsername" placeholder="Username" class="w-full p-2 border rounded">
                         <input type="password" id="userPassword" placeholder="Password" class="w-full p-2 border rounded">
-                        <select id="userRole" class="w-full p-2 border rounded font-bold">
-                            <option value="kasir">Kasir (Transaksi & Pembelian Saja)</option>
-                            <option value="supervisor">Supervisor (Laporan & Akses Terbatas)</option>
-                            <option value="owner">Owner (Akses Full Fitur System)</option>
+                        <select id="userRole" class="w-full p-2 border rounded">
+                            <option value="Kasir">Kasir (Transaksi & Pembelian saja)</option>
+                            <option value="Supervisor">Supervisor (Laporan & Akses Terbatas)</option>
+                            <option value="Owner">Owner (Akses Semua Fitur)</option>
                         </select>
-                        <button onclick="tambahUser()" class="w-full bg-orange-600 text-white font-bold p-2 rounded hover:bg-orange-700">Simpan User</button>
+                        <button onclick="tambahUserBaru()" class="w-full bg-orange-600 text-white p-2 rounded font-bold">➕ Buat Akun User</button>
                     </div>
                 </div>
 
-                <!-- Cetak Surat Perjanjian Kerja -->
-                <div class="bg-white p-5 rounded-xl shadow">
-                    <h3 class="font-bold text-md text-gray-800 mb-3">📄 Cetak Surat Perjanjian Kerja (SPK)</h3>
+                <!-- CETAK SURAT PERJANJIAN KERJA -->
+                <div class="bg-white p-4 rounded-xl shadow border border-orange-200 space-y-3">
+                    <h3 class="font-bold text-orange-700 text-sm">📜 Surat Perjanjian Kerja Karyawan</h3>
                     <div class="space-y-2 text-xs">
                         <input type="text" id="spkNama" placeholder="Nama Karyawan" class="w-full p-2 border rounded">
-                        <input type="text" id="spkJabatan" placeholder="Jabatan (Kasir/Cook/Waitress)" class="w-full p-2 border rounded">
-                        <button onclick="cetakSPK()" class="w-full bg-blue-600 text-white font-bold p-2 rounded hover:bg-blue-700">🖨️ Cetak Dokumen SPK</button>
+                        <input type="text" id="spkJabatan" placeholder="Jabatan / Posisi" class="w-full p-2 border rounded">
+                        <input type="number" id="spkGaji" placeholder="Gaji / Hari (Rp)" class="w-full p-2 border rounded">
+                        <button onclick="cetakSuratPerjanjianKerja()" class="w-full bg-blue-600 text-white p-2 rounded font-bold">🖨️ Cetak Surat Kerja</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Standar Operasional Prosedur (SOP) -->
-            <div class="bg-white p-6 rounded-xl shadow border border-orange-100 space-y-4">
-                <h3 class="font-bold text-lg text-orange-600">📋 Standar Operasional Prosedur (SOP) Profesional AYA GROUP</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <h4 class="font-bold text-orange-800 border-b pb-1 mb-2">🍜 SOP Warung & Angkringan</h4>
+            <!-- SOP PROFESSIONAL -->
+            <div class="bg-white p-6 rounded-xl shadow border border-orange-200 space-y-4 text-xs">
+                <h3 class="font-bold text-orange-800 text-base border-b pb-2">📋 Standar Operasional Prosedur (SOP) Professional</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="p-3 bg-orange-50 rounded border border-orange-200">
+                        <h4 class="font-bold text-orange-900 mb-1">🏬 Toko Retail / Sembako</h4>
                         <ul class="list-disc pl-4 space-y-1">
-                            <li>Pengecekan kebersihan meja, area bakaran & peralatan.</li>
-                            <li>Standard stok kuah seblak & kelengkapan topping prasmanan.</li>
-                            <li>Pelayanan cepat, ramah, dan mengonfirmasi tingkat kepedasan.</li>
+                            <li>Cek kebersihan area toko setiap jam buka.</li>
+                            <li>Lakukan FIFO pada barang yang memiliki expired date.</li>
+                            <li>Hitung stock fisik bulanan dan sesuaikan di sistem.</li>
                         </ul>
                     </div>
-                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <h4 class="font-bold text-orange-800 border-b pb-1 mb-2">☕ SOP Rumah Makan / Warkop</h4>
+                    <div class="p-3 bg-orange-50 rounded border border-orange-200">
+                        <h4 class="font-bold text-orange-900 mb-1">☕ Warung Kopi / Angkringan</h4>
                         <ul class="list-disc pl-4 space-y-1">
-                            <li>Penyajian kopi dan racikan minuman konsisten (suhu & takaran).</li>
-                            <li>Rotasi bahan baku FIFO (First In First Out).</li>
-                            <li>Pencatatan penggunaan bahan untuk makan karyawan (PERSONAL).</li>
+                            <li>Pastikan peralatan racik kopi selalu higienis.</li>
+                            <li>Panaskan produk bakaran secara bersih dan higienis.</li>
+                            <li>Lakukan pencatatan sisa persediaan harian.</li>
                         </ul>
                     </div>
-                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <h4 class="font-bold text-orange-800 border-b pb-1 mb-2">🛒 SOP Toko Retail / Mart</h4>
+                    <div class="p-3 bg-orange-50 rounded border border-orange-200">
+                        <h4 class="font-bold text-orange-900 mb-1">🍲 Seblak Prasmanan</h4>
                         <ul class="list-disc pl-4 space-y-1">
-                            <li>Scanning Barcode / pencatatan kode barang akurat saat transaksi.</li>
-                            <li>Stock opname berkala dan penyesuaian koreksi stok.</li>
-                            <li>Setoran uang tunai kasir sesuai dengan rekap laporan bulanan.</li>
+                            <li>Pastikan wadah topping terisi rapi & tertutup rapat.</li>
+                            <li>Cek tingkat kesegaran bahan bumbu seblak harian.</li>
+                            <li>Gunakan standar porsi dan harga sesuai Master Data.</li>
                         </ul>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 7: SETTING PRINTER THERMAL -->
-        <section id="tab-setting" class="tab-content hidden space-y-6">
-            <h2 class="text-2xl font-bold text-orange-700">⚙️ Pengaturan Header, Footer & Printer Bluetooth 58mm</h2>
-            <div class="bg-white p-6 rounded-xl shadow border border-orange-100 max-w-xl space-y-3 text-xs">
+        <!-- TAB 6: SETTING & PRINTER -->
+        <section id="tab-setting" class="hidden space-y-6">
+            <h2 class="text-2xl font-black text-orange-800 border-b-2 border-orange-300 pb-2">⚙️ SETTING HEADER NOTA & BLUETOOTH PRINTER</h2>
+
+            <div class="bg-white p-6 rounded-xl shadow border border-orange-200 max-w-xl space-y-4 text-xs">
+                <h3 class="font-bold text-orange-700 text-sm">🖨️ Setting Cetak Nota Thermal 58mm</h3>
                 <div>
-                    <label class="block font-bold mb-1">Header Nota (Nama Toko):</label>
-                    <input type="text" id="settingHeader" value="AYA GROUP - MULTI PAYMENT" class="w-full p-2 border rounded">
+                    <label class="font-bold">Header Nota / Nama Toko:</label>
+                    <input type="text" id="settingHeader" class="w-full p-2 border rounded" value="AYA GROUP - MULTI PAYMENT">
                 </div>
                 <div>
-                    <label class="block font-bold mb-1">Alamat Outlet / Warung:</label>
-                    <input type="text" id="settingAlamat" value="Jl. Raya Utama No. 88, Jawa Timur" class="w-full p-2 border rounded">
+                    <label class="font-bold">Alamat Toko / Warung:</label>
+                    <input type="text" id="settingAlamat" class="w-full p-2 border rounded" value="Jl. Raya Utama Aya No. 88">
                 </div>
                 <div>
-                    <label class="block font-bold mb-1">No. HP / WhatsApp Outlet:</label>
-                    <input type="text" id="settingHp" value="0812-3456-7890" class="w-full p-2 border rounded">
+                    <label class="font-bold">No. HP / WA Nota:</label>
+                    <input type="text" id="settingHP" class="w-full p-2 border rounded" value="0812-3456-7890">
                 </div>
                 <div>
-                    <label class="block font-bold mb-1">Footer Nota (Pesan Penutup):</label>
-                    <input type="text" id="settingFooter" value="Terima Kasih Atas Kunjungan Anda!" class="w-full p-2 border rounded">
+                    <label class="font-bold">Footer Nota:</label>
+                    <input type="text" id="settingFooter" class="w-full p-2 border rounded" value="Terima Kasih Atas Kunjungan Anda!">
                 </div>
-                <button onclick="simpanSettingNota()" class="w-full bg-emerald-600 text-white font-bold p-2.5 rounded hover:bg-emerald-700">💾 Simpan Pengaturan Nota</button>
+                <div class="p-3 bg-orange-100 text-orange-900 rounded">
+                    <strong>Default Layout Thermal Printer:</strong> Bluetooth 58mm (Android & PC). Auto margin 0, Font Monospace.
+                </div>
+                <button onclick="simpanSettingNota()" class="w-full bg-orange-600 text-white p-2 rounded font-bold">💾 Simpan Pengaturan Nota</button>
             </div>
         </section>
 
     </main>
 
-    <!-- PRINT NOTA HIDDEN AREA (FORMAT THERMAL 58MM) -->
-    <div id="areaNota" style="display: none;">
-        <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px;">
-            <div id="notaHeaderTxt" style="font-size: 13px; font-weight: bold;">AYA GROUP</div>
-            <div id="notaAlamatTxt" style="font-size: 8px;"></div>
-            <div id="notaHpTxt" style="font-size: 8px;"></div>
-            <div id="notaWaktu" style="font-size: 8px; margin-top: 2px;"></div>
-            <div id="notaMetode" style="font-size: 8px; font-weight: bold;"></div>
-        </div>
+    <!-- AREA CETAK NOTA HIDDEN UNTUK PRINTER THERMAL 58MM -->
+    <div id="areaNota">
+        <div class="text-center font-bold text-sm" id="notaHeaderTitle">AYA GROUP</div>
+        <div class="text-center text-[10px]" id="notaHeaderAlamat">Jl. Raya Utama Aya</div>
+        <div class="text-center text-[10px]" id="notaHeaderHP">08123456789</div>
+        <div class="border-b border-dashed my-1"></div>
+        <div id="notaWaktu" class="text-[9px]"></div>
+        <div id="notaMetode" class="text-[9px] font-bold"></div>
+        <div class="border-b border-dashed my-1"></div>
         <div id="notaItems"></div>
-        <div id="notaTotal" style="border-top: 1px dashed #000; margin-top: 5px; padding-top: 3px; font-size: 9px;"></div>
-        <div id="notaFooterTxt" style="text-align: center; margin-top: 8px; font-size: 8px; border-top: 1px dashed #000; padding-top: 4px;"></div>
+        <div class="border-b border-dashed my-1"></div>
+        <div id="notaTotal"></div>
+        <div class="border-b border-dashed my-1"></div>
+        <div class="text-center text-[9px]" id="notaFooter">Terima Kasih!</div>
     </div>
 
-    <script src="js/firebase-config.js"></script>
+    <!-- SCRIPT APPLICATION -->
     <script src="js/menu-data.js"></script>
     <script src="js/script.js"></script>
     <script src="js/app.js"></script>

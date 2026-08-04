@@ -1,7 +1,8 @@
+// js/menu-data.js
 let databaseMenu = [
-    { id: "MN-001", nama: "Seblak Komplit Prasmanan", kategori: "makanan", harga: 15000, hargaBeli: 8000, isi: 1, satuan: "porsi" },
-    { id: "MN-002", nama: "Es Coklat Impian AYA", kategori: "dingin", harga: 8000, hargaBeli: 3500, isi: 1, satuan: "cup" },
-    { id: "MN-003", nama: "Kopi Hitam Angkringan", kategori: "panas", harga: 4000, hargaBeli: 1500, isi: 1, satuan: "cangkir" },
-    { id: "MN-004", nama: "Beras Sembako 5kg", kategori: "sembako", harga: 68000, hargaBeli: 62000, isi: 1, satuan: "sak" },
-    { id: "MN-005", nama: "Topping Sosis & Bakso", kategori: "topping", harga: 3000, hargaBeli: 1200, isi: 1, satuan: "pcs" }
+    { id: "M01", nama: "Beras Ramos 5kg", kategori: "sembako", satuan: "sak", hargaBeli: 62000, harga: 68000, isi: 1 },
+    { id: "M02", nama: "Minyak Goreng 1L", kategori: "sembako", satuan: "pouch", hargaBeli: 14000, harga: 16500, isi: 1 },
+    { id: "M03", nama: "Es Kopi Aya", kategori: "dingin", satuan: "cup", hargaBeli: 4000, harga: 8000, isi: 1 },
+    { id: "M04", nama: "Topping Dumpling Cheese", kategori: "topping", satuan: "pcs", hargaBeli: 1200, harga: 2500, isi: 1 },
+    { id: "M05", nama: "Bakaran Sosis Jumbo", kategori: "makanan", satuan: "porsi", hargaBeli: 5000, harga: 10000, isi: 1 }
 ];
