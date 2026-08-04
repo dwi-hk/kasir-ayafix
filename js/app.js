@@ -25,9 +25,9 @@ try {
 // Variable Global Storage Internal & Temporary
 let keranjang = [];
 let transaksiDitahan = [];
-let cabangAktif = 'SEMUA CABANG'; // Default menampilkan semua agar data lama langsung terlihat
-let dataTransaksiFirebase = []; // Cache transaksi realtime dari Firebase
-let dataPengeluaranFirebase = []; // Cache pengeluaran realtime dari Firebase
+let cabangAktif = 'SEMUA CABANG';
+let dataTransaksiFirebase = [];
+let dataPengeluaranFirebase = [];
 
 let pelangganList = JSON.parse(localStorage.getItem('aya_pelanggan')) || [];
 let supplierList = JSON.parse(localStorage.getItem('aya_supplier')) || [];
@@ -413,6 +413,47 @@ function cetakNota() {
     }, 300);
 }
 
+// CETAK NOTA DARI LAPORAN PENJUALAN
+function cetakNotaDariRiwayat(idNota) {
+    let sumberData = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
+    let nota = sumberData.find(t => String(t.id) === String(idNota));
+
+    if (!nota) return alert("Data transaksi tidak ditemukan!");
+
+    let htmlItems = '';
+    let itemList = Array.isArray(nota.items) ? nota.items : Object.values(nota.items || {});
+    
+    itemList.forEach(i => {
+        let harga = i.harga || 0;
+        let sub = harga * (i.qty || 1);
+        htmlItems += `
+            <div class="nota-item-row font-bold">
+                <span>${i.nama || '-'}</span>
+                <div class="nota-item-detail">
+                    <span>${i.qty || 1} x ${harga.toLocaleString('id-ID')}</span>
+                    <span>Rp${sub.toLocaleString('id-ID')}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    if(document.getElementById('notaItems')) document.getElementById('notaItems').innerHTML = htmlItems;
+    if(document.getElementById('notaWaktu')) document.getElementById('notaWaktu').innerText = "Waktu: " + (nota.waktu || nota.tanggalISO || '-');
+    if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + (nota.metodePembayaran || nota.metode || 'TUNAI');
+    if(document.getElementById('notaTotal')) {
+        document.getElementById('notaTotal').innerHTML = `
+            <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${(nota.total || parseNominalDinamis(nota)).toLocaleString('id-ID')}</span></div>
+        `;
+    }
+
+    const area = document.getElementById('areaNota');
+    if(area) area.style.display = 'block';
+    setTimeout(() => {
+        window.print();
+        if(area) area.style.display = 'none';
+    }, 300);
+}
+
 /* ================= MANAJEMEN PENGELUARAN (EXPENSES) ================= */
 function resetFormPengeluaran() {
     let todayISO = new Date().toISOString().split('T')[0];
@@ -466,7 +507,7 @@ function hapusPengeluaranFirebase(id) {
     }
 }
 
-/* ================= HELPER PARSING TANGGAL & NOMINAL (DATABASE LAMA) ================= */
+/* ================= HELPER PARSING TANGGAL & NOMINAL ================= */
 function parseNominalDinamis(exp) {
     if (!exp) return 0;
     let raw = exp.nominal ?? exp.jumlah ?? exp.total ?? exp.harga ?? exp.biaya ?? 0;
@@ -554,7 +595,6 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
             matchDate = dateStr <= tglSelesai;
         }
         
-        // Kompatibilitas untuk cabang lama (DAPUR AYA / AYA TOKO Sembako)
         let matchCabang = false;
         if (cabangAktif === 'SEMUA CABANG') {
             matchCabang = true;
@@ -570,6 +610,8 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let totalOmset = 0;
     let totalQris = 0;
     let totalCash = 0;
+    let totalHutang = 0;
+    let totalHPP = 0;
     let totalQty = 0;
     let itemMap = {};
 
@@ -577,8 +619,9 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         let sumTotal = parseNominalDinamis(t);
         totalOmset += sumTotal;
         
-        let me = t.metodePembayaran || t.metode || 'TUNAI';
+        let me = (t.metodePembayaran || t.metode || 'TUNAI').toUpperCase();
         if (me === 'QRIS') totalQris += sumTotal;
+        else if (me === 'HUTANG') totalHutang += sumTotal;
         else if (me === 'TUNAI') totalCash += sumTotal;
 
         let itemList = [];
@@ -592,8 +635,11 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
             if(!item) return;
             let qty = parseInt(item.qty) || 0;
             let harga = parseInt(item.harga) || 0;
+            let hpp = parseInt(item.hargaBeli) || 0;
             let namaItem = item.nama || 'Tidak Diketahui';
+            
             totalQty += qty;
+            totalHPP += (hpp * qty);
 
             if (!itemMap[namaItem]) {
                 itemMap[namaItem] = {
@@ -608,17 +654,42 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         });
     });
 
+    // HITUNG TOTAL PENGELUARAN TUNAI HARI INI
+    let totalPengeluaranTunai = 0;
+    let sumberPengeluaran = (db && dataPengeluaranFirebase.length > 0) ? dataPengeluaranFirebase : riwayatPengeluaran;
+    sumberPengeluaran.filter(exp => {
+        let dateStr = parseTanggalISO(exp);
+        let matchDate = (tglMulai && tglSelesai) ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
+        let metode = (exp.metode || 'TUNAI').toUpperCase();
+        return matchDate && metode === 'TUNAI';
+    }).forEach(exp => {
+        totalPengeluaranTunai += parseNominalDinamis(exp);
+    });
+
+    // PROSESS KALKULASI CASH RIIL LACI
+    // Modal Awal (Rp 70.000) + Total Penjualan Tunai - Pengeluaran Tunai
+    let modalAwal = 70000;
+    let cashRiilLaci = modalAwal + totalCash - totalPengeluaranTunai;
+    let totalRugiLaba = totalOmset - totalHPP;
+
+    // UPDATE TAMPILAN DASHBOARD STATISTIK
     let elOmset = document.getElementById('statOmset');
     let elQris = document.getElementById('statOmsetQris');
     let elCash = document.getElementById('statUangCash');
     let elQty = document.getElementById('statTotalQty');
     let elTrx = document.getElementById('statTotalTransaksi');
+    
+    let elProfit = document.getElementById('statRugiLaba');
+    let elLaci = document.getElementById('statCashLaci');
 
     if (elOmset) elOmset.innerText = 'Rp ' + totalOmset.toLocaleString('id-ID');
     if (elQris) elQris.innerText = 'Rp ' + totalQris.toLocaleString('id-ID');
     if (elCash) elCash.innerText = 'Rp ' + totalCash.toLocaleString('id-ID');
     if (elQty) elQty.innerText = totalQty.toLocaleString('id-ID') + ' Pcs';
     if (elTrx) elTrx.innerText = filtered.length + ' Trx';
+    
+    if (elProfit) elProfit.innerText = 'Rp ' + totalRugiLaba.toLocaleString('id-ID');
+    if (elLaci) elLaci.innerText = 'Rp ' + cashRiilLaci.toLocaleString('id-ID');
 
     let containerRekap = document.getElementById('tabelRekapItemTerjual');
     if (containerRekap) {
@@ -647,31 +718,41 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let containerRiwayat = document.getElementById('tabelRiwayatTransaksi');
     if (containerRiwayat) {
         if (filtered.length === 0) {
-            containerRiwayat.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-400">Tidak ada riwayat transaksi pada periode ini</td></tr>`;
+            containerRiwayat.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-400">Tidak ada riwayat transaksi pada periode ini</td></tr>`;
         } else {
             let htmlRiwayat = '';
             filtered.forEach(t => {
                 let itemList = [];
+                let hppTrx = 0;
                 if (Array.isArray(t.items)) {
                     itemList = t.items;
                 } else if (t.items && typeof t.items === 'object') {
                     itemList = Object.values(t.items);
                 }
 
+                itemList.forEach(i => {
+                    hppTrx += ((parseInt(i.hargaBeli) || 0) * (parseInt(i.qty) || 0));
+                });
+
                 let detailItemsStr = itemList.map(i => `<span class="inline-block bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded mr-1 mb-1 font-semibold">${i.nama || '-'} <b>(x${i.qty || 0})</b></span>`).join('');
                 if(!detailItemsStr) detailItemsStr = '<span class="text-gray-400 italic">Detail item kosong</span>';
 
                 let nominalTrx = parseNominalDinamis(t);
+                let labaTrx = nominalTrx - hppTrx;
                 let metodeTrx = t.metodePembayaran || t.metode || 'TUNAI';
 
                 htmlRiwayat += `
                     <tr class="hover:bg-orange-50 border-b">
-                        <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${t.id || '-'}</td>
+                        <td class="p-2 font-mono text-[10px] font-bold text-gray-700">
+                            <span class="block">${t.id || '-'}</span>
+                            <button onclick="cetakNotaDariRiwayat('${t.id}')" class="mt-1 px-2 py-0.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded text-[9px] shadow">🖨️ Cetak Nota</button>
+                        </td>
                         <td class="p-2 text-[11px] whitespace-nowrap">${t.waktu || t.tanggalISO || '-'}</td>
                         <td class="p-2 text-[11px] font-bold text-gray-600">${t.cabang || 'Utama'}</td>
                         <td class="p-2">${detailItemsStr}</td>
-                        <td class="p-2 text-center font-bold"><span class="px-2 py-0.5 rounded text-[10px] ${metodeTrx === 'QRIS' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}">${metodeTrx}</span></td>
+                        <td class="p-2 text-center font-bold"><span class="px-2 py-0.5 rounded text-[10px] ${metodeTrx === 'QRIS' ? 'bg-blue-100 text-blue-800' : (metodeTrx === 'HUTANG' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800')}">${metodeTrx}</span></td>
                         <td class="p-2 text-right font-black text-orange-700">Rp ${nominalTrx.toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-right font-bold text-emerald-600">Rp ${labaTrx.toLocaleString('id-ID')}</td>
                         <td class="p-2 text-center">
                             <button onclick="hapusTransaksiFirebase('${t.id}')" class="text-red-500 font-bold hover:underline">Hapus</button>
                         </td>
@@ -713,7 +794,6 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
             matchDate = dateStr <= tglSelesai;
         }
 
-        // Kompatibilitas filter cabang pengeluaran lama
         let matchCabang = false;
         if (cabangAktif === 'SEMUA CABANG') {
             matchCabang = true;
