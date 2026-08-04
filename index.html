@@ -484,9 +484,27 @@
         <!-- ================= TAB 5: TRANSAKSI PENGELUARAN ================= -->
         <div id="tab-pengeluaran" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
-                <h2 class="text-lg font-bold text-orange-700 mb-3">💸 Pencatatan Pengeluaran Kas (Expenses)</h2>
+                <h2 class="text-lg font-bold text-orange-700 mb-3">💸 Pencatatan Pengeluaran Kas (Expenses) & Tambah Modal</h2>
                 
+                <!-- Panel Tambah Modal Laci Manual -->
+                <div class="bg-amber-50 p-4 rounded-xl border border-amber-300 mb-4">
+                    <h3 class="text-xs font-bold text-amber-900 mb-2">💵 Pengaturan / Tambah Modal Kas Laci</h3>
+                    <div class="flex flex-col sm:flex-row items-end gap-3 text-xs">
+                        <div class="flex-1 w-full">
+                            <label class="block font-semibold text-amber-900 mb-1">Nominal Modal Kasir (Rp):</label>
+                            <input type="number" id="inputTambahModalLaci" placeholder="70000" class="w-full p-2 border rounded font-bold bg-white text-emerald-800">
+                        </div>
+                        <button onclick="setModalLaci(document.getElementById('inputTambahModalLaci').value)" class="w-full sm:w-auto px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded transition">
+                            💾 Simpan Modal Laci
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-amber-800 mt-1.5">* Sisa Uang Cash Laci = Modal Laci + Total Penjualan Cash - Pengeluaran Tunai</p>
+                </div>
+
+                <!-- Form Pengeluaran Kas dengan Rincian Barang -->
                 <div class="bg-orange-50 p-4 rounded-xl border border-orange-200 mb-4">
+                    <h3 class="text-xs font-bold text-orange-900 mb-2">➕ Form Catat Pengeluaran Operasional / Barang</h3>
+                    
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs mb-2">
                         <div>
                             <label class="block font-semibold mb-1">Tanggal Pengeluaran:</label>
@@ -504,27 +522,46 @@
                         </div>
                         <div>
                             <label class="block font-semibold mb-1">Metode Pembayaran Kas:</label>
-                            <select id="pengeluaranMetode" class="w-full p-2 border rounded">
+                            <select id="pengeluaranMetode" class="w-full p-2 border rounded font-bold">
                                 <option value="TUNAI">TUNAI (Kasir/Laci)</option>
                                 <option value="TRANSFER">TRANSFER / Bank</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs mb-3">
-                        <div>
-                            <label class="block font-semibold mb-1">Nominal (Rp):</label>
-                            <input type="number" id="pengeluaranNominal" placeholder="0" class="w-full p-2 border rounded font-bold">
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs mb-2">
+                        <div class="sm:col-span-2">
+                            <label class="block font-semibold mb-1">Nama Barang / Pengeluaran:</label>
+                            <input type="text" id="pengeluaranNamaBarang" placeholder="Contoh: Es Batu, Minyak Goreng, Bensin" class="w-full p-2 border rounded font-bold">
                         </div>
                         <div>
-                            <label class="block font-semibold mb-1">Keterangan / Rincian:</label>
-                            <input type="text" id="pengeluaranKeterangan" placeholder="Contoh: Beli Es Batu 2 Plastik" class="w-full p-2 border rounded">
+                            <label class="block font-semibold mb-1">Harga Satuan (Rp):</label>
+                            <input type="number" id="pengeluaranHarga" oninput="hitungSubtotalPengeluaran()" placeholder="0" class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1">Satuan:</label>
+                            <input type="text" id="pengeluaranSatuan" value="pcs" placeholder="pcs/kg/liter" class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1">Qty / Jumlah:</label>
+                            <input type="number" id="pengeluaranQty" value="1" min="1" oninput="hitungSubtotalPengeluaran()" class="w-full p-2 border rounded font-bold">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs mb-3">
+                        <div>
+                            <label class="block font-semibold mb-1">Total Nominal Pengeluaran (Rp):</label>
+                            <input type="number" id="pengeluaranNominal" placeholder="0" class="w-full p-2 border rounded font-extrabold text-red-600 bg-white">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1">Keterangan / Rincian Tambahan:</label>
+                            <input type="text" id="pengeluaranKeterangan" placeholder="Contoh: Beli 2 bungkus es batu untuk angkringan" class="w-full p-2 border rounded">
                         </div>
                     </div>
 
                     <div class="flex justify-end gap-2 text-xs">
                         <button onclick="resetFormPengeluaran()" class="px-3 py-1.5 bg-gray-200 font-bold rounded">Reset</button>
-                        <button onclick="simpanPengeluaran()" class="px-4 py-1.5 bg-red-600 text-white font-bold rounded">💸 Simpan Pengeluaran Kas</button>
+                        <button onclick="simpanPengeluaran()" class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded shadow transition">💸 Simpan Pengeluaran Kas</button>
                     </div>
                 </div>
             </div>
@@ -544,7 +581,7 @@
                     <button onclick="resetFilterLaporan()" class="px-3 py-1.5 bg-gray-200 font-bold rounded">Reset Hari Ini</button>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs mb-4">
+                <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs mb-4">
                     <div class="bg-orange-100 p-3 rounded-lg border border-orange-300">
                         <p class="text-[10px] text-orange-800 font-bold">TOTAL OMSET</p>
                         <p id="statOmset" class="text-base font-black text-orange-700">Rp 0</p>
@@ -554,16 +591,20 @@
                         <p id="statOmsetQris" class="text-base font-black text-blue-700">Rp 0</p>
                     </div>
                     <div class="bg-emerald-100 p-3 rounded-lg border border-emerald-300">
-                        <p class="text-[10px] text-emerald-800 font-bold">UANG CASH</p>
+                        <p class="text-[10px] text-emerald-800 font-bold">UANG CASH (PENJUALAN)</p>
                         <p id="statUangCash" class="text-base font-black text-emerald-700">Rp 0</p>
+                    </div>
+                    <div class="bg-amber-100 p-3 rounded-lg border border-amber-300">
+                        <p class="text-[10px] text-amber-900 font-bold">UANG CASH LACI</p>
+                        <p id="statCashLaci" class="text-base font-black text-amber-800">Rp 0</p>
                     </div>
                     <div class="bg-purple-100 p-3 rounded-lg border border-purple-300">
                         <p class="text-[10px] text-purple-800 font-bold">TOTAL TERJUAL</p>
                         <p id="statTotalQty" class="text-base font-black text-purple-700">0 Pcs</p>
                     </div>
-                    <div class="bg-amber-100 p-3 rounded-lg border border-amber-300 col-span-2 sm:col-span-1">
-                        <p class="text-[10px] text-amber-800 font-bold">TRANSAKSI</p>
-                        <p id="statTotalTransaksi" class="text-base font-black text-amber-700">0 Trx</p>
+                    <div class="bg-indigo-100 p-3 rounded-lg border border-indigo-300">
+                        <p class="text-[10px] text-indigo-800 font-bold">TRANSAKSI</p>
+                        <p id="statTotalTransaksi" class="text-base font-black text-indigo-700">0 Trx</p>
                     </div>
                 </div>
 
@@ -598,6 +639,7 @@
                                 <th class="p-2">Detail Item</th>
                                 <th class="p-2 text-center">Metode</th>
                                 <th class="p-2 text-right">Total</th>
+                                <th class="p-2 text-right">Laba</th>
                                 <th class="p-2 text-center">Aksi</th>
                             </tr>
                         </thead>
@@ -660,7 +702,8 @@
                                 <th class="p-2">Waktu</th>
                                 <th class="p-2">Cabang</th>
                                 <th class="p-2">Kategori</th>
-                                <th class="p-2">Keterangan</th>
+                                <th class="p-2">Barang & Rincian</th>
+                                <th class="p-2 text-center">Satuan/Qty</th>
                                 <th class="p-2 text-center">Metode</th>
                                 <th class="p-2 text-right">Nominal</th>
                                 <th class="p-2 text-center">Aksi</th>
