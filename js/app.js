@@ -666,8 +666,7 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         totalPengeluaranTunai += parseNominalDinamis(exp);
     });
 
-    // PROSESS KALKULASI CASH RIIL LACI
-    // Modal Awal (Rp 70.000) + Total Penjualan Tunai - Pengeluaran Tunai
+    // PROSES KALKULASI CASH RIIL LACI
     let modalAwal = 70000;
     let cashRiilLaci = modalAwal + totalCash - totalPengeluaranTunai;
     let totalRugiLaba = totalOmset - totalHPP;
@@ -734,27 +733,64 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
                     hppTrx += ((parseInt(i.hargaBeli) || 0) * (parseInt(i.qty) || 0));
                 });
 
-                let detailItemsStr = itemList.map(i => `<span class="inline-block bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded mr-1 mb-1 font-semibold">${i.nama || '-'} <b>(x${i.qty || 0})</b></span>`).join('');
-                if(!detailItemsStr) detailItemsStr = '<span class="text-gray-400 italic">Detail item kosong</span>';
+                // FORMATTING RUANG RINCIAN ITEM NOTA LEBIH RAPI & TERSTRUKTUR DENGAN TABEL SUB-DETAIL
+                let detailItemsStr = '';
+                if (itemList.length > 0) {
+                    detailItemsStr = `
+                        <div class="bg-amber-50/60 p-2 rounded-lg border border-amber-200/60 my-1 shadow-inner">
+                            <table class="w-full text-[11px] border-collapse">
+                                <thead>
+                                    <tr class="border-b border-amber-200 text-amber-900 text-left font-bold text-[10px]">
+                                        <th class="pb-1 uppercase">Nama Barang</th>
+                                        <th class="pb-1 text-center uppercase w-12">Qty</th>
+                                        <th class="pb-1 text-right uppercase w-20">Harga</th>
+                                        <th class="pb-1 text-right uppercase w-20">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-amber-100">
+                    `;
+
+                    itemList.forEach(i => {
+                        let qty = parseInt(i.qty) || 0;
+                        let harga = parseInt(i.harga) || 0;
+                        let subtotal = harga * qty;
+                        detailItemsStr += `
+                            <tr class="hover:bg-amber-100/50">
+                                <td class="py-1 font-bold text-gray-800 uppercase">${i.nama || '-'}</td>
+                                <td class="py-1 text-center font-extrabold text-orange-700">${qty}</td>
+                                <td class="py-1 text-right text-gray-600">Rp ${harga.toLocaleString('id-ID')}</td>
+                                <td class="py-1 text-right font-bold text-gray-900">Rp ${subtotal.toLocaleString('id-ID')}</td>
+                            </tr>
+                        `;
+                    });
+
+                    detailItemsStr += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    detailItemsStr = '<span class="text-gray-400 italic text-xs">Detail item kosong</span>';
+                }
 
                 let nominalTrx = parseNominalDinamis(t);
                 let labaTrx = nominalTrx - hppTrx;
                 let metodeTrx = t.metodePembayaran || t.metode || 'TUNAI';
 
                 htmlRiwayat += `
-                    <tr class="hover:bg-orange-50 border-b">
-                        <td class="p-2 font-mono text-[10px] font-bold text-gray-700">
-                            <span class="block">${t.id || '-'}</span>
-                            <button onclick="cetakNotaDariRiwayat('${t.id}')" class="mt-1 px-2 py-0.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded text-[9px] shadow">🖨️ Cetak Nota</button>
+                    <tr class="hover:bg-orange-50/50 border-b transition">
+                        <td class="p-2 font-mono text-[10px] font-bold text-gray-700 align-top">
+                            <span class="block text-gray-900 font-extrabold">${t.id || '-'}</span>
+                            <button onclick="cetakNotaDariRiwayat('${t.id}')" class="mt-2 px-2 py-1 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded text-[9px] shadow transition">🖨️ Cetak Nota</button>
                         </td>
-                        <td class="p-2 text-[11px] whitespace-nowrap">${t.waktu || t.tanggalISO || '-'}</td>
-                        <td class="p-2 text-[11px] font-bold text-gray-600">${t.cabang || 'Utama'}</td>
-                        <td class="p-2">${detailItemsStr}</td>
-                        <td class="p-2 text-center font-bold"><span class="px-2 py-0.5 rounded text-[10px] ${metodeTrx === 'QRIS' ? 'bg-blue-100 text-blue-800' : (metodeTrx === 'HUTANG' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800')}">${metodeTrx}</span></td>
-                        <td class="p-2 text-right font-black text-orange-700">Rp ${nominalTrx.toLocaleString('id-ID')}</td>
-                        <td class="p-2 text-right font-bold text-emerald-600">Rp ${labaTrx.toLocaleString('id-ID')}</td>
-                        <td class="p-2 text-center">
-                            <button onclick="hapusTransaksiFirebase('${t.id}')" class="text-red-500 font-bold hover:underline">Hapus</button>
+                        <td class="p-2 text-[11px] whitespace-nowrap align-top text-gray-600 font-medium">${t.waktu || t.tanggalISO || '-'}</td>
+                        <td class="p-2 text-[11px] font-bold text-gray-700 align-top">${t.cabang || 'Utama'}</td>
+                        <td class="p-2 align-top">${detailItemsStr}</td>
+                        <td class="p-2 text-center font-bold align-top"><span class="px-2.5 py-1 rounded-md text-[10px] shadow-sm font-black ${metodeTrx === 'QRIS' ? 'bg-blue-100 text-blue-800 border border-blue-200' : (metodeTrx === 'HUTANG' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200')}">${metodeTrx}</span></td>
+                        <td class="p-2 text-right font-black text-orange-700 align-top text-xs">Rp ${nominalTrx.toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-right font-bold text-emerald-600 align-top text-xs">Rp ${labaTrx.toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-center align-top">
+                            <button onclick="hapusTransaksiFirebase('${t.id}')" class="text-red-500 font-bold hover:text-red-700 hover:underline text-xs">Hapus</button>
                         </td>
                     </tr>
                 `;
