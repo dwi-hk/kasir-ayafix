@@ -58,7 +58,7 @@ function gantiCabang(namaCabang) {
 
 // BUKA DAN TUTUP TAB
 function switchTab(tab) {
-    ['master', 'cabang', 'kasir', 'pengeluaran', 'laporan', 'laporan_pengeluaran', 'backoffice', 'user', 'setting'].forEach(t => {
+    ['master', 'cabang', 'kasir', 'pengeluaran', 'laporan', 'laporan_pengeluaran', 'backoffice', 'user', 'setting', 'pembelian'].forEach(t => {
         let el = document.getElementById('tab-' + t);
         let btn = document.getElementById('btn-tab-' + t);
         if (el) el.classList.add('hidden');
@@ -74,15 +74,20 @@ function switchTab(tab) {
     if(tab === 'laporan') updateLaporan();
     if(tab === 'laporan_pengeluaran') updateLaporanPengeluaran();
     if(tab === 'cabang') renderInventaris();
+    if(tab === 'pembelian') renderPembelian();
 }
 
 function switchSubMaster(sub) {
-    ['barang', 'titipan', 'pelanggan', 'supplier', 'karyawan'].forEach(s => {
+    ['barang', 'titipan', 'pelanggan', 'supplier', 'karyawan', 'pembelian', 'kulakan'].forEach(s => {
         let el = document.getElementById('sec-master-' + s);
+        let btn = document.getElementById('btn-submaster-' + s);
         if(el) el.classList.add('hidden');
+        if(btn) btn.classList.remove('bg-orange-600', 'text-white');
     });
     let targetSub = document.getElementById('sec-master-' + sub);
+    let targetBtn = document.getElementById('btn-submaster-' + sub);
     if(targetSub) targetSub.classList.remove('hidden');
+    if(targetBtn) targetBtn.classList.add('bg-orange-600', 'text-white');
 }
 
 /* ================= MANAJEMEN MASTER DATA ================= */
@@ -505,6 +510,82 @@ function hapusPengeluaranFirebase(id) {
         localStorage.setItem('aya_pengeluaran_v3', JSON.stringify(riwayatPengeluaran));
         updateLaporanPengeluaran();
     }
+}
+
+/* ================= MANAJEMEN PEMBELIAN / KULAKAN ================= */
+let pembelianList = JSON.parse(localStorage.getItem('aya_pembelian_v1')) || [];
+
+function renderPembelian() {
+    let tbody = document.getElementById('tabelPembelianData');
+    if (!tbody) return;
+    if (pembelianList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-400">Belum ada data pembelian / kulakan</td></tr>`;
+        return;
+    }
+    let html = '';
+    pembelianList.forEach((item, index) => {
+        let total = (item.hargaBeli || 0) * (item.qty || 1);
+        html += `
+            <tr class="hover:bg-orange-50 border-b text-xs">
+                <td class="p-2 font-mono text-[10px]">${item.id || '-'}</td>
+                <td class="p-2 font-bold uppercase">${item.nama || '-'}</td>
+                <td class="p-2 text-center">${item.supplier || '-'}</td>
+                <td class="p-2 text-center font-bold">${item.qty || 1} ${item.satuan || 'pcs'}</td>
+                <td class="p-2 text-right">Rp ${(item.hargaBeli || 0).toLocaleString('id-ID')}</td>
+                <td class="p-2 text-right font-bold text-orange-700">Rp ${total.toLocaleString('id-ID')}</td>
+                <td class="p-2 text-center">
+                    <button onclick="hapusPembelian('${item.id}')" class="text-red-600 font-bold">❌ Hapus</button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+function simpanPembelian() {
+    let nama = document.getElementById('pembelianNama')?.value.trim() || '';
+    let supplier = document.getElementById('pembelianSupplier')?.value.trim() || '-';
+    let qty = parseInt(document.getElementById('pembelianQty')?.value) || 1;
+    let satuan = document.getElementById('pembelianSatuan')?.value || 'pcs';
+    let hBeli = parseInt(document.getElementById('pembelianHargaBeli')?.value) || 0;
+
+    if (!nama || hBeli <= 0) return alert('Mohon lengkapi nama barang dan harga beli kulakan!');
+
+    let item = {
+        id: 'BLK-' + Date.now(),
+        nama: nama,
+        supplier: supplier,
+        qty: qty,
+        satuan: satuan,
+        hargaBeli: hBeli,
+        tanggalISO: new Date().toISOString().split('T')[0],
+        cabang: cabangAktif
+    };
+
+    if (db) {
+        db.ref('pembelian/' + item.id).set(item);
+    }
+    pembelianList.unshift(item);
+    localStorage.setItem('aya_pembelian_v1', JSON.stringify(pembelianList));
+
+    resetFormPembelian();
+    renderPembelian();
+    alert('Data Pembelian / Kulakan Berhasil Disimpan!');
+}
+
+function resetFormPembelian() {
+    if(document.getElementById('pembelianNama')) document.getElementById('pembelianNama').value = '';
+    if(document.getElementById('pembelianSupplier')) document.getElementById('pembelianSupplier').value = '';
+    if(document.getElementById('pembelianQty')) document.getElementById('pembelianQty').value = '';
+    if(document.getElementById('pembelianHargaBeli')) document.getElementById('pembelianHargaBeli').value = '';
+}
+
+function hapusPembelian(id) {
+    if(!confirm('Hapus riwayat kulakan ini?')) return;
+    if(db) db.ref('pembelian/' + id).remove();
+    pembelianList = pembelianList.filter(p => p.id !== id);
+    localStorage.setItem('aya_pembelian_v1', JSON.stringify(pembelianList));
+    renderPembelian();
 }
 
 /* ================= HELPER PARSING TANGGAL & NOMINAL ================= */
@@ -1032,6 +1113,7 @@ function simpanSettingNota() {}
 document.addEventListener('DOMContentLoaded', () => {
     renderMenu();
     renderMasterData();
+    renderPembelian();
     setTanggalHariIniIfEmpty();
     
     if(db) {
@@ -1069,6 +1151,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 dataPengeluaranFirebase = [];
             }
             updateLaporanPengeluaran();
+        });
+
+        db.ref('pembelian').on('value', (snapshot) => {
+            let data = snapshot.val();
+            if (data) {
+                pembelianList = Array.isArray(data) ? data : Object.values(data);
+            }
+            renderPembelian();
         });
     } else {
         updateLaporan();
