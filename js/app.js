@@ -536,7 +536,6 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
         if (t.metodePembayaran === 'QRIS') totalQris += sumTotal;
         else if (t.metodePembayaran === 'TUNAI') totalCash += sumTotal;
 
-        // Mendukung format Array maupun Object Firebase untuk t.items
         let itemList = [];
         if (Array.isArray(t.items)) {
             itemList = t.items;
@@ -654,6 +653,8 @@ function updateLaporanPengeluaran() {
 function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, katFilter) {
     let filtered = (semuaPengeluaran || []).filter(exp => {
         if (!exp) return false;
+        
+        // Memastikan pembacaan tanggalISO, waktu, atau timestamp dari Firebase
         let dateStr = exp.tanggalISO || '';
         if (!dateStr && exp.waktu) {
             let parts = exp.waktu.split(',')[0].split('/');
@@ -661,6 +662,7 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
                 dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
             }
         }
+        
         let matchDate = true;
         if (tglMulai && tglSelesai && dateStr) {
             matchDate = dateStr >= tglMulai && dateStr <= tglSelesai;
@@ -676,10 +678,11 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
     let mapKategori = {};
 
     filtered.forEach(exp => {
-        let nominal = parseInt(exp.nominal) || 0;
+        // Parsing nominal secara fleksibel (mendukung integer maupun string)
+        let nominal = parseInt(exp.nominal || exp.jumlah || exp.total || 0) || 0;
         totalPengeluaran += nominal;
 
-        let metode = exp.metode || 'TUNAI';
+        let metode = exp.metode || exp.sumber || 'TUNAI';
         if (metode === 'TRANSFER') totalTransfer += nominal;
         else totalTunai += nominal;
 
@@ -726,15 +729,19 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
         } else {
             let html = '';
             filtered.forEach(exp => {
+                // Ekstraksi keterangan & nominal dari berbagai properti yang mungkin tersimpan di Realtime DB
+                let ket = exp.keterangan || exp.deskripsi || exp.nama || '-';
+                let nominal = parseInt(exp.nominal || exp.jumlah || exp.total || 0) || 0;
+                
                 html += `
                     <tr class="hover:bg-red-50 border-b">
                         <td class="p-2 font-mono text-[10px] font-bold text-gray-700">${exp.id || '-'}</td>
                         <td class="p-2 text-[11px] whitespace-nowrap">${exp.waktu || exp.tanggalISO || '-'}</td>
                         <td class="p-2 text-[11px] font-bold text-gray-600">${exp.cabang || '-'}</td>
                         <td class="p-2 font-semibold text-red-700">${exp.kategori || 'Lain-lain'}</td>
-                        <td class="p-2 font-medium">${exp.keterangan || '-'}</td>
+                        <td class="p-2 font-medium">${ket}</td>
                         <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${exp.metode === 'TRANSFER' ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800'}">${exp.metode || 'TUNAI'}</span></td>
-                        <td class="p-2 text-right font-black text-red-600">Rp ${(exp.nominal || 0).toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-right font-black text-red-600">Rp ${nominal.toLocaleString('id-ID')}</td>
                         <td class="p-2 text-center">
                             <button onclick="hapusPengeluaranFirebase('${exp.id}')" class="text-red-500 font-bold hover:underline">Hapus</button>
                         </td>
