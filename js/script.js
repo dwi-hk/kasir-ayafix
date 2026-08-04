@@ -268,6 +268,17 @@ function updateKeranjang() {
     hitungKembalian();
 }
 
+// FITUR BARU: Kosongkan keranjang belanja kasir
+function kosongkanKeranjang() {
+    if (keranjang.length === 0) return;
+    if (confirm('Apakah Anda yakin ingin mengosongkan keranjang?')) {
+        keranjang = [];
+        if (document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
+        if (document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
+        updateKeranjang();
+    }
+}
+
 function ubahQty(id, delta) {
     let ada = keranjang.find(k => String(k.id) === String(id));
     if(ada) {
@@ -313,11 +324,16 @@ function tahanTransaksi() {
     
     let styro = parseInt(document.getElementById('inputStyrofoam')?.value) || 0;
     
+    // Hitung total dari keranjang yang sedang ditahan
+    let subtotalItems = keranjang.reduce((acc, item) => acc + ((item.harga || 0) * item.qty), 0);
+    let totalNominal = subtotalItems + (styro * 1000);
+
     transaksiDitahan.push({
         id: 'HOLD-' + Date.now(),
         items: [...keranjang],
         styrofoam: styro,
         metode: metodePembayaran,
+        totalNominal: totalNominal,
         waktu: new Date().toLocaleTimeString('id-ID')
     });
     
@@ -343,13 +359,56 @@ function renderHeldOrders() {
     box.classList.remove('hidden');
     container.innerHTML = '';
     
+    // Tampilan Detail untuk setiap Transaksi Ditahan
     transaksiDitahan.forEach((t, i) => {
+        let itemsDetailHtml = t.items.map(item => {
+            let itemSub = (item.harga || 0) * item.qty;
+            return `
+                <div class="flex justify-between items-center text-[11px] py-0.5 border-b border-amber-100">
+                    <span>${item.nama} <b class="text-amber-800">x${item.qty}</b></span>
+                    <span class="font-mono">@Rp${(item.harga||0).toLocaleString('id-ID')} = <b>Rp${itemSub.toLocaleString('id-ID')}</b></span>
+                </div>
+            `;
+        }).join('');
+
+        if (t.styrofoam > 0) {
+            itemsDetailHtml += `
+                <div class="flex justify-between items-center text-[11px] py-0.5 border-b border-amber-100 italic">
+                    <span>Styrofoam x${t.styrofoam}</span>
+                    <span class="font-mono">Rp${(t.styrofoam * 1000).toLocaleString('id-ID')}</span>
+                </div>
+            `;
+        }
+
         container.innerHTML += `
-            <button onclick="resumeTransaksi(${i})" class="px-2.5 py-1 bg-amber-500 text-white text-[10px] rounded font-bold whitespace-nowrap hover:bg-amber-600 flex items-center gap-1 shadow">
-                📋 ${t.waktu} (${t.items.length} Item)
-            </button>
+            <div class="p-2.5 bg-amber-50 border border-amber-300 rounded-lg shadow-sm mb-2">
+                <div class="flex justify-between items-center pb-1 border-b border-amber-200 mb-1">
+                    <span class="font-bold text-amber-900 text-xs">📋 Jam: ${t.waktu}</span>
+                    <span class="font-bold text-xs text-orange-700 font-mono">Total: Rp ${(t.totalNominal || 0).toLocaleString('id-ID')}</span>
+                </div>
+                
+                <div class="my-1 max-h-24 overflow-y-auto pr-1">
+                    ${itemsDetailHtml}
+                </div>
+
+                <div class="flex gap-2 mt-2 pt-1">
+                    <button onclick="resumeTransaksi(${i})" class="flex-1 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shadow transition">
+                        🔄 Panggil Transaksi
+                    </button>
+                    <button onclick="hapusTransaksiDitahan(${i})" class="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded shadow transition" title="Batal & Hapus">
+                        🗑️
+                    </button>
+                </div>
+            </div>
         `;
     });
+}
+
+function hapusTransaksiDitahan(index) {
+    if (confirm('Hapus transaksi ditahan ini?')) {
+        transaksiDitahan.splice(index, 1);
+        renderHeldOrders();
+    }
 }
 
 function resumeTransaksi(index) {

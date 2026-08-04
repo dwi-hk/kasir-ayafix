@@ -25,9 +25,9 @@ try {
 // Variable Global Storage Internal & Temporary
 let keranjang = [];
 let transaksiDitahan = [];
-let cabangAktif = 'SEMUA CABANG'; // Default menampilkan semua agar data lama langsung terlihat
-let dataTransaksiFirebase = []; // Cache transaksi realtime dari Firebase
-let dataPengeluaranFirebase = []; // Cache pengeluaran realtime dari Firebase
+let cabangAktif = 'SEMUA CABANG';
+let dataTransaksiFirebase = [];
+let dataPengeluaranFirebase = [];
 
 let pelangganList = JSON.parse(localStorage.getItem('aya_pelanggan')) || [];
 let supplierList = JSON.parse(localStorage.getItem('aya_supplier')) || [];
@@ -58,7 +58,7 @@ function gantiCabang(namaCabang) {
 
 // BUKA DAN TUTUP TAB
 function switchTab(tab) {
-    ['master', 'cabang', 'kasir', 'pengeluaran', 'laporan', 'laporan_pengeluaran', 'backoffice', 'user', 'setting'].forEach(t => {
+    ['master', 'cabang', 'kasir', 'pembelian', 'pengeluaran', 'laporan', 'laporan_pengeluaran', 'backoffice', 'user', 'setting'].forEach(t => {
         let el = document.getElementById('tab-' + t);
         let btn = document.getElementById('btn-tab-' + t);
         if (el) el.classList.add('hidden');
@@ -173,7 +173,7 @@ function hapusMasterData(id) {
     renderMenu();
 }
 
-/* ================= KASIR & TRANSAKSI ================= */
+/* ================= KASIR PENJUALAN ================= */
 function filterKategori(kat) {
     kategoriAktif = kat;
     ['topping', 'makanan', 'dingin', 'panas', 'jajanan'].forEach(k => {
@@ -268,6 +268,17 @@ function updateKeranjang() {
     hitungKembalian();
 }
 
+// FITUR BARU: Kosongkan keranjang belanja kasir
+function kosongkanKeranjang() {
+    if (keranjang.length === 0) return;
+    if (confirm('Apakah Anda yakin ingin mengosongkan keranjang?')) {
+        keranjang = [];
+        if (document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
+        if (document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
+        updateKeranjang();
+    }
+}
+
 function ubahQty(id, delta) {
     let ada = keranjang.find(k => String(k.id) === String(id));
     if(ada) {
@@ -291,21 +302,45 @@ function setMetodePembayaran(m) {
 function hitungKembalian() {
     let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
     let total = parseInt(totalText) || 0;
-    let bayar = parseInt(document.getElementById('inputBayar')?.value) || 0;
+    let bayarInput = document.getElementById('inputBayar')?.value;
+    
+    if (bayarInput === '' || bayarInput === null || bayarInput === undefined) {
+        if(document.getElementById('textKembalian')) {
+            document.getElementById('textKembalian').innerText = 'Rp 0';
+        }
+        return;
+    }
+
+    let bayar = parseInt(bayarInput) || 0;
     let kembalian = bayar - total;
     if(document.getElementById('textKembalian')) {
         document.getElementById('textKembalian').innerText = kembalian >= 0 ? 'Rp ' + kembalian.toLocaleString('id-ID') : 'Uang Kurang';
     }
 }
 
+/* ================= ALGORITMA TAHAN TRANSAKSI ================= */
 function tahanTransaksi() {
     if(keranjang.length === 0) return alert('Keranjang kosong!');
+    
+    let styro = parseInt(document.getElementById('inputStyrofoam')?.value) || 0;
+    
+    // Hitung total dari keranjang yang sedang ditahan
+    let subtotalItems = keranjang.reduce((acc, item) => acc + ((item.harga || 0) * item.qty), 0);
+    let totalNominal = subtotalItems + (styro * 1000);
+
     transaksiDitahan.push({
         id: 'HOLD-' + Date.now(),
         items: [...keranjang],
+        styrofoam: styro,
+        metode: metodePembayaran,
+        totalNominal: totalNominal,
         waktu: new Date().toLocaleTimeString('id-ID')
     });
+    
     keranjang = [];
+    if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
+    if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
+    
     updateKeranjang();
     renderHeldOrders();
     alert('Transaksi berhasil ditahan!');
@@ -315,34 +350,109 @@ function renderHeldOrders() {
     let box = document.getElementById('boxHeldOrders');
     let container = document.getElementById('listHeldOrders');
     if(!box || !container) return;
+    
     if(transaksiDitahan.length === 0) {
         box.classList.add('hidden');
         return;
     }
+    
     box.classList.remove('hidden');
     container.innerHTML = '';
+    
+    // Tampilan Detail untuk setiap Transaksi Ditahan
     transaksiDitahan.forEach((t, i) => {
+        let itemsDetailHtml = t.items.map(item => {
+            let itemSub = (item.harga || 0) * item.qty;
+            return `
+                <div class="flex justify-between items-center text-[11px] py-0.5 border-b border-amber-100">
+                    <span>${item.nama} <b class="text-amber-800">x${item.qty}</b></span>
+                    <span class="font-mono">@Rp${(item.harga||0).toLocaleString('id-ID')} = <b>Rp${itemSub.toLocaleString('id-ID')}</b></span>
+                </div>
+            `;
+        }).join('');
+
+        if (t.styrofoam > 0) {
+            itemsDetailHtml += `
+                <div class="flex justify-between items-center text-[11px] py-0.5 border-b border-amber-100 italic">
+                    <span>Styrofoam x${t.styrofoam}</span>
+                    <span class="font-mono">Rp${(t.styrofoam * 1000).toLocaleString('id-ID')}</span>
+                </div>
+            `;
+        }
+
         container.innerHTML += `
-            <button onclick="resumeTransaksi(${i})" class="px-2 py-1 bg-amber-600 text-white text-[10px] rounded font-bold whitespace-nowrap">
-                📋 ${t.waktu} (${t.items.length} Item)
-            </button>
+            <div class="p-2.5 bg-amber-50 border border-amber-300 rounded-lg shadow-sm mb-2">
+                <div class="flex justify-between items-center pb-1 border-b border-amber-200 mb-1">
+                    <span class="font-bold text-amber-900 text-xs">📋 Jam: ${t.waktu}</span>
+                    <span class="font-bold text-xs text-orange-700 font-mono">Total: Rp ${(t.totalNominal || 0).toLocaleString('id-ID')}</span>
+                </div>
+                
+                <div class="my-1 max-h-24 overflow-y-auto pr-1">
+                    ${itemsDetailHtml}
+                </div>
+
+                <div class="flex gap-2 mt-2 pt-1">
+                    <button onclick="resumeTransaksi(${i})" class="flex-1 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shadow transition">
+                        🔄 Panggil Transaksi
+                    </button>
+                    <button onclick="hapusTransaksiDitahan(${i})" class="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded shadow transition" title="Batal & Hapus">
+                        🗑️
+                    </button>
+                </div>
+            </div>
         `;
     });
 }
 
+function hapusTransaksiDitahan(index) {
+    if (confirm('Hapus transaksi ditahan ini?')) {
+        transaksiDitahan.splice(index, 1);
+        renderHeldOrders();
+    }
+}
+
 function resumeTransaksi(index) {
-    keranjang = [...transaksiDitahan[index].items];
+    if (keranjang.length > 0) {
+        if (!confirm('Keranjang saat ini tidak kosong. Ingin menimpa/melanjutkan transaksi yang ditahan?')) {
+            return;
+        }
+    }
+    
+    let target = transaksiDitahan[index];
+    keranjang = [...target.items];
+    if(document.getElementById('inputStyrofoam')) {
+        document.getElementById('inputStyrofoam').value = target.styrofoam || 0;
+    }
+    if(target.metode) {
+        setMetodePembayaran(target.metode);
+    }
+    
     transaksiDitahan.splice(index, 1);
     updateKeranjang();
     renderHeldOrders();
 }
 
-/* ================= SIMPAN TRANSAKSI & CETAK NOTA ================= */
+/* ================= SIMPAN TRANSAKSI & VALIDASI PENJUALAN ================= */
 function simpanTransaksi() {
-    if(keranjang.length === 0) { alert('Keranjang Kosong!'); return false; }
+    if(keranjang.length === 0) { 
+        alert('Keranjang Kosong!'); 
+        return false; 
+    }
+
+    let bayarVal = document.getElementById('inputBayar')?.value;
+    if (bayarVal === '' || bayarVal === null || bayarVal === undefined) {
+        alert('Nominal uang belum diisi!');
+        return false;
+    }
+
     let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
     let total = parseInt(totalText) || 0;
-    let bayar = parseInt(document.getElementById('inputBayar')?.value) || total;
+    let bayar = parseInt(bayarVal) || 0;
+
+    if (bayar < total && metodePembayaran === 'TUNAI') {
+        alert('Jumlah bayar kurang dari total tagihan!');
+        return false;
+    }
 
     let nota = {
         id: 'NOTA-' + Date.now(),
@@ -350,6 +460,7 @@ function simpanTransaksi() {
         waktu: new Date().toLocaleString('id-ID'),
         tanggalISO: new Date().toISOString().split('T')[0],
         items: [...keranjang],
+        styrofoam: parseInt(document.getElementById('inputStyrofoam')?.value) || 0,
         total: total,
         bayar: bayar,
         metodePembayaran: metodePembayaran
@@ -369,6 +480,8 @@ function tombolSimpanSaja() {
     if(simpanTransaksi()) {
         alert('Transaksi Berhasil Disimpan!');
         keranjang = [];
+        if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
+        if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
         updateKeranjang();
     }
 }
@@ -376,12 +489,25 @@ function tombolSimpanSaja() {
 function cetakNota() {
     if(keranjang.length === 0) return alert('Keranjang belanja kosong!');
     
+    let bayarVal = document.getElementById('inputBayar')?.value;
+    if (bayarVal === '' || bayarVal === null || bayarVal === undefined) {
+        alert('Nominal uang belum diisi!');
+        return;
+    }
+
+    let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
+    let total = parseInt(totalText) || 0;
+    let bayar = parseInt(bayarVal) || 0;
+
+    if (bayar < total && metodePembayaran === 'TUNAI') {
+        alert('Jumlah bayar kurang dari total tagihan!');
+        return;
+    }
+
     let htmlItems = '';
-    let total = 0;
     keranjang.forEach(i => {
         let harga = i.harga || 0;
         let sub = harga * i.qty;
-        total += sub;
         htmlItems += `
             <div class="nota-item-row font-bold">
                 <span>${i.nama || '-'}</span>
@@ -393,12 +519,28 @@ function cetakNota() {
         `;
     });
 
+    let styroQty = parseInt(document.getElementById('inputStyrofoam')?.value) || 0;
+    if (styroQty > 0) {
+        let subStyro = styroQty * 1000;
+        htmlItems += `
+            <div class="nota-item-row font-bold">
+                <span>Styrofoam</span>
+                <div class="nota-item-detail">
+                    <span>${styroQty} x 1.000</span>
+                    <span>Rp${subStyro.toLocaleString('id-ID')}</span>
+                </div>
+            </div>
+        `;
+    }
+
     if(document.getElementById('notaItems')) document.getElementById('notaItems').innerHTML = htmlItems;
     if(document.getElementById('notaWaktu')) document.getElementById('notaWaktu').innerText = "Waktu: " + new Date().toLocaleString('id-ID');
     if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + metodePembayaran;
     if(document.getElementById('notaTotal')) {
         document.getElementById('notaTotal').innerHTML = `
             <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between font-bold text-[9px]"><span>BAYAR :</span><span>Rp ${bayar.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between font-bold text-[9px]"><span>KEMBALI :</span><span>Rp ${(bayar - total).toLocaleString('id-ID')}</span></div>
         `;
     }
 
@@ -407,9 +549,12 @@ function cetakNota() {
     setTimeout(() => {
         window.print();
         if(area) area.style.display = 'none';
-        simpanTransaksi();
-        keranjang = [];
-        updateKeranjang();
+        if (simpanTransaksi()) {
+            keranjang = [];
+            if(document.getElementById('inputBayar')) document.getElementById('inputBayar').value = '';
+            if(document.getElementById('inputStyrofoam')) document.getElementById('inputStyrofoam').value = 0;
+            updateKeranjang();
+        }
     }, 300);
 }
 
@@ -466,7 +611,7 @@ function hapusPengeluaranFirebase(id) {
     }
 }
 
-/* ================= HELPER PARSING TANGGAL & NOMINAL (DATABASE LAMA) ================= */
+/* ================= HELPER PARSING TANGGAL & NOMINAL ================= */
 function parseNominalDinamis(exp) {
     if (!exp) return 0;
     let raw = exp.nominal ?? exp.jumlah ?? exp.total ?? exp.harga ?? exp.biaya ?? 0;
@@ -502,7 +647,6 @@ function parseTanggalISO(exp) {
 }
 
 /* ================= LAPORAN TRANSAKSI PENJUALAN ================= */
-
 function setTanggalHariIniIfEmpty() {
     let todayISO = new Date().toISOString().split('T')[0];
     
@@ -554,7 +698,6 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
             matchDate = dateStr <= tglSelesai;
         }
         
-        // Kompatibilitas untuk cabang lama (DAPUR AYA / AYA TOKO Sembako)
         let matchCabang = false;
         if (cabangAktif === 'SEMUA CABANG') {
             matchCabang = true;
@@ -713,7 +856,6 @@ function prosesRenderLaporanPengeluaran(semuaPengeluaran, tglMulai, tglSelesai, 
             matchDate = dateStr <= tglSelesai;
         }
 
-        // Kompatibilitas filter cabang pengeluaran lama
         let matchCabang = false;
         if (cabangAktif === 'SEMUA CABANG') {
             matchCabang = true;
