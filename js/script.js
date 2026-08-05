@@ -40,15 +40,6 @@ let riwayatTransaksi = JSON.parse(localStorage.getItem('aya_transaksi_v3')) || [
 let riwayatPengeluaran = JSON.parse(localStorage.getItem('aya_pengeluaran_v3')) || [];
 let pembelianList = JSON.parse(localStorage.getItem('aya_pembelian_v1')) || [];
 
-// Variable Global Pengaturan Nota / Printer Default
-let settingNota = JSON.parse(localStorage.getItem('aya_setting_nota')) || {
-    namaToko: "AYA SEBLAK & ANGKRINGAN",
-    alamat: "Jl. Raya Utama No. 123",
-    telepon: "0812-3456-7890",
-    headerMessage: "Selamat Datang & Selamat Menikmati",
-    footerMessage: "Terima Kasih Atas Kunjungan Anda!"
-};
-
 // Custom Modal Laci State
 let modalTambahanManual = parseInt(localStorage.getItem('aya_modal_laci')) || 70000;
 
@@ -56,55 +47,6 @@ let kategoriAktif = 'topping';
 let metodePembayaran = 'TUNAI';
 let myChart = null;
 let myExpenseChart = null;
-
-/* ================= MANAJEMEN PENGATURAN NOTA & PRINTER ================= */
-function simpanPengaturanNota() {
-    let namaToko = document.getElementById('settingNamaToko')?.value.trim() || settingNota.namaToko;
-    let alamat = document.getElementById('settingAlamatToko')?.value.trim() || settingNota.alamat;
-    let telepon = document.getElementById('settingTelpToko')?.value.trim() || settingNota.telepon;
-    let headerMessage = document.getElementById('settingHeaderNota')?.value.trim() || settingNota.headerMessage;
-    let footerMessage = document.getElementById('settingFooterNota')?.value.trim() || settingNota.footerMessage;
-
-    settingNota = {
-        namaToko: namaToko,
-        alamat: alamat,
-        telepon: telepon,
-        headerMessage: headerMessage,
-        footerMessage: footerMessage
-    };
-
-    localStorage.setItem('aya_setting_nota', JSON.stringify(settingNota));
-
-    if (db) {
-        db.ref('pengaturan/nota').set(settingNota);
-    }
-
-    muatTampilanNotaSetting();
-    alert("Pengaturan Nota Berhasil Disimpan!");
-}
-
-function muatTampilanNotaSetting() {
-    if (document.getElementById('settingNamaToko')) document.getElementById('settingNamaToko').value = settingNota.namaToko || '';
-    if (document.getElementById('settingAlamatToko')) document.getElementById('settingAlamatToko').value = settingNota.alamat || '';
-    if (document.getElementById('settingTelpToko')) document.getElementById('settingTelpToko').value = settingNota.telepon || '';
-    if (document.getElementById('settingHeaderNota')) document.getElementById('settingHeaderNota').value = settingNota.headerMessage || '';
-    if (document.getElementById('settingFooterNota')) document.getElementById('settingFooterNota').value = settingNota.footerMessage || '';
-
-    // Update Live Preview jika elemen preview tersedia di Tab Setting
-    if (document.getElementById('prevNamaToko')) document.getElementById('prevNamaToko').innerText = settingNota.namaToko;
-    if (document.getElementById('prevAlamatToko')) document.getElementById('prevAlamatToko').innerText = settingNota.alamat;
-    if (document.getElementById('prevTelpToko')) document.getElementById('prevTelpToko').innerText = settingNota.telepon;
-    if (document.getElementById('prevHeaderNota')) document.getElementById('prevHeaderNota').innerText = settingNota.headerMessage;
-    if (document.getElementById('prevFooterNota')) document.getElementById('prevFooterNota').innerText = settingNota.footerMessage;
-}
-
-function terapkanHeaderFooterKeNota() {
-    if (document.getElementById('notaNamaToko')) document.getElementById('notaNamaToko').innerText = settingNota.namaToko || 'AYA GROUP';
-    if (document.getElementById('notaAlamat')) document.getElementById('notaAlamat').innerText = settingNota.alamat || '';
-    if (document.getElementById('notaTelp')) document.getElementById('notaTelp').innerText = "Telp: " + (settingNota.telepon || '-');
-    if (document.getElementById('notaHeaderPesanan')) document.getElementById('notaHeaderPesanan').innerText = settingNota.headerMessage || '';
-    if (document.getElementById('notaFooterPesanan')) document.getElementById('notaFooterPesanan').innerText = settingNota.footerMessage || '';
-}
 
 // GANTI CABANG MANUAL
 function gantiCabang(namaCabang) {
@@ -144,9 +86,6 @@ function switchTab(tab) {
     if(tab === 'pembelian') {
         renderOpsiMasterPembelian();
         renderPembelian();
-    }
-    if(tab === 'setting') {
-        muatTampilanNotaSetting();
     }
     if(tab === 'pengeluaran') {
         let inputModal = document.getElementById('inputTambahModalLaci');
@@ -680,9 +619,6 @@ function tombolSimpanSaja() {
 function cetakNota() {
     if(keranjang.length === 0) return alert('Keranjang belanja kosong!');
     
-    // Terapkan Header dan Footer dari Pengaturan
-    terapkanHeaderFooterKeNota();
-
     let htmlItems = '';
     let total = 0;
     keranjang.forEach(i => {
@@ -690,11 +626,11 @@ function cetakNota() {
         let sub = harga * i.qty;
         total += sub;
         htmlItems += `
-            <div class="nota-item-row font-bold flex justify-between">
+            <div class="nota-item-row font-bold">
                 <span>${i.nama || '-'}</span>
                 <div class="nota-item-detail">
                     <span>${i.qty} x ${harga.toLocaleString('id-ID')}</span>
-                    <span class="ml-2">Rp${sub.toLocaleString('id-ID')}</span>
+                    <span>Rp${sub.toLocaleString('id-ID')}</span>
                 </div>
             </div>
         `;
@@ -705,7 +641,7 @@ function cetakNota() {
     if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + metodePembayaran;
     if(document.getElementById('notaTotal')) {
         document.getElementById('notaTotal').innerHTML = `
-            <div class="flex justify-between font-bold border-t pt-1"><span>TOTAL :</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
         `;
     }
 
@@ -726,9 +662,6 @@ function cetakNotaDariRiwayat(idNota) {
 
     if (!nota) return alert("Data transaksi tidak ditemukan!");
 
-    // Terapkan Header dan Footer dari Pengaturan
-    terapkanHeaderFooterKeNota();
-
     let htmlItems = '';
     let itemList = Array.isArray(nota.items) ? nota.items : Object.values(nota.items || {});
     
@@ -736,11 +669,11 @@ function cetakNotaDariRiwayat(idNota) {
         let harga = i.harga || 0;
         let sub = harga * (i.qty || 1);
         htmlItems += `
-            <div class="nota-item-row font-bold flex justify-between">
+            <div class="nota-item-row font-bold">
                 <span>${i.nama || '-'}</span>
                 <div class="nota-item-detail">
                     <span>${i.qty || 1} x ${harga.toLocaleString('id-ID')}</span>
-                    <span class="ml-2">Rp${sub.toLocaleString('id-ID')}</span>
+                    <span>Rp${sub.toLocaleString('id-ID')}</span>
                 </div>
             </div>
         `;
@@ -751,7 +684,7 @@ function cetakNotaDariRiwayat(idNota) {
     if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + (nota.metodePembayaran || nota.metode || 'TUNAI');
     if(document.getElementById('notaTotal')) {
         document.getElementById('notaTotal').innerHTML = `
-            <div class="flex justify-between font-bold border-t pt-1"><span>TOTAL :</span><span>Rp ${(nota.total || parseNominalDinamis(nota)).toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${(nota.total || parseNominalDinamis(nota)).toLocaleString('id-ID')}</span></div>
         `;
     }
 
@@ -1138,6 +1071,7 @@ function updateLaporan() {
     prosesRenderLaporan(sumberData, tglMulai, tglSelesai);
 }
 
+/* METODE PROSES LAPORAN DENGAN DETAIL HARGA BELI, JUAL, DAN PROFIT PER ITEM PER NOTA */
 function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let filtered = (semuaTransaksi || []).filter(t => {
         if (!t) return false;
@@ -1287,32 +1221,41 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
                     itemList = Object.values(t.items);
                 }
 
-                itemList.forEach(i => {
-                    hppTrx += ((parseInt(i.hargaBeli) || 0) * (parseInt(i.qty) || 0));
-                });
-
                 let detailItemsStr = '';
                 if (itemList.length > 0) {
                     detailItemsStr = `
-                        <div class="bg-amber-50/60 p-2 rounded-lg border border-amber-200/60 my-1 shadow-inner">
+                        <div class="bg-amber-50/70 p-2 rounded-lg border border-amber-200/80 my-1 shadow-inner">
                             <table class="w-full text-[11px] border-collapse">
                                 <thead>
-                                    <tr class="border-b border-amber-200 text-amber-900 text-left font-bold text-[10px]">
-                                        <th class="pb-1 uppercase">Nama Barang</th>
-                                        <th class="pb-1 text-center uppercase w-12">Qty</th>
-                                        <th class="pb-1 text-right uppercase w-20">Harga</th>
-                                        <th class="pb-1 text-right uppercase w-20">Total</th>
+                                    <tr class="border-b border-amber-300 text-amber-950 text-left font-bold text-[10px]">
+                                        <th class="pb-1 uppercase">Item</th>
+                                        <th class="pb-1 text-center uppercase w-10">Qty</th>
+                                        <th class="pb-1 text-right uppercase">H. Beli</th>
+                                        <th class="pb-1 text-right uppercase">H. Jual</th>
+                                        <th class="pb-1 text-right uppercase">Profit/Item</th>
+                                        <th class="pb-1 text-right uppercase">Total Profit</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-amber-100">
-                                    ${itemList.map(i => `
-                                        <tr>
-                                            <td class="py-1 font-semibold text-gray-800 uppercase">${i.nama || '-'}</td>
-                                            <td class="py-1 text-center font-bold text-orange-700">${i.qty || 1}</td>
-                                            <td class="py-1 text-right text-gray-600">Rp ${(parseInt(i.harga) || 0).toLocaleString('id-ID')}</td>
-                                            <td class="py-1 text-right font-bold text-gray-900">Rp ${((parseInt(i.harga) || 0) * (parseInt(i.qty) || 1)).toLocaleString('id-ID')}</td>
-                                        </tr>
-                                    `).join('')}
+                                <tbody class="divide-y divide-amber-200/60">
+                                    ${itemList.map(i => {
+                                        let qty = parseInt(i.qty) || 1;
+                                        let hJual = parseInt(i.harga) || 0;
+                                        let hBeli = parseInt(i.hargaBeli) || 0;
+                                        let profitItem = hJual - hBeli;
+                                        let totalProfitItem = profitItem * qty;
+                                        hppTrx += (hBeli * qty);
+
+                                        return `
+                                            <tr>
+                                                <td class="py-1 font-semibold text-gray-800 uppercase">${i.nama || '-'}</td>
+                                                <td class="py-1 text-center font-bold text-orange-700">${qty}</td>
+                                                <td class="py-1 text-right text-gray-500">Rp ${hBeli.toLocaleString('id-ID')}</td>
+                                                <td class="py-1 text-right text-gray-800 font-medium">Rp ${hJual.toLocaleString('id-ID')}</td>
+                                                <td class="py-1 text-right text-emerald-600 font-semibold">Rp ${profitItem.toLocaleString('id-ID')}</td>
+                                                <td class="py-1 text-right font-bold text-emerald-700">Rp ${totalProfitItem.toLocaleString('id-ID')}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -1553,7 +1496,6 @@ function calcEqual() {
 /* ================= INIT EVENT LISTENER REALTIME FIREBASE ================= */
 window.onload = function() {
     setTanggalHariIniIfEmpty();
-    muatTampilanNotaSetting();
 
     if(db) {
         db.ref('transaksi').on('value', (snapshot) => {
@@ -1588,15 +1530,6 @@ window.onload = function() {
                 let inputModal = document.getElementById('inputTambahModalLaci');
                 if(inputModal) inputModal.value = modalTambahanManual;
                 updateLaporan();
-            }
-        });
-
-        db.ref('pengaturan/nota').on('value', (snapshot) => {
-            let val = snapshot.val();
-            if(val) {
-                settingNota = val;
-                localStorage.setItem('aya_setting_nota', JSON.stringify(settingNota));
-                muatTampilanNotaSetting();
             }
         });
     } else {
