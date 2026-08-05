@@ -10,62 +10,81 @@ function gantiCabang(namaCabang) {
     updateLaporanPengeluaran();
 }
 
-// BUKA DAN TUTUP TAB
-function switchTab(tab) {
-    // Navigasi dibuat aman: tampilan tab dipindahkan terlebih dahulu,
-    // kemudian fungsi render dijalankan tanpa boleh memblokir perpindahan tab.
-    const tabs = ['master','cabang','kasir','pembelian','pengeluaran','laporan','laporan_pengeluaran','backoffice','user','setting'];
+// ================= NAVIGASI TAB AYA GROUP =================
+(function(){
+    const AYA_TABS = ['master','cabang','kasir','pembelian','pengeluaran','laporan','laporan_pengeluaran','backoffice','user','setting'];
 
-    tabs.forEach(t => {
-        const el = document.getElementById('tab-' + t);
-        const btn = document.getElementById('btn-tab-' + t);
-        if (el) {
-            el.classList.toggle('hidden', t !== tab);
-            el.style.display = (t === tab) ? '' : 'none';
-        }
-        if (btn) {
-            btn.classList.toggle('bg-orange-700', t === tab);
-        }
-    });
+    function setTab(tab, updateHash=true){
+        if(!AYA_TABS.includes(tab)) return false;
+        try {
+            AYA_TABS.forEach(function(name){
+                const panel = document.getElementById('tab-' + name);
+                const button = document.getElementById('btn-tab-' + name);
+                if(panel){
+                    panel.classList.remove('hidden','space-y-4');
+                    panel.classList.remove('aya-tab-visible','aya-tab-hidden');
+                    if(name === tab){
+                        panel.classList.add('aya-tab-visible','space-y-4');
+                        panel.style.setProperty('display','block','important');
+                    } else {
+                        panel.classList.add('aya-tab-hidden');
+                        panel.style.setProperty('display','none','important');
+                    }
+                }
+                if(button){
+                    button.classList.toggle('bg-orange-700', name === tab);
+                    button.setAttribute('aria-selected', name === tab ? 'true' : 'false');
+                }
+            });
+            if(updateHash){
+                try { history.replaceState(null,'','#' + tab); } catch(e){}
+            }
+            const target=document.getElementById('tab-' + tab);
+            if(target) target.scrollTop=0;
+            window.scrollTo(0,0);
 
-    const targetTab = document.getElementById('tab-' + tab);
-    if (!targetTab) {
-        console.warn('[AYA] Tab tidak ditemukan:', tab);
-        return false;
+            // Rendering bersifat tambahan; tidak boleh menggagalkan navigasi.
+            try {
+                if(tab==='master'){
+                    if(typeof renderMasterData==='function') renderMasterData();
+                    if(typeof renderOpsiMasterTitipan==='function') renderOpsiMasterTitipan();
+                    if(typeof renderBarangTitipan==='function') renderBarangTitipan();
+                }
+                if(tab==='cabang' && typeof renderInventaris==='function') renderInventaris();
+                if(tab==='pembelian'){
+                    if(typeof renderOpsiMasterPembelian==='function') renderOpsiMasterPembelian();
+                    if(typeof renderPembelian==='function') renderPembelian();
+                }
+                if(tab==='pengeluaran' && typeof updateLaporanPengeluaran==='function') updateLaporanPengeluaran();
+                if(tab==='laporan' && typeof updateLaporan==='function') updateLaporan();
+                if(tab==='laporan_pengeluaran' && typeof updateLaporanPengeluaran==='function') updateLaporanPengeluaran();
+            } catch(renderError){ console.error('[AYA] render tab error:',renderError); }
+            return false;
+        } catch(error){
+            console.error('[AYA] navigasi tab error:',error);
+            return false;
+        }
     }
 
-    // Pastikan tab tujuan benar-benar terlihat meskipun Tailwind gagal dimuat.
-    targetTab.classList.remove('hidden');
-    targetTab.style.display = '';
+    window.AYA_switchTab=setTab;
+    window.switchTab=setTab;
 
-    try {
-        if (tab === 'master') {
-            if (typeof renderMasterData === 'function') renderMasterData();
-            if (typeof renderOpsiMasterTitipan === 'function') renderOpsiMasterTitipan();
-            if (typeof renderBarangTitipan === 'function') renderBarangTitipan();
-        } else if (tab === 'laporan') {
-            if (typeof updateLaporan === 'function') updateLaporan();
-        } else if (tab === 'laporan_pengeluaran') {
-            if (typeof updateLaporanPengeluaran === 'function') updateLaporanPengeluaran();
-        } else if (tab === 'cabang') {
-            if (typeof renderInventaris === 'function') renderInventaris();
-            if (typeof renderTransfers === 'function') renderTransfers();
-        } else if (tab === 'pembelian') {
-            if (typeof renderOpsiMasterPembelian === 'function') renderOpsiMasterPembelian();
-            if (typeof renderPembelian === 'function') renderPembelian();
-        } else if (tab === 'pengeluaran') {
-            const inputModal = document.getElementById('inputTambahModalLaci');
-            if (inputModal) inputModal.value = typeof modalTambahanManual !== 'undefined' ? modalTambahanManual : 0;
-            if (typeof updateLaporanPengeluaran === 'function') updateLaporanPengeluaran();
-        }
-    } catch (error) {
-        // Error pada render tidak boleh membuat navigasi mati.
-        console.error('[AYA] Error saat render tab ' + tab + ':', error);
+    function bind(){
+        document.querySelectorAll('[data-aya-tab]').forEach(function(btn){
+            btn.addEventListener('click',function(e){
+                e.preventDefault();
+                setTab(btn.getAttribute('data-aya-tab'));
+            },true);
+        });
+        let initial=(location.hash||'').replace('#','');
+        if(!AYA_TABS.includes(initial)) initial='kasir';
+        setTab(initial,false);
     }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind); else bind();
+})();
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return true;
-}
+// Kompatibilitas kode lama.
+function switchTab(tab){ return window.AYA_switchTab ? window.AYA_switchTab(tab) : false; }
 
 function switchSubMaster(sub) {
     ['barang', 'titipan', 'pelanggan', 'supplier', 'karyawan'].forEach(s => {

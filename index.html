@@ -56,34 +56,34 @@
 
             <!-- Menus Navigasi -->
             <nav class="p-2 space-y-1 text-xs font-bold">
-                <button onclick="switchTab('master')" id="btn-tab-master" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                <button type="button" data-aya-tab="master" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'master\') : false;" id="btn-tab-master" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     📂 1. Master Data
                 </button>
-                <button onclick="switchTab('cabang')" id="btn-tab-cabang" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                <button type="button" data-aya-tab="cabang" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'cabang\') : false;" id="btn-tab-cabang" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     🏢 2. Data Cabang & Inventaris
                 </button>
-                <button onclick="switchTab('kasir')" id="btn-tab-kasir" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2 bg-orange-700">
+                <button type="button" data-aya-tab="kasir" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'kasir\') : false;" id="btn-tab-kasir" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2 bg-orange-700">
                     🛒 3. Kasir Penjualan
                 </button>
-                <button onclick="switchTab('pembelian')" id="btn-tab-pembelian" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                <button type="button" data-aya-tab="pembelian" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'pembelian\') : false;" id="btn-tab-pembelian" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     🛍️ 4. Transaksi Pembelian
                 </button>
-                <button onclick="switchTab('pengeluaran')" id="btn-tab-pengeluaran" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                <button type="button" data-aya-tab="pengeluaran" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'pengeluaran\') : false;" id="btn-tab-pengeluaran" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     💸 5. Transaksi Pengeluaran
                 </button>
-                <button onclick="switchTab('laporan')" id="btn-tab-laporan" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                <button type="button" data-aya-tab="laporan" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'laporan\') : false;" id="btn-tab-laporan" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     🧾 6. Laporan Penjualan
                 </button>
-                <button onclick="switchTab('laporan_pengeluaran')" id="btn-tab-laporan_pengeluaran" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                <button type="button" data-aya-tab="laporan_pengeluaran" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'laporan_pengeluaran\') : false;" id="btn-tab-laporan_pengeluaran" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     📉 7. Laporan Pengeluaran
                 </button>
-                <button onclick="switchTab('backoffice')" id="btn-tab-backoffice" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                <button type="button" data-aya-tab="backoffice" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'backoffice\') : false;" id="btn-tab-backoffice" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     💼 8. Back Office & Gaji
                 </button>
-                <button onclick="switchTab('user')" id="btn-tab-user" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                <button type="button" data-aya-tab="user" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'user\') : false;" id="btn-tab-user" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     👥 9. Management User
                 </button>
-                <button onclick="switchTab('setting')" id="btn-tab-setting" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
+                <button type="button" data-aya-tab="setting" onclick="return window.AYA_switchTab ? window.AYA_switchTab(\'setting\') : false;" id="btn-tab-setting" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     ⚙️ 10. Setting Printer & Nota
                 </button>
             </nav>

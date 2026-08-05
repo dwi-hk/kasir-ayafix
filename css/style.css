@@ -1,5 +1,7 @@
-/* Fallback navigasi tab jika Tailwind CDN gagal dimuat */
-.hidden { display: none !important; }
+/* AYA TAB NAVIGATION - tidak bergantung pada Tailwind */
+.aya-tab-hidden { display: none !important; }
+.aya-tab-visible { display: block !important; }
+
 
 /* css/style.css */
 
