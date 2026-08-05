@@ -1,3 +1,6 @@
+/* Fallback navigasi tab jika Tailwind CDN gagal dimuat */
+.hidden { display: none !important; }
+
 /* css/style.css */
 
 /* Pengaturan Cetak Nota Thermal 58mm untuk Android & PC */

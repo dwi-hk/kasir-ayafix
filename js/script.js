@@ -12,34 +12,59 @@ function gantiCabang(namaCabang) {
 
 // BUKA DAN TUTUP TAB
 function switchTab(tab) {
-    ['master', 'cabang', 'kasir', 'pengeluaran', 'laporan', 'laporan_pengeluaran', 'backoffice', 'user', 'setting', 'pembelian'].forEach(t => {
-        let el = document.getElementById('tab-' + t);
-        let btn = document.getElementById('btn-tab-' + t);
-        if (el) el.classList.add('hidden');
-        if (btn) btn.classList.remove('bg-orange-700');
+    // Navigasi dibuat aman: tampilan tab dipindahkan terlebih dahulu,
+    // kemudian fungsi render dijalankan tanpa boleh memblokir perpindahan tab.
+    const tabs = ['master','cabang','kasir','pembelian','pengeluaran','laporan','laporan_pengeluaran','backoffice','user','setting'];
+
+    tabs.forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        const btn = document.getElementById('btn-tab-' + t);
+        if (el) {
+            el.classList.toggle('hidden', t !== tab);
+            el.style.display = (t === tab) ? '' : 'none';
+        }
+        if (btn) {
+            btn.classList.toggle('bg-orange-700', t === tab);
+        }
     });
 
-    let targetTab = document.getElementById('tab-' + tab);
-    let targetBtn = document.getElementById('btn-tab-' + tab);
-    if (targetTab) targetTab.classList.remove('hidden');
-    if (targetBtn) targetBtn.classList.add('bg-orange-700');
+    const targetTab = document.getElementById('tab-' + tab);
+    if (!targetTab) {
+        console.warn('[AYA] Tab tidak ditemukan:', tab);
+        return false;
+    }
 
-    if(tab === 'master') {
-        renderMasterData();
-        renderOpsiMasterTitipan();
-        renderBarangTitipan();
+    // Pastikan tab tujuan benar-benar terlihat meskipun Tailwind gagal dimuat.
+    targetTab.classList.remove('hidden');
+    targetTab.style.display = '';
+
+    try {
+        if (tab === 'master') {
+            if (typeof renderMasterData === 'function') renderMasterData();
+            if (typeof renderOpsiMasterTitipan === 'function') renderOpsiMasterTitipan();
+            if (typeof renderBarangTitipan === 'function') renderBarangTitipan();
+        } else if (tab === 'laporan') {
+            if (typeof updateLaporan === 'function') updateLaporan();
+        } else if (tab === 'laporan_pengeluaran') {
+            if (typeof updateLaporanPengeluaran === 'function') updateLaporanPengeluaran();
+        } else if (tab === 'cabang') {
+            if (typeof renderInventaris === 'function') renderInventaris();
+            if (typeof renderTransfers === 'function') renderTransfers();
+        } else if (tab === 'pembelian') {
+            if (typeof renderOpsiMasterPembelian === 'function') renderOpsiMasterPembelian();
+            if (typeof renderPembelian === 'function') renderPembelian();
+        } else if (tab === 'pengeluaran') {
+            const inputModal = document.getElementById('inputTambahModalLaci');
+            if (inputModal) inputModal.value = typeof modalTambahanManual !== 'undefined' ? modalTambahanManual : 0;
+            if (typeof updateLaporanPengeluaran === 'function') updateLaporanPengeluaran();
+        }
+    } catch (error) {
+        // Error pada render tidak boleh membuat navigasi mati.
+        console.error('[AYA] Error saat render tab ' + tab + ':', error);
     }
-    if(tab === 'laporan') updateLaporan();
-    if(tab === 'laporan_pengeluaran') updateLaporanPengeluaran();
-    if(tab === 'cabang') renderInventaris();
-    if(tab === 'pembelian') {
-        renderOpsiMasterPembelian();
-        renderPembelian();
-    }
-    if(tab === 'pengeluaran') {
-        let inputModal = document.getElementById('inputTambahModalLaci');
-        if(inputModal) inputModal.value = modalTambahanManual;
-    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return true;
 }
 
 function switchSubMaster(sub) {
