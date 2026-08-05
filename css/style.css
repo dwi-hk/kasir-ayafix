@@ -1,7 +1,5 @@
-/* AYA TAB NAVIGATION - tidak bergantung pada Tailwind */
-.aya-tab-hidden { display: none !important; }
-.aya-tab-visible { display: block !important; }
-
+/* Fallback navigasi tab jika Tailwind CDN gagal dimuat */
+.hidden { display: none !important; }
 
 /* css/style.css */
 
@@ -48,3 +46,8 @@
         font-size: 9px !important;
     }
 }
+
+/* AYA POS: navigasi tab independen dari Tailwind */
+.aya-tab-panel { display: none !important; }
+.aya-tab-panel.active { display: block !important; }
+.aya-tab-button-active { background: rgba(194,65,12,.95) !important; color: #fff !important; }
