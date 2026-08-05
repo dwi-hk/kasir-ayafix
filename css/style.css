@@ -1,62 +1,52 @@
-/* css/style.css */
-
-/* Pengaturan Cetak Nota Thermal 58mm untuk Android & PC */
 @media print {
-    body * { 
-        visibility: hidden !important; 
-        height: 0 !important; 
-        overflow: hidden !important;
-        margin: 0 !important;
-        padding: 0 !important;
+    body * {
+        visibility: hidden;
     }
-    #areaNota, #areaNota * { 
-        visibility: visible !important; 
-        display: block !important;
-        height: auto !important;
-        overflow: visible !important;
+    #areaNota, #areaNota * {
+        visibility: visible;
     }
-    #areaNota { 
-        position: absolute !important; 
-        left: 0 !important; 
-        top: 0 !important; 
-        width: 58mm !important; 
-        max-width: 58mm !important;
-        font-family: monospace !important; 
-        color: #000 !important;
-        background: #fff !important;
-        padding: 2px !important;
-    }
-    #notaItems {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 2px !important;
-    }
-    .nota-item-row {
-        display: flex !important;
-        flex-direction: column !important;
-        border-bottom: 1px dashed #ccc !important;
-        padding-bottom: 2px !important;
-    }
-    .nota-item-detail {
-        display: flex !important;
-        justify-content: space-between !important;
-        font-size: 9px !important;
+    #areaNota {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
     }
 }
 
-/* Custom Styling Tambahan untuk Tab Kasir & Komponen Pelanggan */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+/* Stiling Nota Cetak 2 Kolom Hemut Kertas */
+.nota-print-box {
+    width: 58mm; /* atau 80mm menyesuaikan lebar kertas thermal */
+    font-family: monospace;
+    font-size: 10px;
+    padding: 2mm;
+    margin: 0 auto;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
+
+/* Container 2 Kolom */
+.nota-2col-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #ea580c;
-    border-radius: 4px;
+
+.nota-col {
+    width: 49%;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #c2410c;
+
+.nota-item-single {
+    border-b: 1px dotted #ccc;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+}
+
+.nota-item-single .item-name {
+    font-size: 9px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nota-item-single .item-sub {
+    font-size: 8px;
 }

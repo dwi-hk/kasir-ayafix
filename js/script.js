@@ -40,6 +40,16 @@ let riwayatTransaksi = JSON.parse(localStorage.getItem('aya_transaksi_v3')) || [
 let riwayatPengeluaran = JSON.parse(localStorage.getItem('aya_pengeluaran_v3')) || [];
 let pembelianList = JSON.parse(localStorage.getItem('aya_pembelian_v1')) || [];
 
+// Pengaturan Nota (Default Config)
+let pengaturanNota = JSON.parse(localStorage.getItem('aya_setting_nota')) || {
+    namaToko: "DAPUR AYA / AYA SEBLAK",
+    alamatToko: "Jl. Raya Seblak No. 123, Indonesia",
+    noHp: "0812-3456-7890",
+    headerMessage: "Selamat Datang di Dapur AYA!",
+    footerMessage: "Terima Kasih atas Kunjungan Anda!\nBarang yang sudah dibeli tidak dapat ditukar.",
+    lebarKertas: "58mm"
+};
+
 // Custom Modal Laci State
 let modalTambahanManual = parseInt(localStorage.getItem('aya_modal_laci')) || 70000;
 
@@ -91,6 +101,9 @@ function switchTab(tab) {
         let inputModal = document.getElementById('inputTambahModalLaci');
         if(inputModal) inputModal.value = modalTambahanManual;
     }
+    if(tab === 'setting') {
+        loadFormSettingNota();
+    }
 }
 
 function switchSubMaster(sub) {
@@ -109,6 +122,42 @@ function switchSubMaster(sub) {
         renderOpsiMasterTitipan();
         renderBarangTitipan();
     }
+}
+
+/* ================= MANAJEMEN PENGATURAN NOTA ================= */
+function loadFormSettingNota() {
+    if (document.getElementById('settingNamaToko')) document.getElementById('settingNamaToko').value = pengaturanNota.namaToko || '';
+    if (document.getElementById('settingAlamatToko')) document.getElementById('settingAlamatToko').value = pengaturanNota.alamatToko || '';
+    if (document.getElementById('settingNoHp')) document.getElementById('settingNoHp').value = pengaturanNota.noHp || '';
+    if (document.getElementById('settingHeader')) document.getElementById('settingHeader').value = pengaturanNota.headerMessage || '';
+    if (document.getElementById('settingFooter')) document.getElementById('settingFooter').value = pengaturanNota.footerMessage || '';
+    if (document.getElementById('settingLebarKertas')) document.getElementById('settingLebarKertas').value = pengaturanNota.lebarKertas || '58mm';
+}
+
+function simpanPengaturanNota() {
+    let namaToko = document.getElementById('settingNamaToko')?.value.trim() || 'DAPUR AYA';
+    let alamatToko = document.getElementById('settingAlamatToko')?.value.trim() || '';
+    let noHp = document.getElementById('settingNoHp')?.value.trim() || '';
+    let headerMessage = document.getElementById('settingHeader')?.value.trim() || '';
+    let footerMessage = document.getElementById('settingFooter')?.value.trim() || '';
+    let lebarKertas = document.getElementById('settingLebarKertas')?.value || '58mm';
+
+    pengaturanNota = {
+        namaToko,
+        alamatToko,
+        noHp,
+        headerMessage,
+        footerMessage,
+        lebarKertas
+    };
+
+    localStorage.setItem('aya_setting_nota', JSON.stringify(pengaturanNota));
+
+    if (db) {
+        db.ref('pengaturan/nota').set(pengaturanNota);
+    }
+
+    alert('Pengaturan Nota Berhasil Disimpan!');
 }
 
 /* ================= MANAJEMEN MASTER DATA ================= */
@@ -580,7 +629,7 @@ function resumeTransaksi(index) {
     renderHeldOrders();
 }
 
-/* ================= SIMPAN TRANSAKSI & CETAK NOTA ================= */
+/* ================= SIMPAN TRANSAKSI & CETAK NOTA (FUNGSI TERPERBAIKI) ================= */
 function simpanTransaksi() {
     if(keranjang.length === 0) { alert('Keranjang Kosong!'); return false; }
     let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
@@ -589,7 +638,7 @@ function simpanTransaksi() {
 
     let nota = {
         id: 'NOTA-' + Date.now(),
-        cabang: cabangAktif === 'SEMUA CABANG' ? 'AYA SEBLAK DAN ANGKRINGAN' : cabangAktif,
+        cabang: cabangAktif === 'SEMUA CABANG' ? (pengaturanNota.namaToko || 'AYA SEBLAK DAN ANGKRINGAN') : cabangAktif,
         waktu: new Date().toLocaleString('id-ID'),
         tanggalISO: new Date().toISOString().split('T')[0],
         items: [...keranjang],
@@ -616,32 +665,65 @@ function tombolSimpanSaja() {
     }
 }
 
+// FUNGSI HELPER UNTUK MENGHASILKAN HTML MEMBAGI DUA KOLOM ITEM
+function generateTwoColumnNotaItems(itemList) {
+    let half = Math.ceil(itemList.length / 2);
+    let col1 = itemList.slice(0, half);
+    let col2 = itemList.slice(half);
+
+    let renderCol = (items) => {
+        return items.map(i => {
+            let harga = i.harga || 0;
+            let sub = harga * (i.qty || 1);
+            return `
+                <div class="nota-item-single">
+                    <div class="item-name font-bold">${i.nama || '-'}</div>
+                    <div class="item-sub flex justify-between">
+                        <span>${i.qty || 1}x${harga.toLocaleString('id-ID')}</span>
+                        <span class="font-bold">Rp${sub.toLocaleString('id-ID')}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    return `
+        <div class="nota-2col-container">
+            <div class="nota-col">${renderCol(col1)}</div>
+            <div class="nota-col">${renderCol(col2)}</div>
+        </div>
+    `;
+}
+
+// CETAK NOTA BARU REALTIME (SUDAN MENYESUAIKAN DENGAN FORM PENGATURAN NOTA & 2 KOLOM)
 function cetakNota() {
     if(keranjang.length === 0) return alert('Keranjang belanja kosong!');
     
-    let htmlItems = '';
-    let total = 0;
-    keranjang.forEach(i => {
-        let harga = i.harga || 0;
-        let sub = harga * i.qty;
-        total += sub;
-        htmlItems += `
-            <div class="nota-item-row font-bold">
-                <span>${i.nama || '-'}</span>
-                <div class="nota-item-detail">
-                    <span>${i.qty} x ${harga.toLocaleString('id-ID')}</span>
-                    <span>Rp${sub.toLocaleString('id-ID')}</span>
-                </div>
-            </div>
-        `;
-    });
+    let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
+    let total = parseInt(totalText) || 0;
+    let bayar = parseInt(document.getElementById('inputBayar')?.value) || total;
+    let kembalian = bayar - total;
 
-    if(document.getElementById('notaItems')) document.getElementById('notaItems').innerHTML = htmlItems;
+    // Terapkan Pengaturan Header & Footer Nota
+    if(document.getElementById('notaNamaToko')) document.getElementById('notaNamaToko').innerText = pengaturanNota.namaToko || 'DAPUR AYA';
+    if(document.getElementById('notaAlamatToko')) document.getElementById('notaAlamatToko').innerText = pengaturanNota.alamatToko || '';
+    if(document.getElementById('notaNoHp')) document.getElementById('notaNoHp').innerText = pengaturanNota.noHp ? "HP/WA: " + pengaturanNota.noHp : '';
+    if(document.getElementById('notaHeaderMessage')) document.getElementById('notaHeaderMessage').innerText = pengaturanNota.headerMessage || '';
+    if(document.getElementById('notaFooterMessage')) document.getElementById('notaFooterMessage').innerText = pengaturanNota.footerMessage || '';
+
+    // Render Items dengan Tampilan 2 Kolom Dapur AYA
+    if(document.getElementById('notaItems')) {
+        document.getElementById('notaItems').innerHTML = generateTwoColumnNotaItems(keranjang);
+    }
+
     if(document.getElementById('notaWaktu')) document.getElementById('notaWaktu').innerText = "Waktu: " + new Date().toLocaleString('id-ID');
     if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + metodePembayaran;
+    
     if(document.getElementById('notaTotal')) {
         document.getElementById('notaTotal').innerHTML = `
             <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between text-xs"><span>BAYAR :</span><span>Rp ${bayar.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between text-xs font-bold"><span>KEMBALI :</span><span>Rp ${(kembalian > 0 ? kembalian : 0).toLocaleString('id-ID')}</span></div>
         `;
     }
 
@@ -656,35 +738,38 @@ function cetakNota() {
     }, 300);
 }
 
+// CETAK NOTA RIWAYAT (SUDAH MENYESUAIKAN PENGATURAN NOTA & 2 KOLOM)
 function cetakNotaDariRiwayat(idNota) {
     let sumberData = (db && dataTransaksiFirebase.length > 0) ? dataTransaksiFirebase : riwayatTransaksi;
     let nota = sumberData.find(t => String(t.id) === String(idNota));
 
     if (!nota) return alert("Data transaksi tidak ditemukan!");
 
-    let htmlItems = '';
     let itemList = Array.isArray(nota.items) ? nota.items : Object.values(nota.items || {});
-    
-    itemList.forEach(i => {
-        let harga = i.harga || 0;
-        let sub = harga * (i.qty || 1);
-        htmlItems += `
-            <div class="nota-item-row font-bold">
-                <span>${i.nama || '-'}</span>
-                <div class="nota-item-detail">
-                    <span>${i.qty || 1} x ${harga.toLocaleString('id-ID')}</span>
-                    <span>Rp${sub.toLocaleString('id-ID')}</span>
-                </div>
-            </div>
-        `;
-    });
+    let total = nota.total || parseNominalDinamis(nota);
+    let bayar = nota.bayar || total;
+    let kembalian = bayar - total;
 
-    if(document.getElementById('notaItems')) document.getElementById('notaItems').innerHTML = htmlItems;
+    // Terapkan Pengaturan Header & Footer Nota
+    if(document.getElementById('notaNamaToko')) document.getElementById('notaNamaToko').innerText = pengaturanNota.namaToko || 'DAPUR AYA';
+    if(document.getElementById('notaAlamatToko')) document.getElementById('notaAlamatToko').innerText = pengaturanNota.alamatToko || '';
+    if(document.getElementById('notaNoHp')) document.getElementById('notaNoHp').innerText = pengaturanNota.noHp ? "HP/WA: " + pengaturanNota.noHp : '';
+    if(document.getElementById('notaHeaderMessage')) document.getElementById('notaHeaderMessage').innerText = pengaturanNota.headerMessage || '';
+    if(document.getElementById('notaFooterMessage')) document.getElementById('notaFooterMessage').innerText = pengaturanNota.footerMessage || '';
+
+    // Render Items 2 Kolom
+    if(document.getElementById('notaItems')) {
+        document.getElementById('notaItems').innerHTML = generateTwoColumnNotaItems(itemList);
+    }
+
     if(document.getElementById('notaWaktu')) document.getElementById('notaWaktu').innerText = "Waktu: " + (nota.waktu || nota.tanggalISO || '-');
     if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + (nota.metodePembayaran || nota.metode || 'TUNAI');
+    
     if(document.getElementById('notaTotal')) {
         document.getElementById('notaTotal').innerHTML = `
-            <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${(nota.total || parseNominalDinamis(nota)).toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between text-xs"><span>BAYAR :</span><span>Rp ${bayar.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between text-xs font-bold"><span>KEMBALI :</span><span>Rp ${(kembalian > 0 ? kembalian : 0).toLocaleString('id-ID')}</span></div>
         `;
     }
 
@@ -1071,7 +1156,6 @@ function updateLaporan() {
     prosesRenderLaporan(sumberData, tglMulai, tglSelesai);
 }
 
-/* METODE PROSES LAPORAN DENGAN DETAIL HARGA BELI, JUAL, DAN PROFIT PER ITEM PER NOTA */
 function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let filtered = (semuaTransaksi || []).filter(t => {
         if (!t) return false;
@@ -1221,41 +1305,32 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
                     itemList = Object.values(t.items);
                 }
 
+                itemList.forEach(i => {
+                    hppTrx += ((parseInt(i.hargaBeli) || 0) * (parseInt(i.qty) || 0));
+                });
+
                 let detailItemsStr = '';
                 if (itemList.length > 0) {
                     detailItemsStr = `
-                        <div class="bg-amber-50/70 p-2 rounded-lg border border-amber-200/80 my-1 shadow-inner">
+                        <div class="bg-amber-50/60 p-2 rounded-lg border border-amber-200/60 my-1 shadow-inner">
                             <table class="w-full text-[11px] border-collapse">
                                 <thead>
-                                    <tr class="border-b border-amber-300 text-amber-950 text-left font-bold text-[10px]">
-                                        <th class="pb-1 uppercase">Item</th>
-                                        <th class="pb-1 text-center uppercase w-10">Qty</th>
-                                        <th class="pb-1 text-right uppercase">H. Beli</th>
-                                        <th class="pb-1 text-right uppercase">H. Jual</th>
-                                        <th class="pb-1 text-right uppercase">Profit/Item</th>
-                                        <th class="pb-1 text-right uppercase">Total Profit</th>
+                                    <tr class="border-b border-amber-200 text-amber-900 text-left font-bold text-[10px]">
+                                        <th class="pb-1 uppercase">Nama Barang</th>
+                                        <th class="pb-1 text-center uppercase w-12">Qty</th>
+                                        <th class="pb-1 text-right uppercase w-20">Harga</th>
+                                        <th class="pb-1 text-right uppercase w-20">Total</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-amber-200/60">
-                                    ${itemList.map(i => {
-                                        let qty = parseInt(i.qty) || 1;
-                                        let hJual = parseInt(i.harga) || 0;
-                                        let hBeli = parseInt(i.hargaBeli) || 0;
-                                        let profitItem = hJual - hBeli;
-                                        let totalProfitItem = profitItem * qty;
-                                        hppTrx += (hBeli * qty);
-
-                                        return `
-                                            <tr>
-                                                <td class="py-1 font-semibold text-gray-800 uppercase">${i.nama || '-'}</td>
-                                                <td class="py-1 text-center font-bold text-orange-700">${qty}</td>
-                                                <td class="py-1 text-right text-gray-500">Rp ${hBeli.toLocaleString('id-ID')}</td>
-                                                <td class="py-1 text-right text-gray-800 font-medium">Rp ${hJual.toLocaleString('id-ID')}</td>
-                                                <td class="py-1 text-right text-emerald-600 font-semibold">Rp ${profitItem.toLocaleString('id-ID')}</td>
-                                                <td class="py-1 text-right font-bold text-emerald-700">Rp ${totalProfitItem.toLocaleString('id-ID')}</td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
+                                <tbody class="divide-y divide-amber-100">
+                                    ${itemList.map(i => `
+                                        <tr>
+                                            <td class="py-1 font-semibold text-gray-800 uppercase">${i.nama || '-'}</td>
+                                            <td class="py-1 text-center font-bold text-orange-700">${i.qty || 1}</td>
+                                            <td class="py-1 text-right text-gray-600">Rp ${(parseInt(i.harga) || 0).toLocaleString('id-ID')}</td>
+                                            <td class="py-1 text-right font-bold text-gray-900">Rp ${((parseInt(i.harga) || 0) * (parseInt(i.qty) || 1)).toLocaleString('id-ID')}</td>
+                                        </tr>
+                                    `).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -1521,6 +1596,14 @@ window.onload = function() {
             let data = snapshot.val();
             pembelianList = data ? Object.values(data) : [];
             renderPembelian();
+        });
+
+        db.ref('pengaturan/nota').on('value', (snapshot) => {
+            let data = snapshot.val();
+            if(data) {
+                pengaturanNota = data;
+                localStorage.setItem('aya_setting_nota', JSON.stringify(pengaturanNota));
+            }
         });
 
         db.ref('pengaturan/modal_laci').on('value', (snapshot) => {
