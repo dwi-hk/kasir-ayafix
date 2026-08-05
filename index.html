@@ -54,37 +54,28 @@
                 </div>
             </div>
 
-            <!-- Menus Navigasi -->
+            <!-- Menus Navigasi (Tab Cabang, Back Office & User Management Telah Dihapus) -->
             <nav class="p-2 space-y-1 text-xs font-bold">
                 <button onclick="switchTab('master')" id="btn-tab-master" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
                     📂 1. Master Data
                 </button>
-                <button onclick="switchTab('cabang')" id="btn-tab-cabang" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    🏢 2. Data Cabang & Inventaris
-                </button>
                 <button onclick="switchTab('kasir')" id="btn-tab-kasir" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2 bg-orange-700">
-                    🛒 3. Kasir Penjualan
+                    🛒 2. Kasir Penjualan
                 </button>
                 <button onclick="switchTab('pembelian')" id="btn-tab-pembelian" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    🛍️ 4. Transaksi Pembelian
+                    🛍️ 3. Transaksi Pembelian
                 </button>
                 <button onclick="switchTab('pengeluaran')" id="btn-tab-pengeluaran" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    💸 5. Transaksi Pengeluaran
+                    💸 4. Transaksi Pengeluaran
                 </button>
                 <button onclick="switchTab('laporan')" id="btn-tab-laporan" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    🧾 6. Laporan Penjualan
+                    🧾 5. Laporan Penjualan
                 </button>
                 <button onclick="switchTab('laporan_pengeluaran')" id="btn-tab-laporan_pengeluaran" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    📉 7. Laporan Pengeluaran
-                </button>
-                <button onclick="switchTab('backoffice')" id="btn-tab-backoffice" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    💼 8. Back Office & Gaji
-                </button>
-                <button onclick="switchTab('user')" id="btn-tab-user" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    👥 9. Management User
+                    📉 6. Laporan Pengeluaran
                 </button>
                 <button onclick="switchTab('setting')" id="btn-tab-setting" class="w-full text-left px-3 py-2.5 rounded-lg transition hover:bg-orange-800 flex items-center gap-2">
-                    ⚙️ 10. Setting Printer & Nota
+                    ⚙️ 7. Setting Printer & Nota
                 </button>
             </nav>
         </div>
@@ -102,14 +93,13 @@
         <!-- ================= TAB 1: MASTER DATA ================= -->
         <div id="tab-master" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
-                <h2 class="text-lg font-bold text-orange-700 mb-3">📂 Master Data Barang, Pelanggan, Supplier & Karyawan</h2>
+                <h2 class="text-lg font-bold text-orange-700 mb-3">📂 Master Data Barang, Pelanggan & Supplier</h2>
                 
                 <div class="flex gap-2 border-b pb-2 mb-4 overflow-x-auto text-xs font-bold">
                     <button onclick="switchSubMaster('barang')" id="btn-submaster-barang" class="px-3 py-1.5 bg-orange-600 text-white rounded">📦 Stok & Produk</button>
                     <button onclick="switchSubMaster('titipan')" id="btn-submaster-titipan" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded">🤝 Barang Titipan</button>
                     <button onclick="switchSubMaster('pelanggan')" id="btn-submaster-pelanggan" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded">👥 Pelanggan & Hutang</button>
                     <button onclick="switchSubMaster('supplier')" id="btn-submaster-supplier" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded">🚛 Supplier & Piutang</button>
-                    <button onclick="switchSubMaster('karyawan')" id="btn-submaster-karyawan" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded">👷 Data Karyawan</button>
                 </div>
 
                 <div id="sec-master-barang" class="space-y-4">
@@ -292,36 +282,10 @@
                         </table>
                     </div>
                 </div>
-
-                <div id="sec-master-karyawan" class="hidden space-y-4">
-                    <p class="text-xs text-gray-500 italic">Data karyawan dapat dikelola melalui menu Back Office & Gaji.</p>
-                </div>
             </div>
         </div>
 
-        <!-- ================= TAB 2: DATA CABANG & INVENTARIS ================= -->
-        <div id="tab-cabang" class="hidden space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
-                <h2 class="text-lg font-bold text-orange-700 mb-2">🏢 Inventaris & Stok per Cabang</h2>
-                <p class="text-xs text-gray-500 mb-4">Menampilkan ketersediaan stok produk pada lokasi: <span id="txtCabangInv" class="font-bold text-orange-700">AYA SEBLAK DAN ANGKRINGAN</span></p>
-                <div class="overflow-x-auto border rounded-lg">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-orange-100 font-bold uppercase">
-                            <tr>
-                                <th class="p-2">Kode</th>
-                                <th class="p-2">Nama Barang</th>
-                                <th class="p-2 text-center">Kategori</th>
-                                <th class="p-2 text-right">Harga Jual</th>
-                                <th class="p-2 text-center">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelInventaris" class="divide-y bg-white"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= TAB 3: KASIR PENJUALAN ================= -->
+        <!-- ================= TAB 2: KASIR PENJUALAN ================= -->
         <div id="tab-kasir" class="space-y-4">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <!-- Area Katalog Menu -->
@@ -422,7 +386,7 @@
             </div>
         </div>
 
-        <!-- ================= TAB 4: TRANSAKSI PEMBELIAN ================= -->
+        <!-- ================= TAB 3: TRANSAKSI PEMBELIAN ================= -->
         <div id="tab-pembelian" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
                 <h2 class="text-lg font-bold text-orange-700 mb-3">🛍️ Transaksi Pembelian Produk / Kulakan</h2>
@@ -501,7 +465,7 @@
             </div>
         </div>
 
-        <!-- ================= TAB 5: TRANSAKSI PENGELUARAN ================= -->
+        <!-- ================= TAB 4: TRANSAKSI PENGELUARAN ================= -->
         <div id="tab-pengeluaran" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
                 <h2 class="text-lg font-bold text-orange-700 mb-3">💸 Pencatatan Pengeluaran Kas (Expenses) & Tambah Modal</h2>
@@ -587,7 +551,7 @@
             </div>
         </div>
 
-        <!-- ================= TAB 6: LAPORAN PENJUALAN ================= -->
+        <!-- ================= TAB 5: LAPORAN PENJUALAN ================= -->
         <div id="tab-laporan" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
                 <h2 class="text-lg font-bold text-orange-700 mb-3">🧾 Laporan Penjualan & Omset</h2>
@@ -669,7 +633,7 @@
             </div>
         </div>
 
-        <!-- ================= TAB 7: LAPORAN PENGELUARAN ================= -->
+        <!-- ================= TAB 6: LAPORAN PENGELUARAN ================= -->
         <div id="tab-laporan_pengeluaran" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
                 <h2 class="text-lg font-bold text-red-700 mb-3">📉 Laporan Pengeluaran & Arus Kas</h2>
@@ -735,43 +699,7 @@
             </div>
         </div>
 
-        <!-- ================= TAB 8: BACK OFFICE & GAJI ================= -->
-        <div id="tab-backoffice" class="hidden space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
-                <h2 class="text-lg font-bold text-orange-700 mb-2">💼 Back Office & Kalkulator POS</h2>
-                <div class="max-w-xs bg-gray-100 p-3 rounded-xl border">
-                    <input type="text" id="calcDisplay" readonly class="w-full p-2 bg-white text-right text-lg font-bold border rounded mb-2" placeholder="0">
-                    <div class="grid grid-cols-4 gap-1 text-xs font-bold">
-                        <button onclick="calcClear()" class="p-2 bg-red-500 text-white rounded">C</button>
-                        <button onclick="calcOp('/')" class="p-2 bg-gray-300 rounded">/</button>
-                        <button onclick="calcOp('*')" class="p-2 bg-gray-300 rounded">*</button>
-                        <button onclick="calcOp('-')" class="p-2 bg-gray-300 rounded">-</button>
-                        <button onclick="calcInput('7')" class="p-2 bg-white border rounded">7</button>
-                        <button onclick="calcInput('8')" class="p-2 bg-white border rounded">8</button>
-                        <button onclick="calcInput('9')" class="p-2 bg-white border rounded">9</button>
-                        <button onclick="calcOp('+')" class="p-2 bg-gray-300 rounded font-bold text-base flex items-center justify-center">+</button>
-                        <button onclick="calcInput('4')" class="p-2 bg-white border rounded">4</button>
-                        <button onclick="calcInput('5')" class="p-2 bg-white border rounded">5</button>
-                        <button onclick="calcInput('6')" class="p-2 bg-white border rounded">6</button>
-                        <button onclick="calcInput('1')" class="p-2 bg-white border rounded">1</button>
-                        <button onclick="calcInput('2')" class="p-2 bg-white border rounded">2</button>
-                        <button onclick="calcInput('3')" class="p-2 bg-white border rounded">3</button>
-                        <button onclick="calcEqual()" class="p-2 bg-orange-600 text-white rounded col-span-2 font-bold text-base flex items-center justify-center">=</button>
-                        <button onclick="calcInput('0')" class="p-2 bg-white border rounded col-span-2">0</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= TAB 9: MANAGEMENT USER ================= -->
-        <div id="tab-user" class="hidden space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
-                <h2 class="text-lg font-bold text-orange-700 mb-2">👥 Management Hak Akses User</h2>
-                <p class="text-xs text-gray-600">Pengaturan role (Owner, Kasir, Admin) dan hak akses cabang.</p>
-            </div>
-        </div>
-
-        <!-- ================= TAB 10: SETTING PRINTER & NOTA ================= -->
+        <!-- ================= TAB 7: SETTING PRINTER & NOTA ================= -->
         <div id="tab-setting" class="hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow border border-orange-200">
                 <h2 class="text-lg font-bold text-orange-700 mb-2">⚙️ Setting Printer & Layout Nota Thermal 58mm</h2>
