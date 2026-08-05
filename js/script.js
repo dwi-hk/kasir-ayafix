@@ -580,7 +580,7 @@ function resumeTransaksi(index) {
     renderHeldOrders();
 }
 
-/* ================= SIMPAN TRANSAKSI & CETAK NOTA (2 KOLOM) ================= */
+/* ================= SIMPAN TRANSAKSI & CETAK NOTA ================= */
 function simpanTransaksi() {
     if(keranjang.length === 0) { alert('Keranjang Kosong!'); return false; }
     let totalText = document.getElementById('textTotal')?.innerText.replace('Rp ', '').replace(/\./g, '') || '0';
@@ -616,67 +616,32 @@ function tombolSimpanSaja() {
     }
 }
 
-// Injeksi CSS Otomatis untuk Nota Format 2 Kolom Saat Dicetak
-function siapkanStyleCetak2Kolom() {
-    let styleEl = document.getElementById('style-nota-2kolom');
-    if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = 'style-nota-2kolom';
-        styleEl.innerHTML = `
-            .nota-grid-2kolom {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 6px !important;
-                width: 100% !important;
-            }
-            .nota-item-box {
-                border: 1px dashed #ccc !important;
-                padding: 4px !important;
-                box-sizing: border-box !important;
-                font-size: 11px !important;
-                break-inside: avoid !important;
-            }
-            @media print {
-                .nota-grid-2kolom {
-                    display: grid !important;
-                    grid-template-columns: repeat(2, 1fr) !important;
-                    gap: 4px !important;
-                }
-            }
-        `;
-        document.head.appendChild(styleEl);
-    }
-}
-
 function cetakNota() {
     if(keranjang.length === 0) return alert('Keranjang belanja kosong!');
     
-    siapkanStyleCetak2Kolom();
-
-    let htmlItems = '<div class="nota-grid-2kolom">';
+    let htmlItems = '';
     let total = 0;
     keranjang.forEach(i => {
         let harga = i.harga || 0;
         let sub = harga * i.qty;
         total += sub;
         htmlItems += `
-            <div class="nota-item-box font-bold">
-                <div style="font-size: 11px; text-transform: uppercase;">${i.nama || '-'}</div>
-                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #333; margin-top: 2px;">
+            <div class="nota-item-row font-bold">
+                <span>${i.nama || '-'}</span>
+                <div class="nota-item-detail">
                     <span>${i.qty} x ${harga.toLocaleString('id-ID')}</span>
                     <span>Rp${sub.toLocaleString('id-ID')}</span>
                 </div>
             </div>
         `;
     });
-    htmlItems += '</div>';
 
     if(document.getElementById('notaItems')) document.getElementById('notaItems').innerHTML = htmlItems;
     if(document.getElementById('notaWaktu')) document.getElementById('notaWaktu').innerText = "Waktu: " + new Date().toLocaleString('id-ID');
     if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + metodePembayaran;
     if(document.getElementById('notaTotal')) {
         document.getElementById('notaTotal').innerHTML = `
-            <div class="flex justify-between font-bold" style="margin-top: 8px;"><span>TOTAL :</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
         `;
     }
 
@@ -697,32 +662,29 @@ function cetakNotaDariRiwayat(idNota) {
 
     if (!nota) return alert("Data transaksi tidak ditemukan!");
 
-    siapkanStyleCetak2Kolom();
-
-    let htmlItems = '<div class="nota-grid-2kolom">';
+    let htmlItems = '';
     let itemList = Array.isArray(nota.items) ? nota.items : Object.values(nota.items || {});
     
     itemList.forEach(i => {
         let harga = i.harga || 0;
         let sub = harga * (i.qty || 1);
         htmlItems += `
-            <div class="nota-item-box font-bold">
-                <div style="font-size: 11px; text-transform: uppercase;">${i.nama || '-'}</div>
-                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #333; margin-top: 2px;">
+            <div class="nota-item-row font-bold">
+                <span>${i.nama || '-'}</span>
+                <div class="nota-item-detail">
                     <span>${i.qty || 1} x ${harga.toLocaleString('id-ID')}</span>
                     <span>Rp${sub.toLocaleString('id-ID')}</span>
                 </div>
             </div>
         `;
     });
-    htmlItems += '</div>';
 
     if(document.getElementById('notaItems')) document.getElementById('notaItems').innerHTML = htmlItems;
     if(document.getElementById('notaWaktu')) document.getElementById('notaWaktu').innerText = "Waktu: " + (nota.waktu || nota.tanggalISO || '-');
     if(document.getElementById('notaMetode')) document.getElementById('notaMetode').innerText = "Metode: " + (nota.metodePembayaran || nota.metode || 'TUNAI');
     if(document.getElementById('notaTotal')) {
         document.getElementById('notaTotal').innerHTML = `
-            <div class="flex justify-between font-bold" style="margin-top: 8px;"><span>TOTAL :</span><span>Rp ${(nota.total || parseNominalDinamis(nota)).toLocaleString('id-ID')}</span></div>
+            <div class="flex justify-between font-bold"><span>TOTAL :</span><span>Rp ${(nota.total || parseNominalDinamis(nota)).toLocaleString('id-ID')}</span></div>
         `;
     }
 
@@ -1109,6 +1071,7 @@ function updateLaporan() {
     prosesRenderLaporan(sumberData, tglMulai, tglSelesai);
 }
 
+/* METODE PROSES LAPORAN DENGAN DETAIL HARGA BELI, JUAL, DAN PROFIT PER ITEM PER NOTA */
 function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
     let filtered = (semuaTransaksi || []).filter(t => {
         if (!t) return false;
@@ -1258,32 +1221,41 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
                     itemList = Object.values(t.items);
                 }
 
-                itemList.forEach(i => {
-                    hppTrx += ((parseInt(i.hargaBeli) || 0) * (parseInt(i.qty) || 0));
-                });
-
                 let detailItemsStr = '';
                 if (itemList.length > 0) {
                     detailItemsStr = `
-                        <div class="bg-amber-50/60 p-2 rounded-lg border border-amber-200/60 my-1 shadow-inner">
+                        <div class="bg-amber-50/70 p-2 rounded-lg border border-amber-200/80 my-1 shadow-inner">
                             <table class="w-full text-[11px] border-collapse">
                                 <thead>
-                                    <tr class="border-b border-amber-200 text-amber-900 text-left font-bold text-[10px]">
-                                        <th class="pb-1 uppercase">Nama Barang</th>
-                                        <th class="pb-1 text-center uppercase w-12">Qty</th>
-                                        <th class="pb-1 text-right uppercase w-20">Harga</th>
-                                        <th class="pb-1 text-right uppercase w-20">Total</th>
+                                    <tr class="border-b border-amber-300 text-amber-950 text-left font-bold text-[10px]">
+                                        <th class="pb-1 uppercase">Item</th>
+                                        <th class="pb-1 text-center uppercase w-10">Qty</th>
+                                        <th class="pb-1 text-right uppercase">H. Beli</th>
+                                        <th class="pb-1 text-right uppercase">H. Jual</th>
+                                        <th class="pb-1 text-right uppercase">Profit/Item</th>
+                                        <th class="pb-1 text-right uppercase">Total Profit</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-amber-100">
-                                    ${itemList.map(i => `
-                                        <tr>
-                                            <td class="py-1 font-semibold text-gray-800 uppercase">${i.nama || '-'}</td>
-                                            <td class="py-1 text-center font-bold text-orange-700">${i.qty || 1}</td>
-                                            <td class="py-1 text-right text-gray-600">Rp ${(parseInt(i.harga) || 0).toLocaleString('id-ID')}</td>
-                                            <td class="py-1 text-right font-bold text-gray-900">Rp ${((parseInt(i.harga) || 0) * (parseInt(i.qty) || 1)).toLocaleString('id-ID')}</td>
-                                        </tr>
-                                    `).join('')}
+                                <tbody class="divide-y divide-amber-200/60">
+                                    ${itemList.map(i => {
+                                        let qty = parseInt(i.qty) || 1;
+                                        let hJual = parseInt(i.harga) || 0;
+                                        let hBeli = parseInt(i.hargaBeli) || 0;
+                                        let profitItem = hJual - hBeli;
+                                        let totalProfitItem = profitItem * qty;
+                                        hppTrx += (hBeli * qty);
+
+                                        return `
+                                            <tr>
+                                                <td class="py-1 font-semibold text-gray-800 uppercase">${i.nama || '-'}</td>
+                                                <td class="py-1 text-center font-bold text-orange-700">${qty}</td>
+                                                <td class="py-1 text-right text-gray-500">Rp ${hBeli.toLocaleString('id-ID')}</td>
+                                                <td class="py-1 text-right text-gray-800 font-medium">Rp ${hJual.toLocaleString('id-ID')}</td>
+                                                <td class="py-1 text-right text-emerald-600 font-semibold">Rp ${profitItem.toLocaleString('id-ID')}</td>
+                                                <td class="py-1 text-right font-bold text-emerald-700">Rp ${totalProfitItem.toLocaleString('id-ID')}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         </div>
