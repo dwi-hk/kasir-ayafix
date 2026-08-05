@@ -60,3 +60,55 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #c2410c;
 }
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #areaNota, #areaNota * {
+        visibility: visible;
+    }
+    #areaNota {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+}
+
+/* Stiling Nota Cetak 2 Kolom Hemut Kertas */
+.nota-print-box {
+    width: 58mm; /* atau 80mm menyesuaikan lebar kertas thermal */
+    font-family: monospace;
+    font-size: 10px;
+    padding: 2mm;
+    margin: 0 auto;
+}
+
+/* Container 2 Kolom */
+.nota-2col-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.nota-col {
+    width: 49%;
+}
+
+.nota-item-single {
+    border-b: 1px dotted #ccc;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+}
+
+.nota-item-single .item-name {
+    font-size: 9px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nota-item-single .item-sub {
+    font-size: 8px;
+}
