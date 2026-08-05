@@ -32,6 +32,9 @@ let dataTitipanFirebase = [];
 
 let pelangganList = JSON.parse(localStorage.getItem('aya_pelanggan')) || [];
 let supplierList = JSON.parse(localStorage.getItem('aya_supplier')) || [];
+let karyawanList = JSON.parse(localStorage.getItem('aya_karyawan')) || [];
+let absensiList = JSON.parse(localStorage.getItem('aya_absensi')) || [];
+let inventarisList = JSON.parse(localStorage.getItem('aya_inventaris')) || [];
 let barangTitipan = JSON.parse(localStorage.getItem('aya_titipan_v3')) || [];
 let riwayatTransaksi = JSON.parse(localStorage.getItem('aya_transaksi_v3')) || [];
 let riwayatPengeluaran = JSON.parse(localStorage.getItem('aya_pengeluaran_v3')) || [];
@@ -39,6 +42,14 @@ let pembelianList = JSON.parse(localStorage.getItem('aya_pembelian_v1')) || [];
 
 // Custom Modal Laci State
 let modalTambahanManual = parseInt(localStorage.getItem('aya_modal_laci')) || 70000;
+
+// Default Pengaturan Printer Nota
+let settingNota = JSON.parse(localStorage.getItem('aya_setting_nota')) || {
+    header: 'AYA GROUP POS',
+    alamat: 'Cabang Utama',
+    wa: '0812-XXXX-XXXX',
+    footer: 'Terima Kasih Atas Kunjungan Anda!'
+};
 
 let kategoriAktif = 'topping';
 let metodePembayaran = 'TUNAI';
@@ -50,12 +61,14 @@ function gantiCabang(namaCabang) {
     cabangAktif = namaCabang;
     let lblCabang = document.getElementById('lblCabangKasir');
     if(lblCabang) lblCabang.innerText = namaCabang;
+    let txtCabang = document.getElementById('txtCabangInv');
+    if(txtCabang) txtCabang.innerText = namaCabang;
     
     updateLaporan();
     updateLaporanPengeluaran();
 }
 
-// BUKA DAN TUTUP TAB (Tanpa Tab Cabang, Backoffice & User)
+// BUKA DAN TUTUP TAB
 function switchTab(tab) {
     ['master', 'kasir', 'pengeluaran', 'laporan', 'laporan_pengeluaran', 'setting', 'pembelian'].forEach(t => {
         let el = document.getElementById('tab-' + t);
@@ -83,6 +96,9 @@ function switchTab(tab) {
     if(tab === 'pengeluaran') {
         let inputModal = document.getElementById('inputTambahModalLaci');
         if(inputModal) inputModal.value = modalTambahanManual;
+    }
+    if(tab === 'setting') {
+        muatSettingPrinter();
     }
 }
 
@@ -573,6 +589,67 @@ function resumeTransaksi(index) {
     renderHeldOrders();
 }
 
+/* ================= SETTING PRINTER & NOTA ================= */
+function simpanSettingPrinter() {
+    let header = document.getElementById('settingHeader')?.value.trim() || 'AYA GROUP POS';
+    let alamat = document.getElementById('settingAlamat')?.value.trim() || 'Cabang Utama';
+    let wa = document.getElementById('settingWA')?.value.trim() || '0812-XXXX-XXXX';
+    let footer = document.getElementById('settingFooter')?.value.trim() || 'Terima Kasih Atas Kunjungan Anda!';
+
+    settingNota = { header, alamat, wa, footer };
+    localStorage.setItem('aya_setting_nota', JSON.stringify(settingNota));
+
+    if (db) {
+        db.ref('pengaturan/nota').set(settingNota);
+    }
+
+    terapkanSettingNotaKeDOM();
+    alert('Pengaturan Nota Printer Berhasil Disimpan!');
+}
+
+function muatSettingPrinter() {
+    if (db) {
+        db.ref('pengaturan/nota').once('value', (snapshot) => {
+            let data = snapshot.val();
+            if (data) {
+                settingNota = data;
+                localStorage.setItem('aya_setting_nota', JSON.stringify(data));
+            }
+            isiFormSetting();
+        });
+    } else {
+        isiFormSetting();
+    }
+}
+
+function isiFormSetting() {
+    if (document.getElementById('settingHeader')) document.getElementById('settingHeader').value = settingNota.header || '';
+    if (document.getElementById('settingAlamat')) document.getElementById('settingAlamat').value = settingNota.alamat || '';
+    if (document.getElementById('settingWA')) document.getElementById('settingWA').value = settingNota.wa || '';
+    if (document.getElementById('settingFooter')) document.getElementById('settingFooter').value = settingNota.footer || '';
+    terapkanSettingNotaKeDOM();
+}
+
+function resetSettingPrinter() {
+    settingNota = {
+        header: 'AYA GROUP POS',
+        alamat: 'Cabang Utama',
+        wa: '0812-XXXX-XXXX',
+        footer: 'Terima Kasih Atas Kunjungan Anda!'
+    };
+    localStorage.setItem('aya_setting_nota', JSON.stringify(settingNota));
+    if (db) db.ref('pengaturan/nota').set(settingNota);
+    isiFormSetting();
+    alert('Pengaturan Nota Kembali ke Default.');
+}
+
+function terapkanSettingNotaKeDOM() {
+    if (document.getElementById('notaHeaderStore')) document.getElementById('notaHeaderStore').innerText = settingNota.header || 'AYA GROUP POS';
+    if (document.getElementById('notaAddress')) document.getElementById('notaAddress').innerText = settingNota.alamat || 'Cabang Utama';
+    if (document.getElementById('notaPhone')) document.getElementById('notaPhone').innerText = "WA: " + (settingNota.wa || '0812-XXXX-XXXX');
+    if (document.getElementById('notaFooter')) document.getElementById('notaFooter').innerText = settingNota.footer || 'Terima Kasih Atas Kunjungan Anda!';
+}
+
 /* ================= SIMPAN TRANSAKSI & CETAK NOTA ================= */
 function simpanTransaksi() {
     if(keranjang.length === 0) { alert('Keranjang Kosong!'); return false; }
@@ -612,6 +689,8 @@ function tombolSimpanSaja() {
 function cetakNota() {
     if(keranjang.length === 0) return alert('Keranjang belanja kosong!');
     
+    terapkanSettingNotaKeDOM();
+
     let htmlItems = '';
     let total = 0;
     keranjang.forEach(i => {
@@ -654,6 +733,8 @@ function cetakNotaDariRiwayat(idNota) {
     let nota = sumberData.find(t => String(t.id) === String(idNota));
 
     if (!nota) return alert("Data transaksi tidak ditemukan!");
+
+    terapkanSettingNotaKeDOM();
 
     let htmlItems = '';
     let itemList = Array.isArray(nota.items) ? nota.items : Object.values(nota.items || {});
@@ -962,14 +1043,6 @@ function renderPembelian() {
                     Rp ${hJual.toLocaleString('id-ID')}
                 </td>
                 <td class="p-2 text-center font-semibold text-gray-700">${item.supplier || 'Umum'}</td>
-                <td class="p-2 text-right bg-amber-50/50">
-                    <span class="font-black ${totalProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}">
-                        Rp ${totalProfit.toLocaleString('id-ID')}
-                    </span>
-                    <span class="block text-[9px] ${profitPcs >= 0 ? 'text-emerald-700' : 'text-red-700'} font-semibold">
-                        (Profit: Rp ${profitPcs.toLocaleString('id-ID')}/pcs)
-                    </span>
-                </td>
                 <td class="p-2 text-center">
                     <button onclick="hapusPembelian('${item.id}')" class="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded text-[10px]">❌ Hapus</button>
                 </td>
@@ -1119,88 +1192,122 @@ function prosesRenderLaporan(semuaTransaksi, tglMulai, tglSelesai) {
             let qty = parseInt(item.qty) || 0;
             let harga = parseInt(item.harga) || 0;
             let hpp = parseInt(item.hargaBeli) || 0;
+            let namaItem = item.nama || 'Tidak Diketahui';
             
             totalQty += qty;
             totalHPP += (hpp * qty);
 
-            let key = item.nama || 'Item';
-            if(!itemMap[key]) {
-                itemMap[key] = { nama: key, kategori: item.kategori || 'Umum', qty: 0, subtotal: 0 };
+            if (!itemMap[namaItem]) {
+                itemMap[namaItem] = {
+                    nama: namaItem,
+                    kategori: item.kategori || 'Umum',
+                    qty: 0,
+                    subtotal: 0
+                };
             }
-            itemMap[key].qty += qty;
-            itemMap[key].subtotal += (harga * qty);
+            itemMap[namaItem].qty += qty;
+            itemMap[namaItem].subtotal += (harga * qty);
         });
     });
 
-    // Hitung Uang Cash di Laci
-    let expTunai = 0;
-    let expData = (db && dataPengeluaranFirebase.length > 0) ? dataPengeluaranFirebase : riwayatPengeluaran;
-    expData.forEach(e => {
-        let dateStr = parseTanggalISO(e);
-        let inDate = true;
-        if(tglMulai && tglSelesai) inDate = (dateStr >= tglMulai && dateStr <= tglSelesai);
-        if(inDate && (e.metode || 'TUNAI').toUpperCase() === 'TUNAI') {
-            expTunai += parseNominalDinamis(e);
+    let totalPengeluaranTunai = 0;
+    let sumberPengeluaran = (db && dataPengeluaranFirebase.length > 0) ? dataPengeluaranFirebase : riwayatPengeluaran;
+    sumberPengeluaran.filter(exp => {
+        let dateStr = parseTanggalISO(exp);
+        let matchDate = (tglMulai && tglSelesai) ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
+        let metode = (exp.metode || 'TUNAI').toUpperCase();
+        return matchDate && metode === 'TUNAI';
+    }).forEach(exp => {
+        totalPengeluaranTunai += parseNominalDinamis(exp);
+    });
+
+    let inputModalLaci = parseInt(document.getElementById('inputTambahModalLaci')?.value);
+    if (!isNaN(inputModalLaci)) {
+        modalTambahanManual = inputModalLaci;
+    }
+    
+    let cashRiilLaci = modalTambahanManual + totalCash - totalPengeluaranTunai;
+
+    let elOmset = document.getElementById('statOmset');
+    let elQris = document.getElementById('statOmsetQris');
+    let elCash = document.getElementById('statUangCash');
+    let elQty = document.getElementById('statTotalQty');
+    let elTrx = document.getElementById('statTotalTransaksi');
+    let elLaci = document.getElementById('statCashLaci');
+
+    if (elOmset) elOmset.innerText = 'Rp ' + totalOmset.toLocaleString('id-ID');
+    if (elQris) elQris.innerText = 'Rp ' + totalQris.toLocaleString('id-ID');
+    if (elCash) elCash.innerText = 'Rp ' + totalCash.toLocaleString('id-ID');
+    if (elQty) elQty.innerText = totalQty.toLocaleString('id-ID') + ' Pcs';
+    if (elTrx) elTrx.innerText = filtered.length + ' Trx';
+    if (elLaci) elLaci.innerText = 'Rp ' + cashRiilLaci.toLocaleString('id-ID');
+
+    let containerRekap = document.getElementById('tabelRekapItemTerjual');
+    if (containerRekap) {
+        let itemArray = Object.values(itemMap).sort((a, b) => b.qty - a.qty);
+        if (itemArray.length === 0) {
+            containerRekap.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-400">Belum ada item terjual pada periode ini</td></tr>`;
+        } else {
+            let htmlItems = '';
+            itemArray.forEach((item, index) => {
+                htmlItems += `
+                    <tr class="hover:bg-orange-50 transition">
+                        <td class="p-2 text-center font-bold text-gray-500">${index + 1}</td>
+                        <td class="p-2 font-bold uppercase">${item.nama}</td>
+                        <td class="p-2 text-center uppercase text-[10px]"><span class="px-2 py-0.5 bg-gray-100 rounded border">${item.kategori}</span></td>
+                        <td class="p-2 text-center font-black text-orange-600">${item.qty} pcs</td>
+                        <td class="p-2 text-right font-bold">Rp ${item.subtotal.toLocaleString('id-ID')}</td>
+                    </tr>
+                `;
+            });
+            containerRekap.innerHTML = htmlItems;
         }
-    });
-
-    let cashDiLaci = modalTambahanManual + totalCash - expTunai;
-
-    if(document.getElementById('statOmset')) document.getElementById('statOmset').innerText = `Rp ${totalOmset.toLocaleString('id-ID')}`;
-    if(document.getElementById('statOmsetQris')) document.getElementById('statOmsetQris').innerText = `Rp ${totalQris.toLocaleString('id-ID')}`;
-    if(document.getElementById('statUangCash')) document.getElementById('statUangCash').innerText = `Rp ${totalCash.toLocaleString('id-ID')}`;
-    if(document.getElementById('statCashLaci')) document.getElementById('statCashLaci').innerText = `Rp ${cashDiLaci.toLocaleString('id-ID')}`;
-    if(document.getElementById('statTotalQty')) document.getElementById('statTotalQty').innerText = `${totalQty} Pcs`;
-    if(document.getElementById('statTotalTransaksi')) document.getElementById('statTotalTransaksi').innerText = `${filtered.length} Trx`;
-
-    // Render Tabel Rekap Item Terjual
-    let tbodyRekap = document.getElementById('tabelRekapItemTerjual');
-    if(tbodyRekap) {
-        let arrItem = Object.values(itemMap).sort((a,b) => b.qty - a.qty);
-        let htmlRekap = '';
-        arrItem.forEach((it, idx) => {
-            htmlRekap += `
-                <tr class="hover:bg-orange-50 border-b text-xs">
-                    <td class="p-2 text-center font-bold">${idx + 1}</td>
-                    <td class="p-2 font-bold uppercase">${it.nama}</td>
-                    <td class="p-2 text-center text-gray-600">${it.kategori}</td>
-                    <td class="p-2 text-center font-black text-orange-600">${it.qty}</td>
-                    <td class="p-2 text-right font-bold">Rp ${it.subtotal.toLocaleString('id-ID')}</td>
-                </tr>
-            `;
-        });
-        tbodyRekap.innerHTML = htmlRekap || '<tr><td colspan="5" class="text-center py-4 text-gray-400">Tidak ada data transaksi</td></tr>';
     }
 
-    // Render Riwayat Nota
-    let tbodyRiwayat = document.getElementById('tabelRiwayatTransaksi');
-    if(tbodyRiwayat) {
-        let htmlRiwayat = '';
-        filtered.forEach(t => {
-            let totalTrx = parseNominalDinamis(t);
-            let itemList = Array.isArray(t.items) ? t.items : Object.values(t.items || {});
-            let ringkasan = itemList.map(i => `${i.nama || 'Item'} (${i.qty||1})`).join(', ');
+    let containerRiwayat = document.getElementById('tabelRiwayatTransaksi');
+    if (containerRiwayat) {
+        if (filtered.length === 0) {
+            containerRiwayat.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-400">Tidak ada riwayat transaksi pada periode ini</td></tr>`;
+        } else {
+            let htmlRiwayat = '';
+            filtered.forEach(t => {
+                let itemList = [];
+                let hppTrx = 0;
+                if (Array.isArray(t.items)) {
+                    itemList = t.items;
+                } else if (t.items && typeof t.items === 'object') {
+                    itemList = Object.values(t.items);
+                }
 
-            htmlRiwayat += `
-                <tr class="hover:bg-orange-50 border-b text-xs">
-                    <td class="p-2 font-mono text-[10px] font-bold">${t.id}</td>
-                    <td class="p-2 text-[10px]">${t.waktu || t.tanggalISO || '-'}</td>
-                    <td class="p-2 text-[10px] font-bold text-gray-700">${t.cabang || 'Cabang'}</td>
-                    <td class="p-2 truncate max-w-xs" title="${ringkasan}">${ringkasan || '-'}</td>
-                    <td class="p-2 text-center font-bold">${t.metodePembayaran || t.metode || 'TUNAI'}</td>
-                    <td class="p-2 text-right font-black text-orange-600">Rp ${totalTrx.toLocaleString('id-ID')}</td>
-                    <td class="p-2 text-right text-emerald-600 font-bold">Rp ${(t.laba || 0).toLocaleString('id-ID')}</td>
-                    <td class="p-2 text-center">
-                        <button onclick="cetakNotaDariRiwayat('${t.id}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[10px]">🖨️ Cetak</button>
-                    </td>
-                </tr>
-            `;
-        });
-        tbodyRiwayat.innerHTML = htmlRiwayat || '<tr><td colspan="8" class="text-center py-4 text-gray-400">Tidak ada data transaksi</td></tr>';
+                itemList.forEach(i => {
+                    hppTrx += ((parseInt(i.hargaBeli) || 0) * (parseInt(i.qty) || 0));
+                });
+
+                let totalTrx = parseNominalDinamis(t);
+                let labaTrx = totalTrx - hppTrx;
+
+                htmlRiwayat += `
+                    <tr class="hover:bg-orange-50 transition border-b text-xs">
+                        <td class="p-2 font-mono text-[10px] font-bold">${t.id || '-'}</td>
+                        <td class="p-2 text-[10px]">${t.waktu || t.tanggalISO || '-'}</td>
+                        <td class="p-2 uppercase text-[10px] font-bold">${t.cabang || 'AYA GROUP'}</td>
+                        <td class="p-2 font-semibold">${itemList.map(i => `${i.nama} (${i.qty})`).join(', ')}</td>
+                        <td class="p-2 text-center font-bold">${t.metodePembayaran || t.metode || 'TUNAI'}</td>
+                        <td class="p-2 text-right font-bold text-orange-600">Rp ${totalTrx.toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-right font-bold text-emerald-600">Rp ${labaTrx.toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-center">
+                            <button onclick="cetakNotaDariRiwayat('${t.id}')" class="px-2 py-1 bg-emerald-600 text-white rounded font-bold text-[10px]">🖨️ Cetak</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            containerRiwayat.innerHTML = htmlRiwayat;
+        }
     }
 }
 
 /* ================= LAPORAN PENGELUARAN ================= */
+
 function terapkanFilterPengeluaran() {
     updateLaporanPengeluaran();
 }
@@ -1213,114 +1320,113 @@ function updateLaporanPengeluaran() {
 
     let sumberData = (db && dataPengeluaranFirebase.length > 0) ? dataPengeluaranFirebase : riwayatPengeluaran;
 
-    let filtered = (sumberData || []).filter(e => {
-        if(!e) return false;
-        let dateStr = parseTanggalISO(e);
-
-        let inDate = true;
-        if(tglMulai && tglSelesai) inDate = (dateStr >= tglMulai && dateStr <= tglSelesai);
-        else if(tglMulai) inDate = (dateStr >= tglMulai);
-        else if(tglSelesai) inDate = (dateStr <= tglSelesai);
-
-        let inKat = (filterKat === 'SEMUA') ? true : (e.kategori === filterKat);
-
-        let inCabang = true;
-        if (cabangAktif !== 'SEMUA CABANG') {
-            inCabang = (e.cabang === cabangAktif);
+    let filtered = (sumberData || []).filter(exp => {
+        if (!exp) return false;
+        let dateStr = parseTanggalISO(exp);
+        
+        let matchDate = true;
+        if (tglMulai && tglSelesai) {
+            matchDate = dateStr ? (dateStr >= tglMulai && dateStr <= tglSelesai) : true;
+        } else if (tglMulai) {
+            matchDate = dateStr >= tglMulai;
+        } else if (tglSelesai) {
+            matchDate = dateStr <= tglSelesai;
         }
 
-        return inDate && inKat && inCabang;
+        let matchKat = (filterKat === 'SEMUA') ? true : (exp.kategori === filterKat);
+
+        let matchCabang = false;
+        if (cabangAktif === 'SEMUA CABANG') {
+            matchCabang = true;
+        } else if (cabangAktif === 'DAPUR AYA SEMBAKO') {
+            matchCabang = (!exp.cabang || exp.cabang === 'DAPUR AYA SEMBAKO' || exp.cabang === 'DAPUR AYA' || exp.cabang === 'AYA TOKO Sembako');
+        } else {
+            matchCabang = (exp.cabang === cabangAktif);
+        }
+
+        return matchDate && matchKat && matchCabang;
     });
 
     let totalExp = 0;
-    let expTunai = 0;
-    let expTransfer = 0;
+    let totalTunai = 0;
+    let totalTransfer = 0;
 
-    filtered.forEach(e => {
-        let nominal = parseNominalDinamis(e);
+    filtered.forEach(exp => {
+        let nominal = parseNominalDinamis(exp);
         totalExp += nominal;
-        let met = (e.metode || 'TUNAI').toUpperCase();
-        if(met === 'TRANSFER') expTransfer += nominal;
-        else expTunai += nominal;
+        let me = (exp.metode || 'TUNAI').toUpperCase();
+        if (me === 'TRANSFER') totalTransfer += nominal;
+        else totalTunai += nominal;
     });
 
-    if(document.getElementById('statTotalPengeluaran')) document.getElementById('statTotalPengeluaran').innerText = `Rp ${totalExp.toLocaleString('id-ID')}`;
-    if(document.getElementById('statPengeluaranTunai')) document.getElementById('statPengeluaranTunai').innerText = `Rp ${expTunai.toLocaleString('id-ID')}`;
-    if(document.getElementById('statPengeluaranTransfer')) document.getElementById('statPengeluaranTransfer').innerText = `Rp ${expTransfer.toLocaleString('id-ID')}`;
+    let elTotal = document.getElementById('statTotalPengeluaran');
+    let elTunai = document.getElementById('statPengeluaranTunai');
+    let elTransfer = document.getElementById('statPengeluaranTransfer');
+
+    if (elTotal) elTotal.innerText = 'Rp ' + totalExp.toLocaleString('id-ID');
+    if (elTunai) elTunai.innerText = 'Rp ' + totalTunai.toLocaleString('id-ID');
+    if (elTransfer) elTransfer.innerText = 'Rp ' + totalTransfer.toLocaleString('id-ID');
 
     let tbody = document.getElementById('tabelRiwayatPengeluaran');
-    if(tbody) {
-        let html = '';
-        filtered.forEach(e => {
-            let nominal = parseNominalDinamis(e);
-            html += `
-                <tr class="hover:bg-red-50 border-b text-xs">
-                    <td class="p-2 font-mono text-[10px] font-bold">${e.id}</td>
-                    <td class="p-2 text-[10px]">${e.waktu || e.tanggalISO || '-'}</td>
-                    <td class="p-2 font-bold text-gray-700">${e.cabang || 'Cabang'}</td>
-                    <td class="p-2 font-semibold text-gray-600">${e.kategori || 'Umum'}</td>
-                    <td class="p-2 font-bold text-gray-800">${e.namaBarang || e.keterangan || '-'}</td>
-                    <td class="p-2 text-center">${e.qty || 1} ${e.satuan || 'pcs'}</td>
-                    <td class="p-2 text-center font-bold">${e.metode || 'TUNAI'}</td>
-                    <td class="p-2 text-right font-black text-red-600">Rp ${nominal.toLocaleString('id-ID')}</td>
-                    <td class="p-2 text-center">
-                        <button onclick="hapusPengeluaranFirebase('${e.id}')" class="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded text-[10px]">❌ Hapus</button>
-                    </td>
-                </tr>
-            `;
-        });
-        tbody.innerHTML = html || '<tr><td colspan="9" class="text-center py-4 text-gray-400">Tidak ada data pengeluaran</td></tr>';
+    if (tbody) {
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-gray-400">Tidak ada riwayat pengeluaran pada periode ini</td></tr>`;
+        } else {
+            let html = '';
+            filtered.forEach(exp => {
+                let nominal = parseNominalDinamis(exp);
+                html += `
+                    <tr class="hover:bg-red-50 border-b text-xs">
+                        <td class="p-2 font-mono text-[10px] font-bold">${exp.id || '-'}</td>
+                        <td class="p-2 text-[10px]">${exp.waktu || exp.tanggalISO || '-'}</td>
+                        <td class="p-2 uppercase text-[10px] font-bold">${exp.cabang || 'AYA GROUP'}</td>
+                        <td class="p-2 font-bold text-red-800">${exp.kategori || 'Umum'}</td>
+                        <td class="p-2 font-semibold">${exp.namaBarang || exp.keterangan || '-'}</td>
+                        <td class="p-2 text-center font-bold">${exp.qty || 1} ${exp.satuan || 'pcs'}</td>
+                        <td class="p-2 text-center font-bold">${exp.metode || 'TUNAI'}</td>
+                        <td class="p-2 text-right font-black text-red-600">Rp ${nominal.toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-center">
+                            <button onclick="hapusPengeluaranFirebase('${exp.id}')" class="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded text-[10px]">❌ Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
     }
 }
 
-/* ================= INISIALISASI REALTIME FIREBASE ================= */
-if(db) {
-    db.ref('transaksi').on('value', snapshot => {
-        let val = snapshot.val();
-        dataTransaksiFirebase = val ? Object.values(val) : [];
-        updateLaporan();
-    });
-
-    db.ref('pengeluaran').on('value', snapshot => {
-        let val = snapshot.val();
-        dataPengeluaranFirebase = val ? Object.values(val) : [];
-        updateLaporanPengeluaran();
-        updateLaporan();
-    });
-
-    db.ref('barang_titipan').on('value', snapshot => {
-        let val = snapshot.val();
-        dataTitipanFirebase = val ? Object.values(val) : [];
-        renderBarangTitipan();
-    });
-
-    db.ref('pembelian').on('value', snapshot => {
-        let val = snapshot.val();
-        pembelianList = val ? Object.values(val) : [];
-        renderPembelian();
-    });
-
-    db.ref('pengaturan/modal_laci').on('value', snapshot => {
-        let val = snapshot.val();
-        if(val !== null) {
-            modalTambahanManual = parseInt(val) || 70000;
-            localStorage.setItem('aya_modal_laci', modalTambahanManual);
-            let inputModal = document.getElementById('inputTambahModalLaci');
-            if(inputModal) inputModal.value = modalTambahanManual;
+// Inisialisasi Saat Halaman Dimuat
+window.addEventListener('DOMContentLoaded', () => {
+    terapkanSettingNotaKeDOM();
+    if(typeof databaseMenu !== 'undefined') {
+        renderMenu();
+    }
+    
+    // Synchro Realtime Firebase jika Aktif
+    if (db) {
+        db.ref('transaksi').on('value', snapshot => {
+            let val = snapshot.val();
+            dataTransaksiFirebase = val ? Object.values(val) : [];
             updateLaporan();
-        }
-    });
-}
-
-// Inisialisasi awal saat dokumen dimuat
-document.addEventListener('DOMContentLoaded', () => {
-    setTanggalHariIniIfEmpty();
-    renderMenu();
-    renderMasterData();
-    renderOpsiMasterTitipan();
-    renderBarangTitipan();
-    renderOpsiMasterPembelian();
-    renderPembelian();
-    updateLaporan();
-    updateLaporanPengeluaran();
+        });
+        db.ref('pengeluaran').on('value', snapshot => {
+            let val = snapshot.val();
+            dataPengeluaranFirebase = val ? Object.values(val) : [];
+            updateLaporanPengeluaran();
+        });
+        db.ref('barang_titipan').on('value', snapshot => {
+            let val = snapshot.val();
+            dataTitipanFirebase = val ? Object.values(val) : [];
+            renderBarangTitipan();
+        });
+        db.ref('pengaturan/nota').on('value', snapshot => {
+            let val = snapshot.val();
+            if (val) {
+                settingNota = val;
+                localStorage.setItem('aya_setting_nota', JSON.stringify(val));
+                terapkanSettingNotaKeDOM();
+            }
+        });
+    }
 });
